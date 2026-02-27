@@ -93,9 +93,6 @@ namespace IBSWeb.Areas.Identity.Pages.Account
             [ValidateNever]
             public IEnumerable<SelectListItem> RoleList { get; set; }
 
-            [NotMapped]
-            public IEnumerable<SelectListItem> MobilityStations { get; set; }
-
             /// <summary>
             ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
             ///     directly from your code. This API may change or be removed in future releases.
@@ -129,15 +126,7 @@ namespace IBSWeb.Areas.Identity.Pages.Account
                 {
                     Text = i,
                     Value = i
-                }),
-                MobilityStations = _dbContext.MobilityStations
-                .OrderBy(s => s.StationId)
-                .Where(s => s.IsActive)
-                .Select(s => new SelectListItem
-                {
-                    Value = s.StationCode,
-                    Text = s.StationCode + " " + s.StationName
-                }),
+                })
             };
         }
 

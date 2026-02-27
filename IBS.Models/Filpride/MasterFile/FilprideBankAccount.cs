@@ -36,9 +36,5 @@ namespace IBS.Models.Filpride.MasterFile
         public string Company { get; set; } = string.Empty;
 
         public bool IsFilpride { get; set; }
-
-        public bool IsMobility { get; set; }
-
-        public bool IsBienes { get; set; }
     }
 }

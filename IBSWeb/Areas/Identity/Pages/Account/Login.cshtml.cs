@@ -216,7 +216,6 @@ namespace IBSWeb.Areas.Identity.Pages.Account
         private async Task LoadPageData(string returnUrl)
         {
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
-            Stations = await _unitOfWork.GetMobilityStationListAsyncByCode();
             Companies = await _unitOfWork.GetCompanyListAsyncByName();
             Users = await _unitOfWork.GetCashierListAsyncByUsernameAsync();
             StationAccess = await _unitOfWork.GetCashierListAsyncByStationAsync();

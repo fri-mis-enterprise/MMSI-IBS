@@ -470,9 +470,6 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     throw new ArgumentException($"Cannot edit this record because the period {existingRecord.Date:MMM yyyy} is already closed.");
                 }
 
-                var getPurchaseOrder = await _unitOfWork.MobilityPurchaseOrder
-                    .GetAsync(p => p.PurchaseOrderNo == existingRecord.CustomerPoNo, cancellationToken);
-
                 CustomerOrderSlipViewModel viewModel = new()
                 {
                     CustomerOrderSlipId = existingRecord.CustomerOrderSlipId,
@@ -501,7 +498,6 @@ namespace IBSWeb.Areas.Filpride.Controllers
                         .GetCustomerBranchesSelectListAsync(existingRecord.CustomerId, cancellationToken),
                     SelectedBranch = existingRecord.Branch,
                     CustomerType = existingRecord.CustomerType,
-                    StationCode = getPurchaseOrder?.StationCode,
                     Freight = existingRecord.Freight ?? 0,
                     MinDate = minDate,
                     PaymentTerms = await _unitOfWork.FilprideTerms.GetFilprideTermsListAsyncByCode(cancellationToken)
@@ -1750,51 +1746,6 @@ namespace IBSWeb.Areas.Filpride.Controllers
                     ex.Message, ex.StackTrace, _userManager.GetUserName(User));
                 return RedirectToAction(nameof(Preview), new { id });
             }
-        }
-        public async Task<IActionResult> GetPurchaseOrderList(int? productId, string stationCode, CancellationToken cancellationToken)
-        {
-            if (productId == null)
-            {
-                return Json(null);
-            }
-
-            var filprideProduct = await _unitOfWork.Product.GetAsync(x => x.ProductId == productId, cancellationToken);
-            var mobilityProduct = await _unitOfWork.MobilityProduct.GetAsync(p => p.ProductCode == filprideProduct!.ProductCode, cancellationToken);
-
-            var purchaseOrder = (await _unitOfWork.MobilityPurchaseOrder
-                .GetAllAsync(p => p.ProductId == mobilityProduct!.ProductId
-                            && p.StationCode == stationCode
-                            && p.PostedBy != null
-                            && !p.IsReceived, cancellationToken))
-                .Select(po => new SelectListItem
-                {
-                    Value = po.PurchaseOrderId.ToString(),
-                    Text = po.PurchaseOrderNo
-                })
-                .ToList();
-
-            return Json(purchaseOrder.Count == 0 ? null : purchaseOrder);
-        }
-        public async Task<IActionResult> GetPurchaseOrder(string? customerPoNo, CancellationToken cancellationToken)
-        {
-            if (customerPoNo == null)
-            {
-                return Json(null);
-            }
-
-            var purchaseOrder = await _unitOfWork.MobilityPurchaseOrder
-                .GetAsync(p => p.PurchaseOrderNo == customerPoNo.Trim(), cancellationToken);
-
-            if (purchaseOrder == null)
-            {
-                return Json(null);
-            }
-
-            return Json(new
-            {
-                purchaseOrder.Quantity,
-                purchaseOrder.UnitPrice,
-            });
         }
 
         [DepartmentAuthorize(SD.Department_Marketing, SD.Department_RCD)]

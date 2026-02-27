@@ -58,7 +58,6 @@ namespace IBSWeb.Areas.Admin.Controllers
                         name = user.Name,
                         department = user.Department,
                         role = string.Join(", ", roles),
-                        stationAccess = user.StationAccess ?? "N/A",
                         isActive = user.IsActive,
                         createdDate = user.CreatedDate.ToString("MMM dd, yyyy"),
                         modifiedDate = user.ModifiedDate?.ToString("MMM dd, yyyy") ?? "N/A",
@@ -99,7 +98,6 @@ namespace IBSWeb.Areas.Admin.Controllers
                     name = user.Name,
                     department = user.Department,
                     role = roles.FirstOrDefault(),
-                    stationAccess = user.StationAccess,
                     isActive = user.IsActive
                 };
 
@@ -145,7 +143,6 @@ namespace IBSWeb.Areas.Admin.Controllers
                         UserName = model.Username,
                         Name = model.Name.ToUpper(),
                         Department = model.Department,
-                        StationAccess = model.StationAccess,
                         IsActive = model.IsActive,
                         CreatedDate = DateTimeHelper.GetCurrentPhilippineTime()
                     };
@@ -197,7 +194,6 @@ namespace IBSWeb.Areas.Admin.Controllers
                     var changes = new List<string>();
                     if (user.Name != model.Name) changes.Add($"Name: {user.Name} → {model.Name}");
                     if (user.Department != model.Department) changes.Add($"Department: {user.Department} → {model.Department}");
-                    if (user.StationAccess != model.StationAccess) changes.Add($"Station: {user.StationAccess ?? "None"} → {model.StationAccess ?? "None"}");
                     if (user.IsActive != model.IsActive) changes.Add($"Status: {(user.IsActive ? "Active" : "Inactive")} → {(model.IsActive ? "Active" : "Inactive")}");
 
                     // Update role if changed
@@ -236,7 +232,6 @@ namespace IBSWeb.Areas.Admin.Controllers
                     // Update user properties
                     user.Name = model.Name.ToUpper();
                     user.Department = model.Department;
-                    user.StationAccess = model.StationAccess;
                     user.IsActive = model.IsActive;
                     user.ModifiedDate = DateTimeHelper.GetCurrentPhilippineTime();
                     user.ModifiedBy = currentUser;
@@ -416,22 +411,6 @@ namespace IBSWeb.Areas.Admin.Controllers
             return Json(roles);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetStations()
-        {
-            var stations = await _dbContext.MobilityStations
-                .Where(s => s.IsActive)
-                .OrderBy(s => s.StationId)
-                .Select(s => new SelectListItem
-                {
-                    Value = s.StationCode,
-                    Text = $"{s.StationCode} {s.StationName}"
-                })
-                .ToListAsync();
-
-            return Json(stations);
-        }
-
         #endregion
     }
 
@@ -446,7 +425,6 @@ namespace IBSWeb.Areas.Admin.Controllers
         public string Name { get; set; }
         [Required]
         public string Department { get; set; }
-        public string? StationAccess { get; set; }
         [Required]
         public string Role { get; set; }
         public string? Password { get; set; }

@@ -1,8 +1,6 @@
 using System.ComponentModel;
 using System.Linq.Expressions;
 using IBS.DataAccess.Data;
-using IBS.DataAccess.Repository.Bienes;
-using IBS.DataAccess.Repository.Bienes.IRepository;
 using IBS.DataAccess.Repository.Filpride;
 using IBS.DataAccess.Repository.Filpride.IRepository;
 using IBS.DataAccess.Repository.IRepository;
@@ -10,29 +8,11 @@ using IBS.DataAccess.Repository.MasterFile;
 using IBS.DataAccess.Repository.MasterFile.IRepository;
 using IBS.DataAccess.Repository.MMSI;
 using IBS.DataAccess.Repository.MMSI.IRepository;
-using IBS.DataAccess.Repository.Mobility;
-using IBS.DataAccess.Repository.Mobility.IRepository;
 using IBS.Models.Enums;
 using IBS.Models.Filpride.MasterFile;
-using IBS.Models.Mobility.MasterFile;
 using IBS.Utility.Constants;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using BankAccountRepository = IBS.DataAccess.Repository.Mobility.BankAccountRepository;
-using ChartOfAccountRepository = IBS.DataAccess.Repository.Mobility.ChartOfAccountRepository;
-using CustomerRepository = IBS.DataAccess.Repository.Mobility.CustomerRepository;
-using IBankAccountRepository = IBS.DataAccess.Repository.Mobility.IRepository.IBankAccountRepository;
-using IChartOfAccountRepository = IBS.DataAccess.Repository.Mobility.IRepository.IChartOfAccountRepository;
-using ICustomerOrderSlipRepository = IBS.DataAccess.Repository.Mobility.IRepository.ICustomerOrderSlipRepository;
-using ICustomerRepository = IBS.DataAccess.Repository.Mobility.IRepository.ICustomerRepository;
-using IInventoryRepository = IBS.DataAccess.Repository.Mobility.IRepository.IInventoryRepository;
-using InventoryRepository = IBS.DataAccess.Repository.Mobility.InventoryRepository;
-using IProductRepository = IBS.DataAccess.Repository.MasterFile.IRepository.IProductRepository;
-using IServiceRepository = IBS.DataAccess.Repository.Mobility.IRepository.IServiceRepository;
-using ISupplierRepository = IBS.DataAccess.Repository.Mobility.IRepository.ISupplierRepository;
-using ProductRepository = IBS.DataAccess.Repository.MasterFile.ProductRepository;
-using ServiceRepository = IBS.DataAccess.Repository.Mobility.ServiceRepository;
-using SupplierRepository = IBS.DataAccess.Repository.Mobility.SupplierRepository;
 
 namespace IBS.DataAccess.Repository
 {
@@ -92,8 +72,6 @@ namespace IBS.DataAccess.Repository
                     cancellationToken);
         }
 
-        #region--Mobility
-
         public async Task ExecuteInTransactionAsync(Func<Task> action, CancellationToken cancellationToken = default)
         {
             var strategy = _db.Database.CreateExecutionStrategy();
@@ -113,39 +91,6 @@ namespace IBS.DataAccess.Repository
                 }
             });
         }
-
-        public IChartOfAccountRepository MobilityChartOfAccount { get; private set; }
-        public ISalesHeaderRepository MobilitySalesHeader { get; private set; }
-        public ISalesDetailRepository MobilitySalesDetail { get; private set; }
-        public IFuelPurchaseRepository MobilityFuelPurchase { get; private set; }
-        public ILubePurchaseHeaderRepository MobilityLubePurchaseHeader { get; private set; }
-        public ILubePurchaseDetailRepository MobilityLubePurchaseDetail { get; private set; }
-        public IPOSalesRepository MobilityPOSales { get; private set; }
-        public IOfflineRepository MobilityOffline { get; private set; }
-        public IGeneralLedgerRepository MobilityGeneralLedger { get; private set; }
-        public IInventoryRepository MobilityInventory { get; private set; }
-        public IStationRepository MobilityStation { get; private set; }
-        public ISupplierRepository MobilitySupplier { get; private set; }
-        public ICustomerRepository MobilityCustomer { get; private set; }
-        public IBankAccountRepository MobilityBankAccount { get; private set; }
-        public IServiceRepository MobilityService { get; private set; }
-        public Mobility.IRepository.IProductRepository MobilityProduct { get; private set; }
-        public Mobility.IRepository.IPickUpPointRepository MobilityPickUpPoint { get; private set; }
-        public Mobility.IRepository.IEmployeeRepository MobilityEmployee { get; private set; }
-        public Mobility.IRepository.IPurchaseOrderRepository MobilityPurchaseOrder { get; private set; }
-        public Mobility.IRepository.IReceivingReportRepository MobilityReceivingReport { get; private set; }
-        public Mobility.IRepository.ICheckVoucherRepository MobilityCheckVoucher { get; private set; }
-        public Mobility.IRepository.IJournalVoucherRepository MobilityJournalVoucher { get; private set; }
-        public Mobility.IRepository.IServiceInvoiceRepository MobilityServiceInvoice { get; private set; }
-        public Mobility.IRepository.ICreditMemoRepository MobilityCreditMemo { get; private set; }
-        public Mobility.IRepository.IDebitMemoRepository MobilityDebitMemo { get; private set; }
-        public Mobility.IRepository.ICollectionReceiptRepository MobilityCollectionReceipt { get; private set; }
-
-        public ICustomerOrderSlipRepository MobilityCustomerOrderSlip { get; private set; }
-
-        public IDepositRepository MobilityDeposit { get; private set; }
-
-        #endregion
 
         #region--Filpride
 
@@ -204,12 +149,6 @@ namespace IBS.DataAccess.Repository
 
         #endregion
 
-        #region --Bienes
-
-        public IPlacementRepository BienesPlacement { get; private set; }
-
-        #endregion
-
         #region --MMSI
 
         public IMsapRepository Msap { get; private set; }
@@ -238,39 +177,6 @@ namespace IBS.DataAccess.Repository
             Product = new ProductRepository(_db);
             Company = new CompanyRepository(_db);
             Notifications = new NotificationRepository(_db);
-
-            #region--Mobility
-
-            MobilityChartOfAccount = new ChartOfAccountRepository(_db);
-            MobilitySalesHeader = new SalesHeaderRepository(_db);
-            MobilitySalesDetail = new SalesDetailRepository(_db);
-            MobilityFuelPurchase = new FuelPurchaseRepository(_db);
-            MobilityLubePurchaseHeader = new LubePurchaseHeaderRepository(_db);
-            MobilityLubePurchaseDetail = new LubePurchaseDetailRepository(_db);
-            MobilityPOSales = new POSalesRepository(_db);
-            MobilityOffline = new OfflineRepository(_db);
-            MobilityGeneralLedger = new GeneralLedgerRepository(_db);
-            MobilityInventory = new InventoryRepository(_db);
-            MobilityStation = new StationRepository(_db);
-            MobilitySupplier = new SupplierRepository(_db);
-            MobilityCustomer = new CustomerRepository(_db);
-            MobilityBankAccount = new BankAccountRepository(_db);
-            MobilityService = new ServiceRepository(_db);
-            MobilityProduct = new Mobility.ProductRepository(_db);
-            MobilityPickUpPoint = new Mobility.PickUpPointRepository(_db);
-            MobilityEmployee = new Mobility.EmployeeRepository(_db);
-            MobilityPurchaseOrder = new Mobility.PurchaseOrderRepository(_db);
-            MobilityReceivingReport = new Mobility.ReceivingReportRepository(_db);
-            MobilityCheckVoucher = new Mobility.CheckVoucherRepository(_db);
-            MobilityJournalVoucher = new Mobility.JournalVoucherRepository(_db);
-            MobilityCustomerOrderSlip = new Mobility.CustomerOrderSlipRepository(_db);
-            MobilityServiceInvoice = new Mobility.ServiceInvoiceRepository(_db);
-            MobilityCreditMemo = new Mobility.CreditMemoRepository(_db);
-            MobilityDebitMemo = new Mobility.DebitMemoRepository(_db);
-            MobilityCollectionReceipt = new Mobility.CollectionReceiptRepository(_db);
-            MobilityDeposit = new DepositRepository(_db);
-
-            #endregion
 
             #region--Filpride
 
@@ -340,12 +246,6 @@ namespace IBS.DataAccess.Repository
             Vessel = new VesselRepository(_db);
 
             #endregion
-
-            #region --Bienes
-
-            BienesPlacement = new PlacementRepository(_db);
-
-            #endregion
         }
 
         public async Task SaveAsync(CancellationToken cancellationToken = default)
@@ -354,162 +254,6 @@ namespace IBS.DataAccess.Repository
         }
 
         public void Dispose() => _db.Dispose();
-
-        #region--Mobility
-
-        public async Task<List<SelectListItem>> GetMobilityStationListAsyncByCode(CancellationToken cancellationToken = default)
-        {
-            return await _db.MobilityStations
-                .OrderBy(s => s.StationCode)
-                .Where(s => s.IsActive)
-                .Select(s => new SelectListItem
-                {
-                    Value = s.StationCode,
-                    Text = s.StationCode + " " + s.StationName
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<SelectListItem>> GetMobilityStationListWithCustomersAsyncByCode(List<MobilityCustomer> mobilityCustomers, CancellationToken cancellationToken = default)
-        {
-            var customerStationCodes = mobilityCustomers
-               .Select(mc => mc.StationCode)
-               .Distinct() // Optional: To ensure no duplicate StationCodes
-               .ToList();
-
-            List<SelectListItem> selectListItem = await _db.MobilityStations
-                .Where(s => s.IsActive)
-                .Where(s => customerStationCodes.Contains(s.StationCode)) // Filter based on StationCode
-                .OrderBy(s => s.StationId)
-                .Select(s => new SelectListItem
-                {
-                    Value = s.StationCode,
-                    Text = s.StationCode + " " + s.StationName
-                })
-                .ToListAsync(cancellationToken);
-
-            return selectListItem;
-        }
-
-        public async Task<List<SelectListItem>> GetMobilityStationListAsyncById(CancellationToken cancellationToken = default)
-        {
-            return await _db.MobilityStations
-                .OrderBy(s => s.StationId)
-                .Where(s => s.IsActive)
-                .Select(s => new SelectListItem
-                {
-                    Value = s.StationId.ToString(),
-                    Text = s.StationCode + " " + s.StationName
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<SelectListItem>> GetMobilityCustomerListAsyncByCodeName(CancellationToken cancellationToken = default)
-        {
-            return await _db.MobilityCustomers
-                .OrderBy(c => c.CustomerId)
-                .Where(c => c.IsActive)
-                .Select(c => new SelectListItem
-                {
-                    Value = c.CustomerCodeName,
-                    Text = c.CustomerName.ToString()
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<SelectListItem>> GetMobilityCustomerListAsyncByCode(CancellationToken cancellationToken = default)
-        {
-            return await _db.MobilityCustomers
-                .OrderBy(c => c.CustomerId)
-                .Where(c => c.IsActive)
-                .Select(c => new SelectListItem
-                {
-                    Value = c.CustomerCodeName,
-                    Text = c.CustomerName.ToString()
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<SelectListItem>> GetMobilityCustomerListAsyncById(string stationCodeClaims, CancellationToken cancellationToken = default)
-        {
-            return await _db.MobilityCustomers
-                .OrderBy(c => c.CustomerId)
-                .Where(c => c.IsActive)
-                .Where(c => c.StationCode == stationCodeClaims)
-                .Select(c => new SelectListItem
-                {
-                    Value = c.CustomerId.ToString(),
-                    Text = c.CustomerName.ToString()
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<SelectListItem>> GetMobilityCustomerListAsyncByIdAll(string stationCodeClaims, CancellationToken cancellationToken = default)
-        {
-            return await _db.MobilityCustomers
-                .OrderBy(c => c.CustomerId)
-                .Where(c => c.IsActive)
-                .Select(c => new SelectListItem
-                {
-                    Value = c.CustomerId.ToString(),
-                    Text = c.CustomerName.ToString()
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<SelectListItem>> GetMobilitySupplierListAsyncById(string stationCodeClaims, CancellationToken cancellationToken = default)
-        {
-            return await _db.MobilitySuppliers
-                .OrderBy(s => s.SupplierCode)
-                .Where(s => s.IsActive && s.StationCode == stationCodeClaims)
-                .Select(s => new SelectListItem
-                {
-                    Value = s.SupplierId.ToString(),
-                    Text = s.SupplierCode + " " + s.SupplierName
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<string> GetMobilityStationNameAsync(string stationCodeClaims, CancellationToken cancellationToken)
-        {
-            var station = await _db.MobilityStations
-                .Where(station => station.StationCode == stationCodeClaims)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            var stationName = station?.StationName ?? "Unknown Station";
-            var fullStationName = stationName + " STATION";
-            var stationString = fullStationName;
-
-            return stationString;
-        }
-
-        public async Task<List<SelectListItem>> GetMobilityProductListAsyncByCode(CancellationToken cancellationToken = default)
-        {
-            return await _db.MobilityProducts
-                .OrderBy(p => p.ProductId)
-                .Where(p => p.IsActive)
-                .Select(p => new SelectListItem
-                {
-                    Value = p.ProductCode,
-                    Text = p.ProductCode + " " + p.ProductName
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<SelectListItem>> GetMobilityProductListAsyncById(CancellationToken cancellationToken = default)
-        {
-            return await _db.MobilityProducts
-                .OrderBy(p => p.ProductId)
-                .Where(p => p.IsActive)
-                .Select(p => new SelectListItem
-                {
-                    Value = p.ProductId.ToString(),
-                    Text = p.ProductCode + " " + p.ProductName
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        #endregion
 
         #region--Filpride
 
@@ -523,8 +267,6 @@ namespace IBS.DataAccess.Repository
             Expression propertyAccess = companyName switch
             {
                 nameof(Filpride) => Expression.Property(param, "IsFilpride"),
-                nameof(Mobility) => Expression.Property(param, "IsMobility"),
-                nameof(Bienes) => Expression.Property(param, "IsBienes"),
                 nameof(MMSI) => Expression.Property(param, "IsMMSI"),
                 _ => Expression.Constant(false)
             };
@@ -539,19 +281,6 @@ namespace IBS.DataAccess.Repository
                 .OrderBy(c => c.CustomerId)
                 .Where(c => c.IsActive)
                 .Where(GetCompanyFilter<FilprideCustomer>(company))
-                .Select(c => new SelectListItem
-                {
-                    Value = c.CustomerId.ToString(),
-                    Text = c.CustomerName
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<SelectListItem>> GetMobilityCustomerListAsync(string stationCodeClaims, CancellationToken cancellationToken = default)
-        {
-            return await _db.MobilityCustomers
-                .OrderBy(c => c.CustomerId)
-                .Where(c => c.IsActive && c.StationCode == stationCodeClaims)
                 .Select(c => new SelectListItem
                 {
                     Value = c.CustomerId.ToString(),

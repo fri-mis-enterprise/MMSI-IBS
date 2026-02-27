@@ -254,8 +254,6 @@ namespace IBSWeb.Areas.Filpride.Controllers
                 selected.Depot = model.Depot;
                 selected.SupplierId = model.SupplierId;
                 selected.IsFilpride = model.IsFilpride;
-                selected.IsMobility = model.IsMobility;
-                selected.IsBienes = model.IsBienes;
                 await _unitOfWork.SaveAsync(cancellationToken);
 
                 await transaction.CommitAsync(cancellationToken);

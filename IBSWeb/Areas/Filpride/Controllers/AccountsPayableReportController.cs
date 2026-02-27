@@ -7456,14 +7456,7 @@ namespace IBSWeb.Areas.Filpride.Controllers
                             row += 2;
 
                             // SEGMENT TITLE
-                            if (segment.ToString() == "Retail")
-                            {
-                                worksheet.Cells[row, 2].Value = $"{segment}/MOBILITY: {product}";
-                            }
-                            else
-                            {
-                                worksheet.Cells[row, 2].Value = $"{segment}: {product}";
-                            }
+                            worksheet.Cells[row, 2].Value = $"{segment}: {product}";
                             worksheet.Cells[row, 2].Style.Font.Bold = true;
 
                             row++;

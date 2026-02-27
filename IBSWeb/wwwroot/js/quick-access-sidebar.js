@@ -128,8 +128,6 @@
     function getCompanyFromUrl(url) {
         const lower = (url || '').toLowerCase();
         if (lower.includes('/filpride/')) return 'Filpride';
-        if (lower.includes('/mobility/')) return 'Mobility';
-        if (lower.includes('/bienes/'))   return 'Bienes';
         if (lower.includes('/mmsi/'))     return 'MMSI';
         return '';
     }
