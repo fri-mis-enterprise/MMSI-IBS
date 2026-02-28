@@ -19,8 +19,6 @@ using IBS.Utility.Helpers;
 using Microsoft.EntityFrameworkCore;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models;
-using IBS.Models.Integrated;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using Color = System.Drawing.Color;
