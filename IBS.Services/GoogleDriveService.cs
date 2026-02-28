@@ -22,60 +22,72 @@ namespace IBS.Services
     {
         private readonly GCSConfigOptions _options;
         private readonly ILogger<GoogleDriveService> _logger;
-        private readonly DriveService _driveService;
+        private DriveService? _driveService;
         private readonly string[] _scopes = new[] { DriveService.Scope.DriveFile };
         private const string ApplicationName = "IBS Application";
+        private readonly object _lock = new();
 
         public GoogleDriveService(IOptions<GCSConfigOptions> options, ILogger<GoogleDriveService> logger)
         {
             _options = options.Value ?? throw new ArgumentNullException(nameof(options));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
 
-            try
+        private void EnsureInitialized()
+        {
+            if (_driveService != null) return;
+
+            lock (_lock)
             {
-                GoogleCredential credential;
-                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+                if (_driveService != null) return;
 
-                if (environment == Environments.Production)
+                try
                 {
-                    credential = GoogleCredential.GetApplicationDefault();
-                    _logger.LogInformation("Using application default credentials for Google Drive in production.");
-                }
-                else
-                {
-                    _logger.LogInformation($"Environment: {environment}, Auth File: {_options.GCPStorageAuthFile}");
+                    GoogleCredential credential;
+                    var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
-                    if (!File.Exists(_options.GCPStorageAuthFile))
+                    if (environment == Environments.Production)
                     {
-                        throw new FileNotFoundException($"Auth file not found: {_options.GCPStorageAuthFile}");
+                        credential = GoogleCredential.GetApplicationDefault();
+                        _logger.LogInformation("Using application default credentials for Google Drive in production.");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Environment: {environment}, Auth File: {_options.GCPStorageAuthFile}");
+
+                        if (!File.Exists(_options.GCPStorageAuthFile))
+                        {
+                            throw new FileNotFoundException($"Auth file not found: {_options.GCPStorageAuthFile}");
+                        }
+
+                        using var stream = File.OpenRead(_options.GCPStorageAuthFile!);
+
+                        var serviceAccountCredential = CredentialFactory.FromStream<ServiceAccountCredential>(stream);
+
+                        credential = serviceAccountCredential.ToGoogleCredential();
                     }
 
-                    using var stream = File.OpenRead(_options.GCPStorageAuthFile);
+                    // Create scoped credential for Drive API
+                    credential = credential.CreateScoped(_scopes);
 
-                    var serviceAccountCredential = CredentialFactory.FromStream<ServiceAccountCredential>(stream);
-
-                    credential = serviceAccountCredential.ToGoogleCredential();
+                    // Initialize Drive API service
+                    _driveService = new DriveService(new BaseClientService.Initializer
+                    {
+                        HttpClientInitializer = credential,
+                        ApplicationName = ApplicationName
+                    });
                 }
-
-                // Create scoped credential for Drive API
-                credential = credential.CreateScoped(_scopes);
-
-                // Initialize Drive API service
-                _driveService = new DriveService(new BaseClientService.Initializer
+                catch (Exception ex)
                 {
-                    HttpClientInitializer = credential,
-                    ApplicationName = ApplicationName
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to initialize Google Drive client: {ex.Message}");
-                throw;
+                    _logger.LogError($"Failed to initialize Google Drive client: {ex.Message}");
+                    throw;
+                }
             }
         }
 
         public async Task<string> UploadFileAsync(Stream fileStream, string fileName, string folderId, string mimeType)
         {
+            EnsureInitialized();
             if (fileStream == null || !fileStream.CanRead)
             {
                 throw new ArgumentException("File stream is invalid or not readable.", nameof(fileStream));
@@ -97,7 +109,7 @@ namespace IBS.Services
                     Parents = string.IsNullOrEmpty(folderId) ? null : new List<string> { folderId }
                 };
 
-                var request = _driveService.Files.Create(fileMetadata, fileStream, mimeType);
+                var request = _driveService!.Files.Create(fileMetadata, fileStream, mimeType);
                 request.Fields = "id";
                 var result = await request.UploadAsync();
 
@@ -117,6 +129,7 @@ namespace IBS.Services
 
         public async Task<GoogleDriveFileViewModel> DownloadFileAsync(string fileId)
         {
+            EnsureInitialized();
             if (string.IsNullOrEmpty(fileId))
             {
                 throw new ArgumentException("File ID cannot be empty.", nameof(fileId));
@@ -124,7 +137,7 @@ namespace IBS.Services
 
             try
             {
-                var fileRequest = _driveService.Files.Get(fileId);
+                var fileRequest = _driveService!.Files.Get(fileId);
                 fileRequest.Fields = "id, name, webViewLink";
                 var file = await fileRequest.ExecuteAsync();
 
@@ -147,6 +160,7 @@ namespace IBS.Services
 
         public async Task<GoogleDriveFileViewModel> GetFileByNameAsync(string fileName, string folderId)
         {
+            EnsureInitialized();
             if (string.IsNullOrEmpty(fileName))
             {
                 throw new ArgumentException("File name cannot be empty.", nameof(fileName));
@@ -159,7 +173,7 @@ namespace IBS.Services
             try
             {
                 string query = $"name = '{fileName}' and '{folderId}' in parents and trashed = false";
-                var listRequest = _driveService.Files.List();
+                var listRequest = _driveService!.Files.List();
                 listRequest.Q = query;
                 listRequest.Fields = "files(id, name, webViewLink)";
                 listRequest.Spaces = "drive";
@@ -210,6 +224,7 @@ namespace IBS.Services
 
         public async Task DeleteFileAsync(string? fileId)
         {
+            EnsureInitialized();
             if (string.IsNullOrEmpty(fileId))
             {
                 throw new ArgumentException("File ID cannot be empty.", nameof(fileId));
@@ -218,7 +233,7 @@ namespace IBS.Services
             try
             {
                 // Execute the delete request
-                await _driveService.Files.Delete(fileId).ExecuteAsync();
+                await _driveService!.Files.Delete(fileId).ExecuteAsync();
                 _logger.LogInformation($"Successfully deleted file with ID '{fileId}' from Google Drive.");
             }
             catch (Exception ex)
