@@ -1,6 +1,8 @@
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.MMSI.IRepository;
+using IBS.Models.Filpride.Books;
 using IBS.Models.MMSI;
+using IBS.Utility.Constants;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
@@ -19,6 +21,46 @@ namespace IBS.DataAccess.Repository.MMSI
         public async Task SaveAsync(CancellationToken cancellationToken)
         {
             await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task PostAsync(MMSIBilling billing, CancellationToken cancellationToken = default)
+        {
+            #region --Sales Book Recording
+
+            var salesBook = new FilprideSalesBook
+            {
+                TransactionDate = billing.Date,
+                SerialNo = billing.MMSIBillingNumber!,
+                SoldTo = billing.PrincipalId != null ? billing.Principal.PrincipalName : billing.Customer!.CustomerName,
+                TinNo = billing.PrincipalId != null ? billing.Principal.TIN! : billing.Customer!.CustomerTin,
+                Address = billing.PrincipalId != null ? billing.Principal.Address : billing.Customer!.CustomerAddress,
+                Description = billing.Vessel?.VesselName ?? "Maritime Services",
+                Amount = billing.Amount - billing.Discount
+            };
+
+            if (billing.IsVatable)
+            {
+                salesBook.VatableSales = ComputeNetOfVat(salesBook.Amount);
+                salesBook.VatAmount = ComputeVatAmount(salesBook.VatableSales);
+                salesBook.NetSales = salesBook.VatableSales - salesBook.Discount;
+            }
+            else
+            {
+                salesBook.ZeroRated = salesBook.Amount;
+                salesBook.NetSales = salesBook.ZeroRated - salesBook.Discount;
+            }
+
+            salesBook.Discount = billing.Discount;
+            salesBook.CreatedBy = billing.CreatedBy;
+            salesBook.CreatedDate = billing.CreatedDate;
+            salesBook.DueDate = billing.DueDate;
+            salesBook.DocumentId = billing.MMSIBillingId;
+            salesBook.Company = billing.Company;
+
+            await _db.FilprideSalesBooks.AddAsync(salesBook, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
+
+            #endregion --Sales Book Recording
         }
 
         public override async Task<IEnumerable<MMSIBilling>> GetAllAsync(Expression<Func<MMSIBilling, bool>>? filter, CancellationToken cancellationToken = default)

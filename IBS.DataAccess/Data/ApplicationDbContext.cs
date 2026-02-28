@@ -747,6 +747,27 @@ namespace IBS.DataAccess.Data
             });
 
             #endregion
+
+            #region --MMSI
+
+            builder.Entity<MMSIBilling>(b =>
+            {
+                b.HasIndex(x => new { x.MMSIBillingNumber, x.Company }).IsUnique();
+                b.HasIndex(x => x.Date);
+            });
+
+            builder.Entity<MMSICollection>(c =>
+            {
+                c.HasIndex(x => new { x.MMSICollectionNumber, x.Company }).IsUnique();
+                c.HasIndex(x => x.Date);
+
+                c.HasMany(x => x.PaidBills)
+                    .WithOne(x => x.Collection)
+                    .HasForeignKey(x => x.CollectionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            #endregion
         }
 
         #endregion

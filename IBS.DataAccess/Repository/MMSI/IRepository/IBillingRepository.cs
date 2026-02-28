@@ -9,6 +9,8 @@ namespace IBS.DataAccess.Repository.MMSI.IRepository
     {
         Task SaveAsync(CancellationToken cancellationToken);
 
+        Task PostAsync(MMSIBilling billing, CancellationToken cancellationToken = default);
+
         Task<List<string>?> GetToBillDispatchTicketListAsync(int billingId, CancellationToken cancellationToken = default);
 
         Task<List<string>?> GetUniqueTugboatsListAsync(int billingId, CancellationToken cancellationToken = default);
