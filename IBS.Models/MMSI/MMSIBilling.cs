@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace IBS.Models.MMSI
 {
-    public class MMSIBilling
+    public class MMSIBilling : BaseEntity
     {
         [Key]
         public int MMSIBillingId { get; set; }
@@ -15,9 +15,10 @@ namespace IBS.Models.MMSI
         public string MMSIBillingNumber
         {
             get => _billingNumber;
-            set => _billingNumber = value.Trim();
+            set => _collectionNumber = value.Trim();
         }
 
+        private string _collectionNumber;
         private string _billingNumber;
 
         public DateOnly Date { get; set; }
@@ -36,21 +37,21 @@ namespace IBS.Models.MMSI
         }
 
         private string? _voyageNumber;
+
+        [Column(TypeName = "numeric(18,4)")]
         public decimal Amount { get; set; }
+
+        [Column(TypeName = "numeric(18,4)")]
+        public decimal AmountPaid { get; set; }
+
+        [Column(TypeName = "numeric(18,4)")]
+        public decimal Balance { get; set; }
+
+        public bool IsPaid { get; set; }
 
         public decimal DispatchAmount { get; set; }
 
         public decimal BAFAmount { get; set; }
-
-        public string CreatedBy { get; set; }
-
-        [Column(TypeName = "timestamp without time zone")]
-        public DateTime CreatedDate { get; set; }
-
-        public string? LastEditedBy { get; set; }
-
-        [Column(TypeName = "timestamp without time zone")]
-        public DateTime? LastEditedDate { get; set; }
 
         public bool IsPrincipal { get; set; }
 
