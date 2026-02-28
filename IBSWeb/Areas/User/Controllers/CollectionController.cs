@@ -3,7 +3,7 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models.Filpride.Books;
+using IBS.Models;
 using IBS.Models.MMSI;
 using IBS.Models.MMSI.ViewModels;
 using IBS.Services;
@@ -100,7 +100,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                var audit = new FilprideAuditTrail
+                var audit = new AuditTrail
                 {
                     Date = DateTimeHelper.GetCurrentPhilippineTime(),
                     Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
@@ -110,7 +110,7 @@ namespace IBSWeb.Areas.User.Controllers
                     Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
                 };
 
-                await _unitOfWork.FilprideAuditTrail.AddAsync(audit, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 
                 #endregion -- Audit Trail
 
@@ -155,7 +155,7 @@ namespace IBSWeb.Areas.User.Controllers
                 CheckNumber = viewModel.CheckNumber,
                 CheckDate = viewModel.CheckDate,
                 DepositDate = viewModel.DepositDate,
-                Customer = await _unitOfWork.FilprideCustomer
+                Customer = await _unitOfWork.Customer
                     .GetAsync(c => c.CustomerId == viewModel.CustomerId, cancellationToken)
             };
 
@@ -348,7 +348,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                     #region -- Audit Trail
 
-                    var audit = new FilprideAuditTrail
+                    var audit = new AuditTrail
                     {
                         Date = DateTimeHelper.GetCurrentPhilippineTime(),
                         Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
@@ -360,7 +360,7 @@ namespace IBSWeb.Areas.User.Controllers
                         Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
                     };
 
-                    await _unitOfWork.FilprideAuditTrail.AddAsync(audit, cancellationToken);
+                    await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 
                     #endregion -- Audit Trail
 
@@ -378,7 +378,7 @@ namespace IBSWeb.Areas.User.Controllers
                 }
                 else
                 {
-                    var customer = await _unitOfWork.FilprideCustomer
+                    var customer = await _unitOfWork.Customer
                         .GetAsync(c => c.CustomerId == viewModel.CustomerId, cancellationToken);
 
                     TempData["warning"] = "There was an error updating the collection.";
@@ -388,7 +388,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
             catch (Exception ex)
             {
-                var customer = await _unitOfWork.FilprideCustomer
+                var customer = await _unitOfWork.Customer
                     .GetAsync(c => c.CustomerId == viewModel.CustomerId, cancellationToken);
 
                 _logger.LogError(ex, "Failed to edit collection.");
@@ -453,7 +453,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             try
             {
-                var customer = await _unitOfWork.FilprideCustomer
+                var customer = await _unitOfWork.Customer
                     .GetAsync(c => c.CustomerId == customerId, cancellationToken);
 
                 if (customer != null)

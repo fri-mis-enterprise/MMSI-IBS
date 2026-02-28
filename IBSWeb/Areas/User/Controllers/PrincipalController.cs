@@ -2,7 +2,7 @@ using IBS.Utility.Constants;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.Filpride.Books;
+using IBS.Models;
 using IBS.Models.MMSI.MasterFile;
 using IBS.Services.Attributes;
 using Microsoft.AspNetCore.Identity;
@@ -48,7 +48,7 @@ namespace IBSWeb.Areas.User.Controllers
             var companyClaims = await GetCompanyClaimAsync();
             var model = new MMSIPrincipal
             {
-                CustomerSelectList = await _unitOfWork.GetFilprideCustomerListAsyncById(companyClaims!, cancellationToken)
+                CustomerSelectList = await _unitOfWork.GetCustomerListAsyncById(companyClaims!, cancellationToken)
             };
             return View(model);
         }
@@ -66,16 +66,16 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var customer = await _unitOfWork.FilprideCustomer
+                var customer = await _unitOfWork.Customer
                     .GetAsync(c => c.CustomerId == model.CustomerId, cancellationToken) ?? throw new NullReferenceException("Customer not found");
                 model.CustomerId = customer.CustomerId;
                 await _unitOfWork.Principal.AddAsync(model, cancellationToken);
 
                 #region -- Audit Trail Recording --
 
-                FilprideAuditTrail auditTrailBook = new(_userManager.GetUserName(User)!,
+                AuditTrail auditTrailBook = new(_userManager.GetUserName(User)!,
                     $"Created new Principal #{model.PrincipalNumber}", "Principal", SD.Company_MMSI);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
 
@@ -119,7 +119,7 @@ namespace IBSWeb.Areas.User.Controllers
             var companyClaims = await GetCompanyClaimAsync();
             var model = await _unitOfWork.Principal.GetAsync(p => p.PrincipalId == id, cancellationToken);
             if (model == null) return NotFound();
-            model.CustomerSelectList = await _unitOfWork.GetFilprideCustomerListAsyncById(companyClaims!, cancellationToken);
+            model.CustomerSelectList = await _unitOfWork.GetCustomerListAsyncById(companyClaims!, cancellationToken);
             return View(model);
         }
 
@@ -146,9 +146,9 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region -- Audit Trail Recording --
 
-                FilprideAuditTrail auditTrailBook = new(_userManager.GetUserName(User)!,
+                AuditTrail auditTrailBook = new(_userManager.GetUserName(User)!,
                     $"Edited Principal #{currentModel.PrincipalNumber} => {model.PrincipalNumber}", "Principal", SD.Company_MMSI);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
 

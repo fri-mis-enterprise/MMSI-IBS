@@ -4,8 +4,8 @@ using System.Security.Claims;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.MasterFile;
+using IBS.Models;
+using IBS.Models.MasterFile;
 using IBS.Services.Attributes;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Identity;
@@ -54,7 +54,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Index(CancellationToken cancellationToken)
         {
-            var pickupPoints = await _dbContext.FilpridePickUpPoints
+            var pickupPoints = await _dbContext.PickUpPoints
                 .Include(p => p.Supplier)
                 .ToListAsync(cancellationToken);
 
@@ -71,9 +71,9 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            var model = new FilpridePickUpPoint
+            var model = new PickUpPoint
             {
-                Suppliers = await _unitOfWork.FilprideSupplier.GetFilprideTradeSupplierListAsyncById(companyClaims, cancellationToken),
+                Suppliers = await _unitOfWork.Supplier.GetTradeSupplierListAsyncById(companyClaims, cancellationToken),
                 Company = companyClaims
             };
 
@@ -82,7 +82,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(FilpridePickUpPoint model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create(PickUpPoint model, CancellationToken cancellationToken)
         {
             var companyClaims = await GetCompanyClaimAsync();
 
@@ -93,7 +93,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             if (!ModelState.IsValid)
             {
-                model.Suppliers = await _unitOfWork.FilprideSupplier.GetFilprideTradeSupplierListAsyncById(companyClaims, cancellationToken);
+                model.Suppliers = await _unitOfWork.Supplier.GetTradeSupplierListAsyncById(companyClaims, cancellationToken);
                 ModelState.AddModelError("", "Make sure to fill all the required details.");
                 return View(model);
             }
@@ -104,14 +104,14 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 model.CreatedBy = GetUserFullName();
                 model.CreatedDate = DateTimeHelper.GetCurrentPhilippineTime();
-                await _unitOfWork.FilpridePickUpPoint.AddAsync(model, cancellationToken);
+                await _unitOfWork.PickUpPoint.AddAsync(model, cancellationToken);
                 await _unitOfWork.SaveAsync(cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new (GetUserFullName(),
+                AuditTrail auditTrailBook = new (GetUserFullName(),
                     $"Created Pickup Point #{model.Depot}","Pickup Point", (await GetCompanyClaimAsync())! );
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -133,7 +133,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             try
             {
-                var query = await _unitOfWork.FilpridePickUpPoint
+                var query = await _unitOfWork.PickUpPoint
                     .GetAllAsync(null, cancellationToken);
 
                 // Global search
@@ -204,7 +204,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return BadRequest();
                 }
 
-                var model = await _unitOfWork.FilpridePickUpPoint
+                var model = await _unitOfWork.PickUpPoint
                     .GetAsync(p => p.PickUpPointId == id, cancellationToken);
 
                 if (model == null)
@@ -212,7 +212,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return NotFound();
                 }
 
-                model.Suppliers = await _unitOfWork.FilprideSupplier.GetFilprideTradeSupplierListAsyncById(companyClaims, cancellationToken);
+                model.Suppliers = await _unitOfWork.Supplier.GetTradeSupplierListAsyncById(companyClaims, cancellationToken);
 
                 return View(model);
             }
@@ -225,14 +225,14 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(FilpridePickUpPoint model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Edit(PickUpPoint model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            var selected = await _unitOfWork.FilpridePickUpPoint
+            var selected = await _unitOfWork.PickUpPoint
                 .GetAsync(p => p.PickUpPointId == model.PickUpPointId, cancellationToken);
 
             if (selected == null)
@@ -246,9 +246,9 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region -- Audit Trail Recording --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(),
+                AuditTrail auditTrailBook = new(GetUserFullName(),
                     $"Edited pickup point {selected.Depot} to {model.Depot}", "Customer", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording --
 

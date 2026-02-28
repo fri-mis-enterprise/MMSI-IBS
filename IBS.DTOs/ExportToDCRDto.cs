@@ -1,6 +1,6 @@
 namespace IBS.DTOs
 {
-    public class FilprideCollectionReceiptCsvForDcrDto
+    public class CollectionReceiptCsvForDcrDto
     {
         public string DATE { get; set; }
         public string PAYEE { get; set; }
@@ -14,7 +14,7 @@ namespace IBS.DTOs
         public string DATEDEPOSITED { get; set; }
     }
 
-    public class FilprideCheckVoucherHeaderCsvForDcrDto
+    public class CheckVoucherHeaderCsvForDcrDto
     {
         public string VOUCHER_NO { get; set; }
         public string VCH_DATE { get; set; }
@@ -29,7 +29,7 @@ namespace IBS.DTOs
         public bool ISCANCELLED { get; set; }
     }
 
-    public class FilprideCheckVoucherDetailsCsvForDcrDto
+    public class CheckVoucherDetailsCsvForDcrDto
     {
         public string ACCTCD { get; set; }
         public string ACCTNAME { get; set; }

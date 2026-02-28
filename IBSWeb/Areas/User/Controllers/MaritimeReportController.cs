@@ -3,7 +3,7 @@ using System.Drawing;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.Filpride.ViewModels;
+using IBS.Models.ViewModels;
 using IBS.Services.Attributes;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -129,7 +129,7 @@ namespace IBSWeb.Areas.User.Controllers
                     .OrderBy(t => t.TugboatName)
                     .ToListAsync(cancellationToken);
 
-                var mmsiCustomers = await _dbContext.FilprideCustomers
+                var mmsiCustomers = await _dbContext.Customers
                     .Where(t => t.IsActive && t.IsMMSI)
                     .OrderBy(t => t.CustomerName)
                     .ToListAsync(cancellationToken);
@@ -213,7 +213,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- AR Ledger --
 
                 var arLedgerColStart = col + 1;
-                var customers = await _dbContext.FilprideCustomers
+                var customers = await _dbContext.Customers
                     .Where(c => c.IsMMSI && c.IsActive)
                     .OrderBy(t => t.CustomerName)
                     .ToListAsync(cancellationToken);

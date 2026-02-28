@@ -2,7 +2,7 @@ using IBS.Utility.Constants;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.Filpride.Books;
+using IBS.Models;
 using IBS.Models.MMSI.MasterFile;
 using IBS.Services.Attributes;
 using Microsoft.AspNetCore.Identity;
@@ -66,9 +66,9 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail Recording --
 
-                FilprideAuditTrail auditTrailBook = new(_userManager.GetUserName(User)!,
+                AuditTrail auditTrailBook = new(_userManager.GetUserName(User)!,
                     $"Created new Tugboat #{model.TugboatNumber}", "Tugboat", SD.Company_MMSI);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
 
@@ -145,9 +145,9 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region -- Audit Trail Recording --
 
-                FilprideAuditTrail auditTrailBook = new(_userManager.GetUserName(User)!,
+                AuditTrail auditTrailBook = new(_userManager.GetUserName(User)!,
                     $"Edited Tugboat #{currentModel.TugboatNumber} => {model.TugboatNumber}", "Tugboat", SD.Company_MMSI);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
 

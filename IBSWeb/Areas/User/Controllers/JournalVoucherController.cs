@@ -2,10 +2,10 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models.Filpride;
-using IBS.Models.Filpride.AccountsPayable;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.ViewModels;
+using IBS.Models;
+using IBS.Models.AccountsPayable;
+using IBS.Models;
+using IBS.Models.ViewModels;
 using IBS.Services.Attributes;
 using IBS.Utility.Constants;
 using IBS.Utility.Helpers;
@@ -77,7 +77,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 var companyClaims = await GetCompanyClaimAsync();
 
-                var journalVoucherHeader = await _unitOfWork.FilprideJournalVoucher
+                var journalVoucherHeader = await _unitOfWork.JournalVoucher
                     .GetAllAsync(jv => jv.Company == companyClaims, cancellationToken);
 
                 // Search filter
@@ -155,7 +155,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             viewModel.COA = await _unitOfWork.GetChartOfAccountListAsyncByNo(cancellationToken);
 
-            viewModel.CheckVoucherHeaders = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CheckVoucherHeaders = await _dbContext.CheckVoucherHeaders
                 .OrderBy(c => c.CheckVoucherHeaderNo)
                 .Where(c =>
                     c.Company == companyClaims &&
@@ -187,7 +187,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             viewModel.COA = await _unitOfWork.GetChartOfAccountListAsyncByNo(cancellationToken);
-            viewModel.CheckVoucherHeaders = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CheckVoucherHeaders = await _dbContext.CheckVoucherHeaders
                 .OrderBy(c => c.CheckVoucherHeaderNo)
                 .Where(c =>
                     c.Company == companyClaims &&
@@ -215,9 +215,9 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Saving the default entries
 
-                var generateJvNo = await _unitOfWork.FilprideJournalVoucher.GenerateCodeAsync(companyClaims, viewModel.Type, cancellationToken: cancellationToken);
+                var generateJvNo = await _unitOfWork.JournalVoucher.GenerateCodeAsync(companyClaims, viewModel.Type, cancellationToken: cancellationToken);
                 //JV Header Entry
-                var model = new FilprideJournalVoucherHeader
+                var model = new JournalVoucherHeader
                 {
                     Type = viewModel.Type,
                     JournalVoucherHeaderNo = generateJvNo,
@@ -239,22 +239,22 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region Details
 
-                var cv = await _unitOfWork.FilprideCheckVoucher
+                var cv = await _unitOfWork.CheckVoucher
                     .GetAsync(x => x.CheckVoucherHeaderId == model.CVId, cancellationToken)
                          ?? throw new NullReferenceException($"CV id {model.CVId} not found");
 
-                var jvDetails = new List<FilprideJournalVoucherDetail>();
+                var jvDetails = new List<JournalVoucherDetail>();
                 for (var i = 0; i < viewModel.AccountNumber.Length; i++)
                 {
                     var currentAccountNumber = viewModel.AccountNumber[i];
-                    var accountTitle = await _unitOfWork.FilprideChartOfAccount
+                    var accountTitle = await _unitOfWork.ChartOfAccount
                                            .GetAsync(coa => coa.AccountNumber == currentAccountNumber, cancellationToken)
                                        ?? throw new NullReferenceException($"Account number {currentAccountNumber} not found");
 
                     var isAdvances = accountTitle.AccountName.Contains("Advances to Officers and Employees");
 
                     jvDetails.Add(
-                        new FilprideJournalVoucherDetail
+                        new JournalVoucherDetail
                         {
                             AccountNo = currentAccountNumber,
                             AccountName = accountTitle.AccountName,
@@ -275,7 +275,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CreatedBy, $"Created new journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
+                AuditTrail auditTrailBook = new(model.CreatedBy, $"Created new journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
                 await _dbContext.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -298,7 +298,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> GetCV(int id, CancellationToken cancellationToken)
         {
-            var model = await _dbContext.FilprideCheckVoucherHeaders
+            var model = await _dbContext.CheckVoucherHeaders
                 .Include(s => s.Supplier)
                 .Include(cvd => cvd.Details)
                 .FirstOrDefaultAsync(cvh => cvh.CheckVoucherHeaderId == id, cancellationToken);
@@ -338,7 +338,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return NotFound();
             }
 
-            var header = await _dbContext.FilprideJournalVoucherHeaders
+            var header = await _dbContext.JournalVoucherHeaders
                 .Include(cv => cv.CheckVoucherHeader)
                 .ThenInclude(supplier => supplier!.Supplier)
                 .Include(jv => jv.Details)
@@ -363,8 +363,8 @@ namespace IBSWeb.Areas.User.Controllers
 
             #region --Audit Trail Recording
 
-            FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Preview journal voucher# {header.JournalVoucherHeaderNo}", "Journal Voucher", companyClaims!);
-            await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+            AuditTrail auditTrailBook = new(GetUserFullName(), $"Preview journal voucher# {header.JournalVoucherHeaderNo}", "Journal Voucher", companyClaims!);
+            await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
             #endregion --Audit Trail Recording
 
@@ -377,7 +377,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var modelHeader = await _dbContext.FilprideJournalVoucherHeaders
+                var modelHeader = await _dbContext.JournalVoucherHeaders
                     .FirstOrDefaultAsync(x => x.JournalVoucherHeaderId == id, cancellationToken);
 
                 if (modelHeader == null)
@@ -391,7 +391,7 @@ namespace IBSWeb.Areas.User.Controllers
                         $"Cannot post this record because the period {modelHeader.Date:MMM yyyy} is already closed.");
                 }
 
-                var modelDetails = await _dbContext.FilprideJournalVoucherDetails
+                var modelDetails = await _dbContext.JournalVoucherDetails
                     .Where(jvd => jvd.JournalVoucherHeaderId == modelHeader.JournalVoucherHeaderId)
                     .ToListAsync(cancellationToken: cancellationToken);
 
@@ -409,11 +409,11 @@ namespace IBSWeb.Areas.User.Controllers
                     throw new InvalidOperationException($"Cannot post this record because the amortization has not been completed yet.");
                 }
 
-                await _unitOfWork.FilprideJournalVoucher.PostAsync(modelHeader, modelDetails, cancellationToken);
+                await _unitOfWork.JournalVoucher.PostAsync(modelHeader, modelDetails, cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(modelHeader.PostedBy!, $"Posted journal voucher# {modelHeader.JournalVoucherHeaderNo}", "Journal Voucher", modelHeader.Company);
+                AuditTrail auditTrailBook = new(modelHeader.PostedBy!, $"Posted journal voucher# {modelHeader.JournalVoucherHeaderNo}", "Journal Voucher", modelHeader.Company);
                 await _dbContext.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -436,7 +436,7 @@ namespace IBSWeb.Areas.User.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Void(int id, CancellationToken cancellationToken)
         {
-            var model = await _dbContext.FilprideJournalVoucherHeaders
+            var model = await _dbContext.JournalVoucherHeaders
                 .FirstOrDefaultAsync(x => x.JournalVoucherHeaderId == id, cancellationToken);
 
             if (model == null)
@@ -453,12 +453,12 @@ namespace IBSWeb.Areas.User.Controllers
                 model.VoidedDate = DateTimeHelper.GetCurrentPhilippineTime();
                 model.Status = nameof(Status.Voided);
 
-                await _unitOfWork.FilprideJournalVoucher.RemoveRecords<FilprideJournalBook>(crb => crb.Reference == model.JournalVoucherHeaderNo, cancellationToken);
-                await _unitOfWork.FilprideJournalVoucher.RemoveRecords<FilprideGeneralLedgerBook>(gl => gl.Reference == model.JournalVoucherHeaderNo, cancellationToken);
+                await _unitOfWork.JournalVoucher.RemoveRecords<JournalBook>(crb => crb.Reference == model.JournalVoucherHeaderNo, cancellationToken);
+                await _unitOfWork.JournalVoucher.RemoveRecords<GeneralLedgerBook>(gl => gl.Reference == model.JournalVoucherHeaderNo, cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.VoidedBy!, $"Voided journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
+                AuditTrail auditTrailBook = new(model.VoidedBy!, $"Voided journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
                 await _dbContext.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -484,7 +484,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var model = await _dbContext.FilprideJournalVoucherHeaders
+                var model = await _dbContext.JournalVoucherHeaders
                     .FirstOrDefaultAsync(x => x.JournalVoucherHeaderId == id, cancellationToken);
 
                 if (model == null)
@@ -505,7 +505,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
+                AuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
                 await _dbContext.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -532,7 +532,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var existingHeaderModel = await _dbContext.FilprideJournalVoucherHeaders
+                var existingHeaderModel = await _dbContext.JournalVoucherHeaders
                     .Include(jv => jv.CheckVoucherHeader)
                     .FirstOrDefaultAsync(cvh => cvh.JournalVoucherHeaderId == id, cancellationToken);
 
@@ -548,7 +548,7 @@ namespace IBSWeb.Areas.User.Controllers
                         $"Cannot edit this record because the period {existingHeaderModel.Date:MMM yyyy} is already closed.");
                 }
 
-                var existingDetailsModel = await _dbContext.FilprideJournalVoucherDetails
+                var existingDetailsModel = await _dbContext.JournalVoucherDetails
                     .Where(cvd => cvd.JournalVoucherHeaderId == existingHeaderModel.JournalVoucherHeaderId)
                     .ToListAsync(cancellationToken);
 
@@ -571,7 +571,7 @@ namespace IBSWeb.Areas.User.Controllers
                     AccountTitle = accountTitles,
                     Debit = debit,
                     Credit = credit,
-                    CheckVoucherHeaders = await _dbContext.FilprideCheckVoucherHeaders
+                    CheckVoucherHeaders = await _dbContext.CheckVoucherHeaders
                         .OrderBy(c => c.CheckVoucherHeaderNo)
                         .Where(c =>
                             c.Company == companyClaims &&
@@ -619,7 +619,7 @@ namespace IBSWeb.Areas.User.Controllers
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
             viewModel.COA = await _unitOfWork.GetChartOfAccountListAsyncByNo(cancellationToken);
-            viewModel.CheckVoucherHeaders = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CheckVoucherHeaders = await _dbContext.CheckVoucherHeaders
                 .OrderBy(c => c.CheckVoucherHeaderNo)
                 .Where(c =>
                     c.Company == companyClaims &&
@@ -637,7 +637,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var existingHeaderModel = await _dbContext.FilprideJournalVoucherHeaders
+                var existingHeaderModel = await _dbContext.JournalVoucherHeaders
                     .FirstOrDefaultAsync(x => x.JournalVoucherHeaderId == viewModel.JVId, cancellationToken);
 
                 if (existingHeaderModel == null)
@@ -645,7 +645,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return NotFound();
                 }
 
-                await _dbContext.FilprideJournalVoucherDetails
+                await _dbContext.JournalVoucherDetails
                     .Where(d => d.JournalVoucherHeaderId == existingHeaderModel.JournalVoucherHeaderId)
                     .ExecuteDeleteAsync(cancellationToken);
 
@@ -667,22 +667,22 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region Details
 
-                var cv = await _unitOfWork.FilprideCheckVoucher
+                var cv = await _unitOfWork.CheckVoucher
                              .GetAsync(x => x.CheckVoucherHeaderId == existingHeaderModel.CVId, cancellationToken)
                          ?? throw new NullReferenceException($"CV id {existingHeaderModel.CVId} not found");
 
-                var jvDetails = new List<FilprideJournalVoucherDetail>();
+                var jvDetails = new List<JournalVoucherDetail>();
                 for (var i = 0; i < viewModel.AccountNumber.Length; i++)
                 {
                     var currentAccountNumber = viewModel.AccountNumber[i];
-                    var accountTitle = await _unitOfWork.FilprideChartOfAccount
+                    var accountTitle = await _unitOfWork.ChartOfAccount
                                            .GetAsync(coa => coa.AccountNumber == currentAccountNumber, cancellationToken)
                                        ?? throw new NullReferenceException($"Account number {currentAccountNumber} not found");
 
                     var isAdvances = accountTitle.AccountName.Contains("Advances to Officers and Employees");
 
                     jvDetails.Add(
-                        new FilprideJournalVoucherDetail
+                        new JournalVoucherDetail
                         {
                             AccountNo = currentAccountNumber,
                             AccountName = accountTitle.AccountName,
@@ -703,7 +703,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(existingHeaderModel.EditedBy!, $"Edited journal voucher# {existingHeaderModel.JournalVoucherHeaderNo}", "Journal Voucher", existingHeaderModel.Company);
+                AuditTrail auditTrailBook = new(existingHeaderModel.EditedBy!, $"Edited journal voucher# {existingHeaderModel.JournalVoucherHeaderNo}", "Journal Voucher", existingHeaderModel.Company);
                 await _dbContext.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -725,7 +725,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Printed(int id, CancellationToken cancellationToken)
         {
-            var cv = await _unitOfWork.FilprideJournalVoucher.GetAsync(x => x.JournalVoucherHeaderId == id, cancellationToken);
+            var cv = await _unitOfWork.JournalVoucher.GetAsync(x => x.JournalVoucherHeaderId == id, cancellationToken);
 
             if (cv == null)
             {
@@ -736,8 +736,8 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of journal voucher# {cv.JournalVoucherHeaderNo}", "Journal Voucher", cv.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of journal voucher# {cv.JournalVoucherHeaderNo}", "Journal Voucher", cv.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -748,8 +748,8 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Printed re-printed copy of journal voucher# {cv.JournalVoucherHeaderNo}", "Journal Voucher", cv.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed re-printed copy of journal voucher# {cv.JournalVoucherHeaderNo}", "Journal Voucher", cv.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
             }
@@ -768,7 +768,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 var companyClaims = await GetCompanyClaimAsync();
 
-                var journalVoucherHeaders = await _unitOfWork.FilprideJournalVoucher
+                var journalVoucherHeaders = await _unitOfWork.JournalVoucher
                     .GetAllAsync(jv => jv.Company == companyClaims && jv.Type == nameof(DocumentType.Documented), cancellationToken);
 
                 // Apply firstDayOfNextMonth range filter if provided
@@ -837,7 +837,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var totalRecords = journalVoucherHeaders.Count();
 
                 // Apply pagination - HANDLE -1 FOR "ALL"
-                IEnumerable<FilprideJournalVoucherHeader> pagedJournalVoucherHeaders;
+                IEnumerable<JournalVoucherHeader> pagedJournalVoucherHeaders;
 
                 if (parameters.Length == -1)
                 {
@@ -903,7 +903,7 @@ namespace IBSWeb.Areas.User.Controllers
             var recordIds = selectedRecord.Split(',').Select(int.Parse).ToList();
 
             // Retrieve the selected invoices from the database
-            var selectedList = await _dbContext.FilprideJournalVoucherHeaders
+            var selectedList = await _dbContext.JournalVoucherHeaders
                 .Where(jv => recordIds.Contains(jv.JournalVoucherHeaderId))
                 .Include(jv => jv.CheckVoucherHeader)
                 .OrderBy(jv => jv.JournalVoucherHeaderNo)
@@ -1167,7 +1167,7 @@ namespace IBSWeb.Areas.User.Controllers
                     cvhRow++;
                 }
 
-                var getCheckVoucherTradePayment = await _dbContext.FilprideCVTradePayments
+                var getCheckVoucherTradePayment = await _dbContext.CVTradePayments
                     .Where(cv => recordIds.Contains(cv.CheckVoucherId) && cv.DocumentType == "RR")
                     .ToListAsync();
 
@@ -1188,10 +1188,10 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Get Check Voucher Multiple Payment --
 
                 var cvNos = selectedList.Select(item => item.CheckVoucherHeader!.CheckVoucherHeaderNo).ToList();
-                var checkVoucherPayment = await _unitOfWork.FilprideCheckVoucher
+                var checkVoucherPayment = await _unitOfWork.CheckVoucher
                     .GetAllAsync(cvh => cvh.Reference != null && cvNos.Contains(cvh.CheckVoucherHeaderNo));
                 var cvPaymentId = checkVoucherPayment.Select(cvn => cvn.CheckVoucherHeaderId).ToList();
-                var getCheckVoucherMultiplePayment = await _dbContext.FilprideMultipleCheckVoucherPayments
+                var getCheckVoucherMultiplePayment = await _dbContext.MultipleCheckVoucherPayments
                     .Where(cv => cvPaymentId.Contains(cv.CheckVoucherHeaderPaymentId))
                     .ToListAsync();
 
@@ -1212,7 +1212,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 var jvNos = selectedList.Select(item => item.JournalVoucherHeaderNo).ToList();
 
-                var getJvDetails = await _dbContext.FilprideJournalVoucherDetails
+                var getJvDetails = await _dbContext.JournalVoucherDetails
                     .Where(jvd => jvNos.Contains(jvd.TransactionNo))
                     .OrderBy(jvd => jvd.JournalVoucherDetailId)
                     .ToListAsync();
@@ -1236,7 +1236,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Check Voucher Details Export (Non-Trade or Trade Payment) --
 
-                var getCvDetails = await _dbContext.FilprideCheckVoucherDetails
+                var getCvDetails = await _dbContext.CheckVoucherDetails
                     .Where(cvd => cvNos.Contains(cvd.TransactionNo))
                     .OrderBy(cvd => cvd.CheckVoucherHeaderId)
                     .ToListAsync();
@@ -1266,7 +1266,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Receving Report Export --
 
-                var getReceivingReport = _dbContext.FilprideReceivingReports
+                var getReceivingReport = _dbContext.ReceivingReports
                     .AsEnumerable()
                     .Where(rr => selectedList
                         .Select(item => item.CheckVoucherHeader?.RRNo)
@@ -1317,7 +1317,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Purchase Order Export --
 
-                var getPurchaseOrder = await _dbContext.FilpridePurchaseOrders
+                var getPurchaseOrder = await _dbContext.PurchaseOrders
                     .Where(po => getReceivingReport.Select(item => item.POId).Contains(po.PurchaseOrderId))
                     .OrderBy(po => po.PurchaseOrderNo)
                     .ToListAsync();
@@ -1336,7 +1336,7 @@ namespace IBSWeb.Areas.User.Controllers
                     worksheet3.Cells[poRow, 1].Value = item.Date.ToString("yyyy-MM-dd");
                     worksheet3.Cells[poRow, 2].Value = item.Terms;
                     worksheet3.Cells[poRow, 3].Value = item.Quantity;
-                    worksheet3.Cells[poRow, 4].Value = await _unitOfWork.FilpridePurchaseOrder.GetPurchaseOrderCost(item.PurchaseOrderId);
+                    worksheet3.Cells[poRow, 4].Value = await _unitOfWork.PurchaseOrder.GetPurchaseOrderCost(item.PurchaseOrderId);
                     worksheet3.Cells[poRow, 5].Value = item.Amount;
                     worksheet3.Cells[poRow, 6].Value = item.FinalPrice;
                     worksheet3.Cells[poRow, 7].Value = item.QuantityReceived;
@@ -1379,7 +1379,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public IActionResult GetAllJournalVoucherIds()
         {
-            var jvIds = _dbContext.FilprideJournalVoucherHeaders
+            var jvIds = _dbContext.JournalVoucherHeaders
                 .Where(jv => jv.Type == nameof(DocumentType.Documented))
                 .Select(jv => jv.JournalVoucherHeaderId)
                 .ToList();
@@ -1394,7 +1394,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var jvs = await _dbContext.FilprideJournalVoucherHeaders
+                var jvs = await _dbContext.JournalVoucherHeaders
                     .Include(x => x.Details)
                     .Where(x =>
                         x.PostedBy != null &&
@@ -1410,7 +1410,7 @@ namespace IBSWeb.Areas.User.Controllers
                 foreach (var jv in jvs
                              .OrderBy(x => x.Date))
                 {
-                    await _unitOfWork.FilprideJournalVoucher.PostAsync(jv,
+                    await _unitOfWork.JournalVoucher.PostAsync(jv,
                         jv.Details!,
                         cancellationToken);
                 }
@@ -1432,7 +1432,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             var companyClaims = await GetCompanyClaimAsync();
 
-            viewModel.CvList = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CvList = await _dbContext.CheckVoucherHeaders
                 .OrderBy(c => c.CheckVoucherHeaderNo)
                 .Where(c =>
                     c.Company == companyClaims &&
@@ -1462,7 +1462,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.CvList = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CvList = await _dbContext.CheckVoucherHeaders
                 .OrderBy(c => c.CheckVoucherHeaderNo)
                 .Where(c =>
                     c.Company == companyClaims &&
@@ -1488,15 +1488,15 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var cv = await _unitOfWork.FilprideCheckVoucher
+                var cv = await _unitOfWork.CheckVoucher
                     .GetAsync(x => x.CheckVoucherHeaderId == viewModel.CvId, cancellationToken)
                          ?? throw new NullReferenceException($"CV id {viewModel.CvId} not found");
 
                 #region --Saving the default entries
 
-                var generateJvNo = await _unitOfWork.FilprideJournalVoucher.GenerateCodeAsync(companyClaims, viewModel.Type, cancellationToken: cancellationToken);
+                var generateJvNo = await _unitOfWork.JournalVoucher.GenerateCodeAsync(companyClaims, viewModel.Type, cancellationToken: cancellationToken);
                 var particulars = $"Accrual of '{viewModel.Details.First(d => d.Debit > 0).AccountTitle}' for the month of {viewModel.TransactionDate:MMM yyyy}.";
-                var model = new FilprideJournalVoucherHeader
+                var model = new JournalVoucherHeader
                 {
                     Type = viewModel.Type,
                     JournalVoucherHeaderNo = generateJvNo,
@@ -1518,18 +1518,18 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region Details
 
-                var jvDetails = new List<FilprideJournalVoucherDetail>();
+                var jvDetails = new List<JournalVoucherDetail>();
 
                 foreach (var acctNo in viewModel.Details)
                 {
-                    var accountTitle = await _unitOfWork.FilprideChartOfAccount
+                    var accountTitle = await _unitOfWork.ChartOfAccount
                                            .GetAsync(coa => coa.AccountNumber == acctNo.AccountNo, cancellationToken)
                                        ?? throw new NullReferenceException($"Account number {acctNo.AccountNo} not found");
 
                     var isAccrualAccount = accountTitle.AccountName.Contains("AP - Accrued Expenses");
 
                     jvDetails.Add(
-                        new FilprideJournalVoucherDetail
+                        new JournalVoucherDetail
                         {
                             AccountNo = acctNo.AccountNo,
                             AccountName = accountTitle.AccountName,
@@ -1550,7 +1550,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CreatedBy, $"Created new journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
+                AuditTrail auditTrailBook = new(model.CreatedBy, $"Created new journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
                 await _dbContext.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -1578,7 +1578,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var existingHeaderModel = await _dbContext.FilprideJournalVoucherHeaders
+                var existingHeaderModel = await _dbContext.JournalVoucherHeaders
                     .Include(jv => jv.CheckVoucherHeader)
                     .FirstOrDefaultAsync(cvh => cvh.JournalVoucherHeaderId == id, cancellationToken);
 
@@ -1595,7 +1595,7 @@ namespace IBSWeb.Areas.User.Controllers
                         $"Cannot edit this record because the period {existingHeaderModel.Date:MMM yyyy} is already closed.");
                 }
 
-                var existingDetailsModel = await _dbContext.FilprideJournalVoucherDetails
+                var existingDetailsModel = await _dbContext.JournalVoucherDetails
                     .Where(cvd => cvd.JournalVoucherHeaderId == existingHeaderModel.JournalVoucherHeaderId)
                     .ToListAsync(cancellationToken);
 
@@ -1607,7 +1607,7 @@ namespace IBSWeb.Areas.User.Controllers
                     CvId = (int)existingHeaderModel.CVId!,
                     CrNo = existingHeaderModel.CRNo,
                     Reason = existingHeaderModel.JVReason,
-                    CvList = await _dbContext.FilprideCheckVoucherHeaders
+                    CvList = await _dbContext.CheckVoucherHeaders
                         .OrderBy(c => c.CheckVoucherHeaderNo)
                         .Where(c =>
                             c.Company == companyClaims &&
@@ -1657,7 +1657,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-            viewModel.CvList = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CvList = await _dbContext.CheckVoucherHeaders
                         .OrderBy(c => c.CheckVoucherHeaderNo)
                         .Where(c =>
                             c.Company == companyClaims &&
@@ -1681,7 +1681,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var existingHeaderModel = await _dbContext.FilprideJournalVoucherHeaders
+                var existingHeaderModel = await _dbContext.JournalVoucherHeaders
                     .FirstOrDefaultAsync(x => x.JournalVoucherHeaderId == viewModel.JvId, cancellationToken);
 
                 if (existingHeaderModel == null)
@@ -1689,11 +1689,11 @@ namespace IBSWeb.Areas.User.Controllers
                     return NotFound();
                 }
 
-                var cv = await _unitOfWork.FilprideCheckVoucher
+                var cv = await _unitOfWork.CheckVoucher
                     .GetAsync(x => x.CheckVoucherHeaderId == viewModel.CvId, cancellationToken)
                          ?? throw new NullReferenceException($"CV id {viewModel.CvId} not found");
 
-                await _dbContext.FilprideJournalVoucherDetails
+                await _dbContext.JournalVoucherDetails
                     .Where(d => d.JournalVoucherHeaderId == existingHeaderModel.JournalVoucherHeaderId)
                     .ExecuteDeleteAsync(cancellationToken);
 
@@ -1716,18 +1716,18 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region Details
 
-                var jvDetails = new List<FilprideJournalVoucherDetail>();
+                var jvDetails = new List<JournalVoucherDetail>();
 
                 foreach (var acctNo in viewModel.Details)
                 {
-                    var accountTitle = await _unitOfWork.FilprideChartOfAccount
+                    var accountTitle = await _unitOfWork.ChartOfAccount
                                            .GetAsync(coa => coa.AccountNumber == acctNo.AccountNo, cancellationToken)
                                        ?? throw new NullReferenceException($"Account number {acctNo.AccountNo} not found");
 
                     var isAccrualAccount = accountTitle.AccountName.Contains("AP - Accrued Expenses");
 
                     jvDetails.Add(
-                        new FilprideJournalVoucherDetail
+                        new JournalVoucherDetail
                         {
                             AccountNo = acctNo.AccountNo,
                             AccountName = accountTitle.AccountName,
@@ -1748,7 +1748,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(existingHeaderModel.EditedBy, $"Edited journal voucher# {existingHeaderModel.JournalVoucherHeaderNo}", "Journal Voucher", existingHeaderModel.Company);
+                AuditTrail auditTrailBook = new(existingHeaderModel.EditedBy, $"Edited journal voucher# {existingHeaderModel.JournalVoucherHeaderNo}", "Journal Voucher", existingHeaderModel.Company);
                 await _dbContext.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -1770,13 +1770,13 @@ namespace IBSWeb.Areas.User.Controllers
 
         private async Task ReverseAccrual(int id, CancellationToken cancellationToken)
         {
-            var existingHeaderModel = await _dbContext.FilprideJournalVoucherHeaders
+            var existingHeaderModel = await _dbContext.JournalVoucherHeaders
                 .Include(x => x.Details)
                 .FirstOrDefaultAsync(x => x.JournalVoucherHeaderId == id, cancellationToken)
                 ?? throw new InvalidOperationException($"Journal voucher header {id} not found.");
 
-            var accountTitlesDto = await _unitOfWork.FilprideJournalVoucher.GetListOfAccountTitleDto(cancellationToken);
-            var ledgers = new List<FilprideGeneralLedgerBook>();
+            var accountTitlesDto = await _unitOfWork.JournalVoucher.GetListOfAccountTitleDto(cancellationToken);
+            var ledgers = new List<GeneralLedgerBook>();
             var nextMonth = existingHeaderModel.Date.AddMonths(1);
             var firstDayOfNextMonth = new DateOnly(nextMonth.Year, nextMonth.Month, 1);
 
@@ -1788,7 +1788,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var particulars = $"Reversal of accrued '{existingHeaderModel.Details.First(d => d.Debit > 0).AccountName}' for the month of {firstDayOfNextMonth:MMM yyyy}.";
 
                 ledgers.Add(
-                    new FilprideGeneralLedgerBook
+                    new GeneralLedgerBook
                     {
                         Date = firstDayOfNextMonth,
                         Reference = existingHeaderModel.JournalVoucherHeaderNo!,
@@ -1809,12 +1809,12 @@ namespace IBSWeb.Areas.User.Controllers
                 );
             }
 
-            if (!_unitOfWork.FilprideJournalVoucher.IsJournalEntriesBalanced(ledgers))
+            if (!_unitOfWork.JournalVoucher.IsJournalEntriesBalanced(ledgers))
             {
                 throw new ArgumentException("Debit and Credit is not equal, check your entries.");
             }
 
-            await _dbContext.FilprideGeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
+            await _dbContext.GeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
         }
 
         [HttpGet]
@@ -1824,7 +1824,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             var companyClaims = await GetCompanyClaimAsync();
 
-            viewModel.CvList = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CvList = await _dbContext.CheckVoucherHeaders
                 .OrderBy(c => c.CheckVoucherHeaderNo)
                 .Where(c =>
                     c.Company == companyClaims &&
@@ -1840,7 +1840,7 @@ namespace IBSWeb.Areas.User.Controllers
             viewModel.MinDate = await _unitOfWork
                 .GetMinimumPeriodBasedOnThePostedPeriods(Module.JournalVoucher, cancellationToken);
 
-            viewModel.PrepaidExpenseAccounts = await _dbContext.FilprideChartOfAccounts
+            viewModel.PrepaidExpenseAccounts = await _dbContext.ChartOfAccounts
                 .Where(coa => coa.AccountName.Contains("Prepaid Expenses") && !coa.HasChildren)
                 .Select(coa => new SelectListItem
                 {
@@ -1863,7 +1863,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.CvList = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CvList = await _dbContext.CheckVoucherHeaders
                 .OrderBy(c => c.CheckVoucherHeaderNo)
                 .Where(c =>
                     c.Company == companyClaims &&
@@ -1879,7 +1879,7 @@ namespace IBSWeb.Areas.User.Controllers
             viewModel.MinDate = await _unitOfWork
                 .GetMinimumPeriodBasedOnThePostedPeriods(Module.JournalVoucher, cancellationToken);
 
-            viewModel.PrepaidExpenseAccounts = await _dbContext.FilprideChartOfAccounts
+            viewModel.PrepaidExpenseAccounts = await _dbContext.ChartOfAccounts
                 .Where(coa => coa.AccountName.Contains("Prepaid Expenses") && !coa.HasChildren)
                 .Select(coa => new SelectListItem
                 {
@@ -1898,20 +1898,20 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var cv = await _unitOfWork.FilprideCheckVoucher
+                var cv = await _unitOfWork.CheckVoucher
                     .GetAsync(x => x.CheckVoucherHeaderId == viewModel.CvId, cancellationToken)
                          ?? throw new NullReferenceException($"CV id {viewModel.CvId} not found");
 
                 #region --Saving the default entries
 
-                var generateJvNo = await _unitOfWork.FilprideJournalVoucher.GenerateCodeAsync(companyClaims, viewModel.Type, cancellationToken: cancellationToken);
+                var generateJvNo = await _unitOfWork.JournalVoucher.GenerateCodeAsync(companyClaims, viewModel.Type, cancellationToken: cancellationToken);
                 var startingMonth = new DateOnly(viewModel.TransactionDate.Year, viewModel.TransactionDate.Month, 1);
                 var endingMonth = startingMonth.AddMonths(viewModel.NumberOfMonths - 1);
                 var expenseAccount = viewModel.Details.First(d => d.Debit > 0).AccountTitle;
                 var prepaidAccount = viewModel.Details.First(d => d.Credit > 0).AccountTitle;
 
                 var particulars = $"Amortization of '{expenseAccount.Split(" ")[1]}' from {startingMonth:MMM yyyy} to {endingMonth:MMM yyyy}.";
-                var model = new FilprideJournalVoucherHeader
+                var model = new JournalVoucherHeader
                 {
                     Type = viewModel.Type,
                     JournalVoucherHeaderNo = generateJvNo,
@@ -1948,18 +1948,18 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region Details
 
-                var jvDetails = new List<FilprideJournalVoucherDetail>();
+                var jvDetails = new List<JournalVoucherDetail>();
 
                 foreach (var acctNo in viewModel.Details)
                 {
-                    var accountTitle = await _unitOfWork.FilprideChartOfAccount
+                    var accountTitle = await _unitOfWork.ChartOfAccount
                                            .GetAsync(coa => coa.AccountNumber == acctNo.AccountNo, cancellationToken)
                                        ?? throw new NullReferenceException($"Account number {acctNo.AccountNo} not found");
 
                     var isPrepaidAccount = accountTitle.AccountName.Contains("Prepaid Expenses");
 
                     jvDetails.Add(
-                        new FilprideJournalVoucherDetail
+                        new JournalVoucherDetail
                         {
                             AccountNo = acctNo.AccountNo,
                             AccountName = accountTitle.AccountName,
@@ -1980,7 +1980,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CreatedBy, $"Created new journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
+                AuditTrail auditTrailBook = new(model.CreatedBy, $"Created new journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
                 await _dbContext.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -2029,7 +2029,7 @@ namespace IBSWeb.Areas.User.Controllers
                         $"Cannot edit this record because the period {header.Date:MMM yyyy} is already closed.");
                 }
 
-                var existingDetailsModel = await _dbContext.FilprideJournalVoucherDetails
+                var existingDetailsModel = await _dbContext.JournalVoucherDetails
                     .Where(cvd => cvd.JournalVoucherHeaderId == header.JournalVoucherHeaderId)
                     .ToListAsync(cancellationToken);
 
@@ -2047,7 +2047,7 @@ namespace IBSWeb.Areas.User.Controllers
                     NumberOfMonths = existingAmortizationSetting.OccurrenceTotal
                 };
 
-                model.CvList = await _dbContext.FilprideCheckVoucherHeaders
+                model.CvList = await _dbContext.CheckVoucherHeaders
                     .OrderBy(c => c.CheckVoucherHeaderNo)
                     .Where(c =>
                         c.Company == companyClaims &&
@@ -2063,7 +2063,7 @@ namespace IBSWeb.Areas.User.Controllers
                 model.MinDate = await _unitOfWork
                     .GetMinimumPeriodBasedOnThePostedPeriods(Module.JournalVoucher, cancellationToken);
 
-                model.PrepaidExpenseAccounts = await _dbContext.FilprideChartOfAccounts
+                model.PrepaidExpenseAccounts = await _dbContext.ChartOfAccounts
                     .Where(coa => coa.AccountName.Contains("Prepaid Expenses") && !coa.HasChildren)
                     .Select(coa => new SelectListItem
                     {
@@ -2105,7 +2105,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.CvList = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CvList = await _dbContext.CheckVoucherHeaders
                 .OrderBy(c => c.CheckVoucherHeaderNo)
                 .Where(c =>
                     c.Company == companyClaims &&
@@ -2121,7 +2121,7 @@ namespace IBSWeb.Areas.User.Controllers
             viewModel.MinDate = await _unitOfWork
                 .GetMinimumPeriodBasedOnThePostedPeriods(Module.JournalVoucher, cancellationToken);
 
-            viewModel.PrepaidExpenseAccounts = await _dbContext.FilprideChartOfAccounts
+            viewModel.PrepaidExpenseAccounts = await _dbContext.ChartOfAccounts
                 .Where(coa => coa.AccountName.Contains("Prepaid Expenses") && !coa.HasChildren)
                 .Select(coa => new SelectListItem
                 {
@@ -2140,7 +2140,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var existingHeaderModel = await _dbContext.FilprideJournalVoucherHeaders
+                var existingHeaderModel = await _dbContext.JournalVoucherHeaders
                     .FirstOrDefaultAsync(x => x.JournalVoucherHeaderId == viewModel.JvId, cancellationToken);
 
                 if (existingHeaderModel == null)
@@ -2148,7 +2148,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return NotFound();
                 }
 
-                var cv = await _unitOfWork.FilprideCheckVoucher
+                var cv = await _unitOfWork.CheckVoucher
                     .GetAsync(x => x.CheckVoucherHeaderId == viewModel.CvId, cancellationToken)
                          ?? throw new NullReferenceException($"CV id {viewModel.CvId} not found");
 
@@ -2156,7 +2156,7 @@ namespace IBSWeb.Areas.User.Controllers
                    .FirstOrDefaultAsync(jv => jv.JvId == existingHeaderModel.JournalVoucherHeaderId && jv.IsActive, cancellationToken)
                         ?? throw new NullReferenceException($"JV#{existingHeaderModel.JournalVoucherHeaderId} amortization settings not found.");
 
-                await _dbContext.FilprideJournalVoucherDetails
+                await _dbContext.JournalVoucherDetails
                     .Where(d => d.JournalVoucherHeaderId == existingHeaderModel.JournalVoucherHeaderId)
                     .ExecuteDeleteAsync(cancellationToken);
 
@@ -2194,18 +2194,18 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region Details
 
-                var jvDetails = new List<FilprideJournalVoucherDetail>();
+                var jvDetails = new List<JournalVoucherDetail>();
 
                 foreach (var acctNo in viewModel.Details)
                 {
-                    var accountTitle = await _unitOfWork.FilprideChartOfAccount
+                    var accountTitle = await _unitOfWork.ChartOfAccount
                                            .GetAsync(coa => coa.AccountNumber == acctNo.AccountNo, cancellationToken)
                                        ?? throw new NullReferenceException($"Account number {acctNo.AccountNo} not found");
 
                     var isPrepaidAccount = accountTitle.AccountName.Contains("Prepaid Expenses");
 
                     jvDetails.Add(
-                        new FilprideJournalVoucherDetail
+                        new JournalVoucherDetail
                         {
                             AccountNo = acctNo.AccountNo,
                             AccountName = accountTitle.AccountName,
@@ -2226,7 +2226,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(existingHeaderModel.EditedBy, $"Edited journal voucher# {existingHeaderModel.JournalVoucherHeaderNo}", "Journal Voucher", existingHeaderModel.Company);
+                AuditTrail auditTrailBook = new(existingHeaderModel.EditedBy, $"Edited journal voucher# {existingHeaderModel.JournalVoucherHeaderNo}", "Journal Voucher", existingHeaderModel.Company);
                 await _dbContext.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -2263,15 +2263,15 @@ namespace IBSWeb.Areas.User.Controllers
                 throw new InvalidOperationException($"The source journal voucher for amortization with ID {id} is missing or has no details.");
             }
 
-            var newJournalVouchers = new List<FilprideJournalVoucherHeader>();
+            var newJournalVouchers = new List<JournalVoucherHeader>();
 
             for (var i = 1; i <= existingAmortizationSetting.OccurrenceRemaining; i++)
             {
                 var generatedCode = await _unitOfWork
-                    .FilprideJournalVoucher
+                    .JournalVoucher
                     .GenerateCodeAsync(sourceJv.Company, sourceJv.Type, i, cancellationToken);
 
-                var newHeader = new FilprideJournalVoucherHeader
+                var newHeader = new JournalVoucherHeader
                 {
                     Type = sourceJv.Type,
                     JournalVoucherHeaderNo = generatedCode,
@@ -2284,12 +2284,12 @@ namespace IBSWeb.Areas.User.Controllers
                     CreatedBy = GetUserFullName(),
                     Company = sourceJv.Company,
                     JvType = nameof(JvType.Amortization),
-                    Details = new List<FilprideJournalVoucherDetail>()
+                    Details = new List<JournalVoucherDetail>()
                 };
 
                 foreach (var detail in sourceJv.Details)
                 {
-                    newHeader.Details.Add(new FilprideJournalVoucherDetail
+                    newHeader.Details.Add(new JournalVoucherDetail
                     {
                         AccountNo = detail.AccountNo,
                         AccountName = detail.AccountName,
@@ -2305,7 +2305,7 @@ namespace IBSWeb.Areas.User.Controllers
                 newJournalVouchers.Add(newHeader);
             }
 
-            await _dbContext.FilprideJournalVoucherHeaders
+            await _dbContext.JournalVoucherHeaders
                 .AddRangeAsync(newJournalVouchers, cancellationToken);
 
             existingAmortizationSetting.OccurrenceRemaining = 0;
@@ -2323,7 +2323,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             var companyClaims = await GetCompanyClaimAsync();
 
-            viewModel.CvList = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CvList = await _dbContext.CheckVoucherHeaders
                 .OrderBy(c => c.CheckVoucherHeaderNo)
                 .Where(c =>
                     c.Company == companyClaims &&
@@ -2355,7 +2355,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.CvList = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CvList = await _dbContext.CheckVoucherHeaders
                 .OrderBy(c => c.CheckVoucherHeaderNo)
                 .Where(c =>
                     c.Company == companyClaims &&
@@ -2385,8 +2385,8 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Saving the default entries
 
-                var generateJvNo = await _unitOfWork.FilprideJournalVoucher.GenerateCodeAsync(companyClaims, viewModel.Type, cancellationToken: cancellationToken);
-                var model = new FilprideJournalVoucherHeader
+                var generateJvNo = await _unitOfWork.JournalVoucher.GenerateCodeAsync(companyClaims, viewModel.Type, cancellationToken: cancellationToken);
+                var model = new JournalVoucherHeader
                 {
                     Type = viewModel.Type,
                     JournalVoucherHeaderNo = generateJvNo,
@@ -2408,16 +2408,16 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region Details
 
-                var jvDetails = new List<FilprideJournalVoucherDetail>();
+                var jvDetails = new List<JournalVoucherDetail>();
 
                 foreach (var acctNo in viewModel.Details)
                 {
-                    var accountTitle = await _unitOfWork.FilprideChartOfAccount
+                    var accountTitle = await _unitOfWork.ChartOfAccount
                                            .GetAsync(coa => coa.AccountNumber == acctNo.AccountNo, cancellationToken)
                                        ?? throw new NullReferenceException($"Account number {acctNo.AccountNo} not found");
 
                     jvDetails.Add(
-                        new FilprideJournalVoucherDetail
+                        new JournalVoucherDetail
                         {
                             AccountNo = acctNo.AccountNo,
                             AccountName = accountTitle.AccountName,
@@ -2435,7 +2435,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CreatedBy, $"Created new journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
+                AuditTrail auditTrailBook = new(model.CreatedBy, $"Created new journal voucher# {model.JournalVoucherHeaderNo}", "Journal Voucher", model.Company);
                 await _dbContext.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -2463,7 +2463,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var existingHeaderModel = await _dbContext.FilprideJournalVoucherHeaders
+                var existingHeaderModel = await _dbContext.JournalVoucherHeaders
                     .Include(jv => jv.Details)
                     .FirstOrDefaultAsync(jv => jv.JournalVoucherHeaderId == id, cancellationToken);
 
@@ -2488,7 +2488,7 @@ namespace IBSWeb.Areas.User.Controllers
                     Particulars = existingHeaderModel.Particulars,
                     CrNo = existingHeaderModel.CRNo,
                     Reason = existingHeaderModel.JVReason,
-                    CvList = await _dbContext.FilprideCheckVoucherHeaders
+                    CvList = await _dbContext.CheckVoucherHeaders
                         .OrderBy(c => c.CheckVoucherHeaderNo)
                         .Where(c =>
                             c.Company == companyClaims &&
@@ -2535,7 +2535,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.CvList = await _dbContext.FilprideCheckVoucherHeaders
+            viewModel.CvList = await _dbContext.CheckVoucherHeaders
                 .OrderBy(c => c.CheckVoucherHeaderNo)
                 .Where(c =>
                     c.Company == companyClaims &&
@@ -2563,7 +2563,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var existingHeaderModel = await _dbContext.FilprideJournalVoucherHeaders
+                var existingHeaderModel = await _dbContext.JournalVoucherHeaders
                     .FirstOrDefaultAsync(x => x.JournalVoucherHeaderId == viewModel.JvId, cancellationToken);
 
                 if (existingHeaderModel == null)
@@ -2571,7 +2571,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return NotFound();
                 }
 
-                await _dbContext.FilprideJournalVoucherDetails
+                await _dbContext.JournalVoucherDetails
                     .Where(d => d.JournalVoucherHeaderId == existingHeaderModel.JournalVoucherHeaderId)
                     .ExecuteDeleteAsync(cancellationToken);
 
@@ -2592,16 +2592,16 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region Details
 
-                var jvDetails = new List<FilprideJournalVoucherDetail>();
+                var jvDetails = new List<JournalVoucherDetail>();
 
                 foreach (var acctNo in viewModel.Details)
                 {
-                    var accountTitle = await _unitOfWork.FilprideChartOfAccount
+                    var accountTitle = await _unitOfWork.ChartOfAccount
                                            .GetAsync(coa => coa.AccountNumber == acctNo.AccountNo, cancellationToken)
                                        ?? throw new NullReferenceException($"Account number {acctNo.AccountNo} not found");
 
                     jvDetails.Add(
-                        new FilprideJournalVoucherDetail
+                        new JournalVoucherDetail
                         {
                             AccountNo = acctNo.AccountNo,
                             AccountName = accountTitle.AccountName,
@@ -2619,7 +2619,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(existingHeaderModel.EditedBy, $"Edited journal voucher# {existingHeaderModel.JournalVoucherHeaderNo}", "Journal Voucher", existingHeaderModel.Company);
+                AuditTrail auditTrailBook = new(existingHeaderModel.EditedBy, $"Edited journal voucher# {existingHeaderModel.JournalVoucherHeaderNo}", "Journal Voucher", existingHeaderModel.Company);
                 await _dbContext.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording

@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using IBS.Models.Filpride.MasterFile;
+using IBS.Models.MasterFile;
 using IBS.Models.MMSI.MasterFile;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -56,7 +56,7 @@ namespace IBS.Models.MMSI
         public int? BankId { get; set; }
 
         [ForeignKey(nameof(BankId))]
-        public FilprideBankAccount? BankAccount { get; set; }
+        public BankAccount? BankAccount { get; set; }
 
         [StringLength(50)]
         public string? BankAccountName { get; set; }
@@ -94,7 +94,7 @@ namespace IBS.Models.MMSI
         #region --Objects--
 
         [ForeignKey(nameof(CustomerId))]
-        public FilprideCustomer? Customer { get; set; }
+        public Customer? Customer { get; set; }
 
         public List<MMSIBilling>? PaidBills { get; set; }
 

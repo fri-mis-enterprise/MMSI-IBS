@@ -5,7 +5,7 @@ using Google.Protobuf.WellKnownTypes;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.Filpride.MasterFile;
+using IBS.Models.MasterFile;
 using IBS.Models.MMSI;
 using IBS.Models.MMSI.MasterFile;
 using IBS.Services;
@@ -210,10 +210,10 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<string> ImportMsapCustomers(string customerCSVPath, CancellationToken cancellationToken)
         {
-            var existingNames = (await _unitOfWork.FilprideCustomer.GetAllAsync(c => c.Company == "MMSI", cancellationToken))
+            var existingNames = (await _unitOfWork.Customer.GetAllAsync(c => c.Company == "MMSI", cancellationToken))
                 .Select(c => c.CustomerName).ToList();
 
-            var customerList = new List<FilprideCustomer>();
+            var customerList = new List<Customer>();
             using var reader = new StreamReader(customerCSVPath);
             using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
             var records = csv.GetRecords<dynamic>().ToList();
@@ -228,7 +228,7 @@ namespace IBSWeb.Areas.User.Controllers
                     continue;
                 }
 
-                FilprideCustomer newCustomer = new FilprideCustomer();
+                Customer newCustomer = new Customer();
 
                 #region -- Saving Values --
 
@@ -254,7 +254,7 @@ namespace IBSWeb.Areas.User.Controllers
                         break;
                 }
 
-                newCustomer.CustomerCode = await _unitOfWork.FilprideCustomer.GenerateCodeAsync("Industrial", cancellationToken);
+                newCustomer.CustomerCode = await _unitOfWork.Customer.GenerateCodeAsync("Industrial", cancellationToken);
                 newCustomer.CustomerName = customerName;
                 var addressConcatenated = $"{record.address1} {record.address2} {record.address3}";
                 newCustomer.CustomerAddress = addressConcatenated.IsNullOrWhiteSpace() ? "-" : addressConcatenated;
@@ -277,7 +277,7 @@ namespace IBSWeb.Areas.User.Controllers
                 customerList.Add(newCustomer);
             }
 
-            await _dbContext.FilprideCustomers.AddRangeAsync(customerList, cancellationToken);
+            await _dbContext.Customers.AddRangeAsync(customerList, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
             return $"Customers imported successfully, {customerList.Count} new records";
         }
@@ -373,7 +373,7 @@ namespace IBSWeb.Areas.User.Controllers
             var existingIdentifier = (await _dbContext.MMSIPrincipals.ToListAsync(cancellationToken))
                 .Select(c => new { c.PrincipalNumber, c.PrincipalName, c.CustomerId}).ToList();
 
-            var mmsiCustomers = await _unitOfWork.FilprideCustomer
+            var mmsiCustomers = await _unitOfWork.Customer
                 .GetAllAsync(c => c.Company == "MMSI", cancellationToken);
 
             var newRecords = new List<MMSIPrincipal>();
@@ -707,7 +707,7 @@ namespace IBSWeb.Areas.User.Controllers
                 .Select(dt => new { dt.ServiceNumber, dt.ServiceId })
                 .ToListAsync(cancellationToken);
 
-            var ibsCustomerList = await _dbContext.FilprideCustomers
+            var ibsCustomerList = await _dbContext.Customers
                 .Where(c => c.Company == "MMSI")
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
@@ -983,7 +983,7 @@ namespace IBSWeb.Areas.User.Controllers
                 .Select(p => new { p.TerminalNumber, p.TerminalId, p.Port!.PortNumber })
                 .ToListAsync(cancellationToken);
 
-            var existingCustomers = await _dbContext.FilprideCustomers
+            var existingCustomers = await _dbContext.Customers
                 .Where(c => c.Company == "MMSI")
                 .AsNoTracking()
                 .Select(c => new { c.CustomerId, c.CustomerName })
@@ -999,7 +999,7 @@ namespace IBSWeb.Areas.User.Controllers
                 .Select(c => new { c.MMSICollectionId, c.MMSICollectionNumber })
                 .ToListAsync(cancellationToken);
 
-            var ibsCustomerList = await _dbContext.FilprideCustomers
+            var ibsCustomerList = await _dbContext.Customers
                 .Where(c => c.Company == "MMSI")
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
@@ -1204,7 +1204,7 @@ namespace IBSWeb.Areas.User.Controllers
                 .Select(b => b.MMSICollectionNumber)
                 .ToListAsync(cancellationToken);
 
-            var ibsCustomerList = await _dbContext.FilprideCustomers
+            var ibsCustomerList = await _dbContext.Customers
                 .Where(c => c.Company == "MMSI")
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);

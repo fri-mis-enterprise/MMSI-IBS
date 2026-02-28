@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using IBS.Models.Filpride.MasterFile;
+using IBS.Models.MasterFile;
 using IBS.Models.MMSI.MasterFile;
 using Microsoft.AspNetCore.Mvc.Rendering;
 

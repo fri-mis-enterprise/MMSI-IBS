@@ -5,8 +5,8 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.MasterFile;
+using IBS.Models;
+using IBS.Models.MasterFile;
 using IBS.Services.Attributes;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Identity;
@@ -57,7 +57,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Index(string? view, CancellationToken cancellationToken)
         {
-            var services = await _dbContext.FilprideServices.ToListAsync(cancellationToken);
+            var services = await _dbContext.Services.ToListAsync(cancellationToken);
 
             if (view == nameof(DynamicView.Service))
             {
@@ -70,9 +70,9 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> Create(CancellationToken cancellationToken)
         {
-            var viewModel = new FilprideService
+            var viewModel = new Service
             {
-                CurrentAndPreviousTitles = await _dbContext.FilprideChartOfAccounts
+                CurrentAndPreviousTitles = await _dbContext.ChartOfAccounts
                     .Where(coa => coa.Level == 4 || coa.Level == 5)
                     .OrderBy(coa => coa.AccountId)
                     .Select(s => new SelectListItem
@@ -81,7 +81,7 @@ namespace IBSWeb.Areas.User.Controllers
                         Text = s.AccountNumber + " " + s.AccountName
                     })
                     .ToListAsync(cancellationToken),
-                UnearnedTitles = await _dbContext.FilprideChartOfAccounts
+                UnearnedTitles = await _dbContext.ChartOfAccounts
                     .Where(coa => coa.Level == 4 || coa.Level == 5)
                     .OrderBy(coa => coa.AccountId)
                     .Select(s => new SelectListItem
@@ -97,9 +97,9 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(FilprideService services, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create(Service services, CancellationToken cancellationToken)
         {
-            services.CurrentAndPreviousTitles = await _dbContext.FilprideChartOfAccounts
+            services.CurrentAndPreviousTitles = await _dbContext.ChartOfAccounts
                 .Where(coa => coa.Level == 4 || coa.Level == 5)
                 .OrderBy(coa => coa.AccountId)
                 .Select(s => new SelectListItem
@@ -109,7 +109,7 @@ namespace IBSWeb.Areas.User.Controllers
                 })
                 .ToListAsync(cancellationToken);
 
-            services.UnearnedTitles = await _dbContext.FilprideChartOfAccounts
+            services.UnearnedTitles = await _dbContext.ChartOfAccounts
                 .Where(coa => coa.Level == 4 || coa.Level == 5)
                 .OrderBy(coa => coa.AccountId)
                 .Select(s => new SelectListItem
@@ -135,16 +135,16 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                if (await _unitOfWork.FilprideService.IsServicesExist(services.Name, companyClaims, cancellationToken))
+                if (await _unitOfWork.Service.IsServicesExist(services.Name, companyClaims, cancellationToken))
                 {
                     ModelState.AddModelError("Name", "Services already exist!");
                     return View(services);
                 }
 
-                var currentAndPrevious = await _unitOfWork.FilprideChartOfAccount
+                var currentAndPrevious = await _unitOfWork.ChartOfAccount
                     .GetAsync(x => x.AccountId == services.CurrentAndPreviousId, cancellationToken);
 
-                var unearned = await _unitOfWork.FilprideChartOfAccount
+                var unearned = await _unitOfWork.ChartOfAccount
                     .GetAsync(x => x.AccountId == services.UnearnedId, cancellationToken);
 
                 services.CurrentAndPreviousNo = currentAndPrevious!.AccountNumber;
@@ -153,14 +153,14 @@ namespace IBSWeb.Areas.User.Controllers
                 services.UnearnedTitle = unearned.AccountName;
                 services.Company = companyClaims;
                 services.CreatedBy = GetUserFullName();
-                services.ServiceNo = await _unitOfWork.FilprideService.GetLastNumber(cancellationToken);
-                await _unitOfWork.FilprideService.AddAsync(services, cancellationToken);
+                services.ServiceNo = await _unitOfWork.Service.GetLastNumber(cancellationToken);
+                await _unitOfWork.Service.AddAsync(services, cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new (GetUserFullName(),
+                AuditTrail auditTrailBook = new (GetUserFullName(),
                     $"Create Service #{services.ServiceNo}", "Service", (await GetCompanyClaimAsync())! );
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -182,7 +182,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             try
             {
-                var query = await _unitOfWork.FilprideService
+                var query = await _unitOfWork.Service
                     .GetAllAsync(null, cancellationToken);
 
                 // Global search
@@ -241,7 +241,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return NotFound();
             }
 
-            var services = await _unitOfWork.FilprideService
+            var services = await _unitOfWork.Service
                 .GetAsync(x => x.ServiceId == id, cancellationToken);
 
             if (services == null)
@@ -253,14 +253,14 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(FilprideService services, CancellationToken cancellationToken)
+        public async Task<IActionResult> Edit(Service services, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
                 return View(services);
             }
 
-            var existingModel =  await _unitOfWork.FilprideService
+            var existingModel =  await _unitOfWork.Service
                 .GetAsync(x => x.ServiceId == services.ServiceId, cancellationToken);
 
             if (existingModel == null)
@@ -279,9 +279,9 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new (GetUserFullName(),
+                AuditTrail auditTrailBook = new (GetUserFullName(),
                     $"Edited Service #{existingModel.ServiceNo}", "Service", (await GetCompanyClaimAsync())! );
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -304,7 +304,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             try
             {
-                var services = (await _dbContext.FilprideServices.ToListAsync(cancellationToken))
+                var services = (await _dbContext.Services.ToListAsync(cancellationToken))
                     .Select(x => new
                     {
                         x.ServiceId,
@@ -343,7 +343,7 @@ namespace IBSWeb.Areas.User.Controllers
             var recordIds = selectedRecord.Split(',').Select(int.Parse).ToList();
 
             // Retrieve the selected invoices from the database
-            var selectedList = await _dbContext.FilprideServices
+            var selectedList = await _dbContext.Services
                 .Where(service => recordIds.Contains(service.ServiceId))
                 .OrderBy(service => service.ServiceId)
                 .ToListAsync();
@@ -395,7 +395,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public IActionResult GetAllServiceIds()
         {
-            var serviceIds = _dbContext.FilprideServices
+            var serviceIds = _dbContext.Services
                 .Select(s => s.ServiceId)
                 .ToList();
 

@@ -50,7 +50,7 @@ namespace IBS.Services
         {
             try
             {
-                var hasUnliftedDrs = await _dbContext.FilprideDeliveryReceipts
+                var hasUnliftedDrs = await _dbContext.DeliveryReceipts
                     .AnyAsync(x => x.Date.Month == previousMonthDate.Month
                                    && x.Date.Year == previousMonthDate.Year
                                    && !x.HasReceivingReport);

@@ -4,8 +4,8 @@ using System.Security.Claims;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.MasterFile;
+using IBS.Models;
+using IBS.Models.MasterFile;
 using IBS.Services.Attributes;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -52,7 +52,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public IActionResult Index()
         {
-            var getEmployeeModel = _dbContext.FilprideEmployees
+            var getEmployeeModel = _dbContext.Employees
                 .Where(x => x.IsActive)
                 .ToList();
             return View(getEmployeeModel);
@@ -66,7 +66,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(FilprideEmployee model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create(Employee model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
@@ -81,13 +81,13 @@ namespace IBSWeb.Areas.User.Controllers
             try
             {
                 model.Company = companyClaims;
-                await _unitOfWork.FilprideEmployee.AddAsync(model, cancellationToken);
+                await _unitOfWork.Employee.AddAsync(model, cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new (GetUserFullName(),
+                AuditTrail auditTrailBook = new (GetUserFullName(),
                     $"Created new Employee #{model.EmployeeNumber}", "Employee", (await GetCompanyClaimAsync())! );
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -109,7 +109,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             try
             {
-                var queried = await _unitOfWork.FilprideEmployee
+                var queried = await _unitOfWork.Employee
                     .GetAllAsync(null, cancellationToken);
 
                 // Global search
@@ -166,7 +166,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
         {
-            var existingEmployee = await _unitOfWork.FilprideEmployee
+            var existingEmployee = await _unitOfWork.Employee
                 .GetAsync(x => x.EmployeeId == id, cancellationToken);
 
             return View(existingEmployee);
@@ -174,7 +174,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(FilprideEmployee model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Edit(Employee model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
@@ -182,7 +182,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return View(model);
             }
 
-            var existingModel = await _unitOfWork.FilprideEmployee
+            var existingModel = await _unitOfWork.Employee
                 .GetAsync(x => x.EmployeeId == model.EmployeeId, cancellationToken);
 
             if (existingModel == null)
@@ -196,9 +196,9 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new (GetUserFullName(),
+                AuditTrail auditTrailBook = new (GetUserFullName(),
                     $"Edited Employee #{existingModel.EmployeeNumber} => {model.EmployeeNumber}", "Employee", (await GetCompanyClaimAsync())! );
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 

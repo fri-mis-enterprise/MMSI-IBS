@@ -4,8 +4,8 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.ViewModels;
+using IBS.Models;
+using IBS.Models.ViewModels;
 using IBS.Services.Attributes;
 using IBS.Utility.Constants;
 using IBS.Utility.Helpers;
@@ -87,7 +87,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var generalLedgerBooks = await _unitOfWork.FilprideReport.GetGeneralLedgerBooks(model.DateFrom, model.DateTo, companyClaims);
+                var generalLedgerBooks = await _unitOfWork.Report.GetGeneralLedgerBooks(model.DateFrom, model.DateTo, companyClaims);
 
                 if (!generalLedgerBooks.Any())
                 {
@@ -224,8 +224,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate general ledger by transaction report quest pdf", "General Ledger Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate general ledger by transaction report quest pdf", "General Ledger Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -264,7 +264,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 try
                 {
-                    var generalBooks = await _unitOfWork.FilprideReport
+                    var generalBooks = await _unitOfWork.Report
                     .GetGeneralLedgerBooks(model.DateFrom, model.DateTo, companyClaims, cancellationToken);
 
                     if (generalBooks.Count == 0)
@@ -367,8 +367,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                     #region -- Audit Trail --
 
-                    FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate general ledger by transaction report excel file", "General Ledger Report", companyClaims);
-                    await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                    AuditTrail auditTrailBook = new(GetUserFullName(), "Generate general ledger by transaction report excel file", "General Ledger Report", companyClaims);
+                    await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                     #endregion
 
@@ -392,7 +392,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             var viewModel = new GeneralLedgerReportViewModel
             {
-                ChartOfAccounts = await _dbContext.FilprideChartOfAccounts
+                ChartOfAccounts = await _dbContext.ChartOfAccounts
                     .Where(coa => !coa.HasChildren)
                     .OrderBy(coa => coa.AccountNumber)
                     .Select(s => new SelectListItem
@@ -425,7 +425,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var generalLedgerByAccountNo = await _dbContext.FilprideGeneralLedgerBooks
+                var generalLedgerByAccountNo = await _dbContext.GeneralLedgerBooks
                     .Where(g =>
                         g.Date >= model.DateFrom && g.Date <= model.DateTo &&
                         (model.AccountNo == null || g.AccountNo == model.AccountNo) &&
@@ -438,7 +438,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return RedirectToAction(nameof(GeneralLedgerReportByAccountNumber));
                 }
 
-                var chartOfAccount = await _unitOfWork.FilprideChartOfAccount
+                var chartOfAccount = await _unitOfWork.ChartOfAccount
                     .GetAllAsync(cancellationToken : cancellationToken);
 
                 var document = Document.Create(container =>
@@ -619,8 +619,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate general ledger by account number report quest pdf", "General Ledger Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate general ledger by account number report quest pdf", "General Ledger Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -656,10 +656,10 @@ namespace IBSWeb.Areas.User.Controllers
                     .Split(' ', StringSplitOptions.RemoveEmptyEntries)
                     .FirstOrDefault();
 
-                var selectedAccount = await _unitOfWork.FilprideChartOfAccount
+                var selectedAccount = await _unitOfWork.ChartOfAccount
                     .GetAsync(coa => selectedAccountNo != null && coa.AccountNumber == selectedAccountNo, cancellationToken);
 
-                var generalLedgerByAccountNo = await _dbContext.FilprideGeneralLedgerBooks
+                var generalLedgerByAccountNo = await _dbContext.GeneralLedgerBooks
                     .Where(g =>
                         g.Date >= dateFrom && g.Date <= dateTo &&
                         (selectedAccount == null || g.AccountNo == selectedAccount.AccountNumber) &&
@@ -678,7 +678,7 @@ namespace IBSWeb.Areas.User.Controllers
                     .Distinct()
                     .ToList();
 
-                var accounts = await _unitOfWork.FilprideChartOfAccount
+                var accounts = await _unitOfWork.ChartOfAccount
                     .GetAllAsync(a => accountNumbers.Contains(a.AccountNumber!), cancellationToken);
 
                 var accountDictionary = accounts
@@ -858,8 +858,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate general ledger by account number report excel file", "General Ledger Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate general ledger by account number report excel file", "General Ledger Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -898,7 +898,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return BadRequest();
                 }
 
-                var generalBooks = await _unitOfWork.FilprideReport.GetGeneralLedgerBooks(model.DateFrom, model.DateTo, companyClaims);
+                var generalBooks = await _unitOfWork.Report.GetGeneralLedgerBooks(model.DateFrom, model.DateTo, companyClaims);
                 if (generalBooks.Count == 0)
                 {
                     TempData["info"] = "No Record Found";
@@ -1009,7 +1009,7 @@ namespace IBSWeb.Areas.User.Controllers
             try
             {
                 // Get general ledger books data
-                var generalBooks = await _unitOfWork.FilprideReport
+                var generalBooks = await _unitOfWork.Report
                     .GetGeneralLedgerBooks(model.DateFrom, model.DateTo, companyClaims, cancellationToken);
 
                 // Filter for "Update Price" in description (case-insensitive)
@@ -1120,12 +1120,12 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                FilprideAuditTrail auditTrailBook = new(
+                AuditTrail auditTrailBook = new(
                     GetUserFullName(),
                     "Generate general ledger journal voucher - updating selling price report excel file",
                     "General Ledger JV Report",
                     companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -1183,7 +1183,7 @@ namespace IBSWeb.Areas.User.Controllers
             try
             {
                 // Get general ledger books data
-                var generalBooks = await _unitOfWork.FilprideReport
+                var generalBooks = await _unitOfWork.Report
                     .GetGeneralLedgerBooks(model.DateFrom, model.DateTo, companyClaims, cancellationToken);
 
                 // Filter for "Update Cost" in description (case-insensitive)
@@ -1294,12 +1294,12 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                FilprideAuditTrail auditTrailBook = new(
+                AuditTrail auditTrailBook = new(
                     GetUserFullName(),
                     "Generate general ledger journal voucher - updating unit cost report excel file",
                     "General Ledger JV Report",
                     companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 

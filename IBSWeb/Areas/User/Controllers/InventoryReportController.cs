@@ -2,8 +2,8 @@ using System.Security.Claims;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.ViewModels;
+using IBS.Models;
+using IBS.Models.ViewModels;
 using IBS.Services.Attributes;
 using IBS.Utility.Constants;
 using Microsoft.AspNetCore.Identity;
@@ -69,7 +69,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             viewModel.Products = await _unitOfWork.GetProductListAsyncById(cancellationToken);
 
-            viewModel.PO = await _dbContext.FilpridePurchaseOrders
+            viewModel.PO = await _dbContext.PurchaseOrders
                 .OrderBy(p => p.PurchaseOrderNo)
                 .Where(p => p.Company == companyClaims)
                 .Select(p => new SelectListItem
@@ -219,7 +219,7 @@ namespace IBSWeb.Areas.User.Controllers
                                                  .ThenBy(x => x.Particular))
                                     {
                                         var getPurchaseOrder  =
-                                        _unitOfWork.FilpridePurchaseOrder.GetAsync(x =>
+                                        _unitOfWork.PurchaseOrder.GetAsync(x =>
                                             x.PurchaseOrderId == record.POId, cancellationToken);
 
                                         table.Cell().Border(0.5f).Padding(3).Text(record.Date.ToString(SD.Date_Format));
@@ -279,8 +279,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate inventory report quest pdf", "Inventory Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate inventory report quest pdf", "Inventory Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -440,7 +440,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                     foreach (var record in group.OrderBy(e => e.Date).ThenBy(x => x.Particular).ThenBy(x => x.Reference))
                     {
-                        var getPurchaseOrder = await _unitOfWork.FilpridePurchaseOrder
+                        var getPurchaseOrder = await _unitOfWork.PurchaseOrder
                             .GetAsync(x => x.PurchaseOrderId == record.POId, cancellationToken);
 
                         // Date
@@ -617,8 +617,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate inventory report excel", "Inventory Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate inventory report excel", "Inventory Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -660,7 +660,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             var companyClaims = await GetCompanyClaimAsync();
-            var purchaseOrders = await _dbContext.FilpridePurchaseOrders
+            var purchaseOrders = await _dbContext.PurchaseOrders
                 .OrderBy(p => p.PurchaseOrderNo)
                 .Where(p => p.Company == companyClaims && p.ProductId == productId)
                 .Select(p => new SelectListItem

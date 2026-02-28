@@ -188,7 +188,7 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<MMSITariffRate> GetSelectLists(MMSITariffRate model, CancellationToken cancellationToken = default)
         {
             var companyClaims = await GetCompanyClaimAsync();
-            model.Customers = await _unitOfWork.GetFilprideCustomerListAsyncById(companyClaims!, cancellationToken);
+            model.Customers = await _unitOfWork.GetCustomerListAsyncById(companyClaims!, cancellationToken);
             model.Ports = await _unitOfWork.Port.GetMMSIPortsSelectList(cancellationToken);
             model.Services = await _unitOfWork.Service.GetMMSIActivitiesServicesById(cancellationToken);
             if (model.TerminalId == 0) return model;

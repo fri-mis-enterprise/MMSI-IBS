@@ -4,10 +4,10 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models.Filpride.AccountsPayable;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.Integrated;
-using IBS.Models.Filpride.ViewModels;
+using IBS.Models.AccountsPayable;
+using IBS.Models;
+using IBS.Models.Integrated;
+using IBS.Models.ViewModels;
 using IBS.Services.Attributes;
 using IBS.Utility.Constants;
 using IBS.Utility.Helpers;
@@ -112,7 +112,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var companyClaims = await GetCompanyClaimAsync();
                 var filterTypeClaim = await GetCurrentFilterType();
 
-                var purchaseOrders = await _dbContext.FilpridePurchaseOrders
+                var purchaseOrders = await _dbContext.PurchaseOrders
                     .Include(po => po.PickUpPoint)
                     .Include(po => po.ActualPrices)
                     .Where(po => po.Company == companyClaims)
@@ -243,11 +243,11 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.PaymentTerms = await _unitOfWork.FilprideTerms
-                .GetFilprideTermsListAsyncByCode(cancellationToken);
+            viewModel.PaymentTerms = await _unitOfWork.Terms
+                .GetTermsListAsyncByCode(cancellationToken);
 
-            viewModel.Suppliers = await _unitOfWork.FilprideSupplier
-                .GetFilprideTradeSupplierListAsyncById(companyClaims, cancellationToken);
+            viewModel.Suppliers = await _unitOfWork.Supplier
+                .GetTradeSupplierListAsyncById(companyClaims, cancellationToken);
 
             viewModel.Products = await _unitOfWork
                 .GetProductListAsyncById(cancellationToken);
@@ -268,12 +268,12 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.Suppliers = await _unitOfWork.GetFilprideTradeSupplierListAsyncById(companyClaims, cancellationToken);
+            viewModel.Suppliers = await _unitOfWork.GetTradeSupplierListAsyncById(companyClaims, cancellationToken);
             viewModel.Products = await _unitOfWork.GetProductListAsyncById(cancellationToken);
-            viewModel.PickUpPoints = await _unitOfWork.FilpridePickUpPoint.GetPickUpPointListBasedOnSupplier(companyClaims,
+            viewModel.PickUpPoints = await _unitOfWork.PickUpPoint.GetPickUpPointListBasedOnSupplier(companyClaims,
                 viewModel.SupplierId, cancellationToken);
-            viewModel.PaymentTerms = await _unitOfWork.FilprideTerms
-                .GetFilprideTermsListAsyncByCode(cancellationToken);
+            viewModel.PaymentTerms = await _unitOfWork.Terms
+                .GetTermsListAsyncByCode(cancellationToken);
 
             if (!ModelState.IsValid)
             {
@@ -285,7 +285,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var supplier = await _unitOfWork.FilprideSupplier
+                var supplier = await _unitOfWork.Supplier
                     .GetAsync(s => s.SupplierId == viewModel.SupplierId, cancellationToken);
 
                 var product = await _unitOfWork.Product
@@ -296,9 +296,9 @@ namespace IBSWeb.Areas.User.Controllers
                     return NotFound();
                 }
 
-                var model = new FilpridePurchaseOrder
+                var model = new PurchaseOrder
                 {
-                    PurchaseOrderNo = await _unitOfWork.FilpridePurchaseOrder.GenerateCodeAsync(companyClaims, viewModel.Type!, cancellationToken),
+                    PurchaseOrderNo = await _unitOfWork.PurchaseOrder.GenerateCodeAsync(companyClaims, viewModel.Type!, cancellationToken),
                     Date = viewModel.Date,
                     SupplierId = supplier.SupplierId,
                     SupplierName = supplier.SupplierName,
@@ -324,12 +324,12 @@ namespace IBSWeb.Areas.User.Controllers
                     TypeOfPurchase = viewModel.TypeOfPurchase.ToUpper(),
                 };
 
-                await _unitOfWork.FilpridePurchaseOrder.AddAsync(model, cancellationToken);
+                await _unitOfWork.PurchaseOrder.AddAsync(model, cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CreatedBy, $"Create new purchase order# {model.PurchaseOrderNo}", "Purchase Order", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.CreatedBy, $"Create new purchase order# {model.PurchaseOrderNo}", "Purchase Order", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -363,7 +363,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            var purchaseOrder = await _unitOfWork.FilpridePurchaseOrder
+            var purchaseOrder = await _unitOfWork.PurchaseOrder
                 .GetAsync(po => po.PurchaseOrderId == id, cancellationToken);
 
             if (purchaseOrder == null)
@@ -376,11 +376,11 @@ namespace IBSWeb.Areas.User.Controllers
                 Date = purchaseOrder.Date,
                 PurchaseOrderId = purchaseOrder.PurchaseOrderId,
                 SupplierId = purchaseOrder.SupplierId,
-                Suppliers = await _unitOfWork.GetFilprideTradeSupplierListAsyncById(companyClaims, cancellationToken),
+                Suppliers = await _unitOfWork.GetTradeSupplierListAsyncById(companyClaims, cancellationToken),
                 ProductId = purchaseOrder.ProductId,
                 Products = await _unitOfWork.GetProductListAsyncById(cancellationToken),
                 PickUpPointId = purchaseOrder.PickUpPointId,
-                PickUpPoints = await _unitOfWork.FilpridePickUpPoint.GetPickUpPointListBasedOnSupplier(companyClaims,
+                PickUpPoints = await _unitOfWork.PickUpPoint.GetPickUpPointListBasedOnSupplier(companyClaims,
                         purchaseOrder.SupplierId, cancellationToken),
                 Terms = purchaseOrder.Terms,
                 Quantity = purchaseOrder.Quantity,
@@ -388,8 +388,8 @@ namespace IBSWeb.Areas.User.Controllers
                 Remarks = purchaseOrder.Remarks,
                 TriggerDate = purchaseOrder.TriggerDate,
                 SupplierSalesOrderNo = purchaseOrder.SupplierSalesOrderNo,
-                PaymentTerms = await _unitOfWork.FilprideTerms
-                    .GetFilprideTermsListAsyncByCode(cancellationToken),
+                PaymentTerms = await _unitOfWork.Terms
+                    .GetTermsListAsyncByCode(cancellationToken),
                 TypeOfPurchase = purchaseOrder.TypeOfPurchase,
             };
 
@@ -409,12 +409,12 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.Suppliers = await _unitOfWork.GetFilprideTradeSupplierListAsyncById(companyClaims, cancellationToken);
+            viewModel.Suppliers = await _unitOfWork.GetTradeSupplierListAsyncById(companyClaims, cancellationToken);
             viewModel.Products = await _unitOfWork.GetProductListAsyncById(cancellationToken);
-            viewModel.PickUpPoints = await _unitOfWork.FilpridePickUpPoint.GetPickUpPointListBasedOnSupplier(companyClaims,
+            viewModel.PickUpPoints = await _unitOfWork.PickUpPoint.GetPickUpPointListBasedOnSupplier(companyClaims,
                 viewModel.SupplierId, cancellationToken);
-            viewModel.PaymentTerms = await _unitOfWork.FilprideTerms
-                .GetFilprideTermsListAsyncByCode(cancellationToken);
+            viewModel.PaymentTerms = await _unitOfWork.Terms
+                .GetTermsListAsyncByCode(cancellationToken);
 
             if (!ModelState.IsValid)
             {
@@ -426,7 +426,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var existingModel = await _unitOfWork.FilpridePurchaseOrder
+                var existingModel = await _unitOfWork.PurchaseOrder
                     .GetAsync(x => x.PurchaseOrderId == viewModel.PurchaseOrderId, cancellationToken);
 
                 if (existingModel == null)
@@ -434,7 +434,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return NotFound();
                 }
 
-                var supplier = await _unitOfWork.FilprideSupplier
+                var supplier = await _unitOfWork.Supplier
                     .GetAsync(s => s.SupplierId == viewModel.SupplierId, cancellationToken);
 
                 var product = await _unitOfWork.Product
@@ -477,8 +477,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(existingModel.EditedBy!, $"Edited purchase order# {existingModel.PurchaseOrderNo}", "Purchase Order", existingModel.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(existingModel.EditedBy!, $"Edited purchase order# {existingModel.PurchaseOrderNo}", "Purchase Order", existingModel.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -506,7 +506,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             ViewBag.FilterType = await GetCurrentFilterType();
 
-            var purchaseOrder = await _dbContext.FilpridePurchaseOrders
+            var purchaseOrder = await _dbContext.PurchaseOrders
                 .Include(po => po.Supplier)
                 .Include(po => po.Product)
                 .Include(po => po.ActualPrices)
@@ -521,8 +521,8 @@ namespace IBSWeb.Areas.User.Controllers
 
             #region --Audit Trail Recording
 
-            FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Preview purchase order# {purchaseOrder.PurchaseOrderNo}", "Purchase Order", companyClaims!);
-            await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+            AuditTrail auditTrailBook = new(GetUserFullName(), $"Preview purchase order# {purchaseOrder.PurchaseOrderNo}", "Purchase Order", companyClaims!);
+            await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
             #endregion --Audit Trail Recording
 
@@ -535,7 +535,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var model = await _unitOfWork.FilpridePurchaseOrder
+                var model = await _unitOfWork.PurchaseOrder
                     .GetAsync(x => x.PurchaseOrderId == id, cancellationToken);
 
                 if (model == null)
@@ -550,9 +550,9 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.PostedBy!,
+                AuditTrail auditTrailBook = new(model.PostedBy!,
                     $"Posted purchase order# {model.PurchaseOrderNo}", "Purchase Order", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -577,7 +577,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var model = await _unitOfWork.FilpridePurchaseOrder
+                var model = await _unitOfWork.PurchaseOrder
                     .GetAsync(x => x.PurchaseOrderId == id, cancellationToken);
 
                 if (model == null)
@@ -586,10 +586,10 @@ namespace IBSWeb.Areas.User.Controllers
                 }
 
                 var hasAlreadyBeenUsed =
-                    await _dbContext.FilprideReceivingReports.AnyAsync(
+                    await _dbContext.ReceivingReports.AnyAsync(
                         rr => rr.POId == model.PurchaseOrderId && rr.Status != nameof(Status.Voided),
                         cancellationToken) ||
-                    await _dbContext.FilprideCheckVoucherHeaders.AnyAsync(cv =>
+                    await _dbContext.CheckVoucherHeaders.AnyAsync(cv =>
                         cv.CvType == "Trade" && cv.PONo!.Contains(model.PurchaseOrderNo) &&
                         cv.Status != nameof(Status.Voided), cancellationToken);
 
@@ -607,9 +607,9 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.VoidedBy!,
+                AuditTrail auditTrailBook = new(model.VoidedBy!,
                     $"Voided purchase order# {model.PurchaseOrderNo}", "Purchase Order", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -628,7 +628,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Cancel(int id, string? cancellationRemarks, CancellationToken cancellationToken)
         {
-            var model = await _unitOfWork.FilpridePurchaseOrder
+            var model = await _unitOfWork.PurchaseOrder
                 .GetAsync(x => x.PurchaseOrderId == id, cancellationToken);
 
             if (model == null)
@@ -647,8 +647,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled purchase order# {model.PurchaseOrderNo}", "Purchase Order", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled purchase order# {model.PurchaseOrderNo}", "Purchase Order", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -668,7 +668,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Printed(int id, CancellationToken cancellationToken)
         {
-            var po = await _unitOfWork.FilpridePurchaseOrder
+            var po = await _unitOfWork.PurchaseOrder
                 .GetAsync(x => x.PurchaseOrderId == id, cancellationToken);
 
             if (po == null)
@@ -680,8 +680,8 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of purchase order# {po.PurchaseOrderNo}", "Purchase Order", po.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of purchase order# {po.PurchaseOrderNo}", "Purchase Order", po.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -692,8 +692,8 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Printed re-printed copy of purchase order# {po.PurchaseOrderNo}", "Purchase Order", po.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed re-printed copy of purchase order# {po.PurchaseOrderNo}", "Purchase Order", po.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
             }
@@ -716,7 +716,7 @@ namespace IBSWeb.Areas.User.Controllers
             var recordIds = selectedRecord.Split(',').Select(int.Parse).ToList();
 
             // Retrieve the selected invoices from the database
-            var selectedList = await _dbContext.FilpridePurchaseOrders
+            var selectedList = await _dbContext.PurchaseOrders
                 .Where(po => recordIds.Contains(po.PurchaseOrderId))
                 .OrderBy(po => po.PurchaseOrderNo)
                 .ToListAsync();
@@ -754,7 +754,7 @@ namespace IBSWeb.Areas.User.Controllers
                 worksheet.Cells[row, 1].Value = item.Date.ToString("yyyy-MM-dd");
                 worksheet.Cells[row, 2].Value = item.Terms;
                 worksheet.Cells[row, 3].Value = item.Quantity;
-                worksheet.Cells[row, 4].Value = await _unitOfWork.FilpridePurchaseOrder.GetPurchaseOrderCost(item.PurchaseOrderId);
+                worksheet.Cells[row, 4].Value = await _unitOfWork.PurchaseOrder.GetPurchaseOrderCost(item.PurchaseOrderId);
                 worksheet.Cells[row, 5].Value = item.Amount;
                 worksheet.Cells[row, 6].Value = item.FinalPrice;
                 worksheet.Cells[row, 7].Value = item.QuantityReceived;
@@ -791,7 +791,7 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> GetAllPurchaseOrderIds()
         {
             var companyClaims = await GetCompanyClaimAsync();
-            var poIds = await _dbContext.FilpridePurchaseOrders
+            var poIds = await _dbContext.PurchaseOrders
                                      .Where(po => po.Type == nameof(DocumentType.Documented) && po.Company == companyClaims)
                                      .Select(po => po.PurchaseOrderId)
                                      .ToListAsync();
@@ -805,7 +805,7 @@ namespace IBSWeb.Areas.User.Controllers
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                var existingRecord = await _unitOfWork.FilpridePurchaseOrder
+                var existingRecord = await _unitOfWork.PurchaseOrder
                     .GetAsync(p => p.PurchaseOrderId == purchaseOrderId, cancellationToken);
 
                 var currentUser = _userManager.GetUserName(User);
@@ -817,7 +817,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 existingRecord.UnTriggeredQuantity -= volume;
 
-                var actualPrice = new FilpridePOActualPrice
+                var actualPrice = new POActualPrice
                 {
                     PurchaseOrderId = existingRecord.PurchaseOrderId,
                     TriggeredVolume = volume,
@@ -856,13 +856,13 @@ namespace IBSWeb.Areas.User.Controllers
 
                 existingRecord.Status = nameof(Status.ForApprovalOfOM);
 
-                await _dbContext.FilpridePOActualPrices.AddAsync(actualPrice, cancellationToken);
+                await _dbContext.POActualPrices.AddAsync(actualPrice, cancellationToken);
                 #endregion
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Update actual price for purchase order# {existingRecord.PurchaseOrderNo}, from {existingRecord.Price:N4} to {price:N4} (gross of VAT).", "Purchase Order", existingRecord.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Update actual price for purchase order# {existingRecord.PurchaseOrderNo}, from {existingRecord.Price:N4} to {price:N4} (gross of VAT).", "Purchase Order", existingRecord.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -886,7 +886,7 @@ namespace IBSWeb.Areas.User.Controllers
         [Authorize(Roles = "OperationManager, Admin, HeadApprover")]
         public async Task<IActionResult> Approve(int id, CancellationToken cancellationToken)
         {
-            var existingRecord = await _unitOfWork.FilpridePurchaseOrder
+            var existingRecord = await _unitOfWork.PurchaseOrder
                 .GetAsync(p => p.PurchaseOrderId == id, cancellationToken);
 
             if (existingRecord == null)
@@ -898,7 +898,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var actualPrices = await _dbContext.FilpridePOActualPrices
+                var actualPrices = await _dbContext.POActualPrices
                     .FirstOrDefaultAsync(a => a.PurchaseOrderId == existingRecord.PurchaseOrderId
                                               && !a.IsApproved, cancellationToken);
 
@@ -912,19 +912,19 @@ namespace IBSWeb.Areas.User.Controllers
                 actualPrices.ApprovedDate = DateTimeHelper.GetCurrentPhilippineTime();
                 actualPrices.IsApproved = true;
 
-                await _unitOfWork.FilpridePurchaseOrder.UpdateActualCostOnSalesAndReceiptsAsync(actualPrices, cancellationToken);
+                await _unitOfWork.PurchaseOrder.UpdateActualCostOnSalesAndReceiptsAsync(actualPrices, cancellationToken);
 
                 existingRecord.FinalPrice =  actualPrices.TriggeredPrice;
                 existingRecord.Status = nameof(Status.Posted);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(),
+                AuditTrail auditTrailBook = new(GetUserFullName(),
                     $"Approved the actual price of purchase order# {existingRecord.PurchaseOrderNo}",
                     "Purchase Order",
                     existingRecord.Company);
 
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -951,7 +951,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            var pickUpPoints = await _unitOfWork.FilpridePickUpPoint.GetPickUpPointListBasedOnSupplier(companyClaims, supplierId, cancellationToken);
+            var pickUpPoints = await _unitOfWork.PickUpPoint.GetPickUpPointListBasedOnSupplier(companyClaims, supplierId, cancellationToken);
 
             return Json(pickUpPoints);
         }
@@ -963,7 +963,7 @@ namespace IBSWeb.Areas.User.Controllers
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                var purchaseOrder = await _unitOfWork.FilpridePurchaseOrder
+                var purchaseOrder = await _unitOfWork.PurchaseOrder
                     .GetAsync(p => p.PurchaseOrderId == purchaseOrderId, cancellationToken);
 
                 if (purchaseOrder == null)
@@ -971,13 +971,13 @@ namespace IBSWeb.Areas.User.Controllers
                     return NotFound();
                 }
 
-                var pickupPoint = await _unitOfWork.FilpridePickUpPoint
+                var pickupPoint = await _unitOfWork.PickUpPoint
                     .GetAsync(x => x.PickUpPointId == pickupPointId, cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Product transfer for Purchase Order {purchaseOrder.PurchaseOrderNo} from {purchaseOrder.PickUpPoint!.Depot} to {pickupPoint!.Depot}. \nNote: {notes}", "Purchase Order", purchaseOrder.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Product transfer for Purchase Order {purchaseOrder.PurchaseOrderNo} from {purchaseOrder.PickUpPoint!.Depot} to {pickupPoint!.Depot}. \nNote: {notes}", "Purchase Order", purchaseOrder.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -1006,7 +1006,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var purchaseOrder = await _unitOfWork.FilpridePurchaseOrder
+                var purchaseOrder = await _unitOfWork.PurchaseOrder
                     .GetAsync(p => p.PurchaseOrderId == purchaseOrderId, cancellationToken);
 
                 if (purchaseOrder == null)
@@ -1018,8 +1018,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Update sales order number of purchase order# {purchaseOrder.PurchaseOrderNo}.", "Purchase Order", purchaseOrder.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Update sales order number of purchase order# {purchaseOrder.PurchaseOrderNo}.", "Purchase Order", purchaseOrder.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -1040,7 +1040,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Close(int id, CancellationToken cancellationToken)
         {
-            var model = await _unitOfWork.FilpridePurchaseOrder
+            var model = await _unitOfWork.PurchaseOrder
                 .GetAsync(x => x.PurchaseOrderId == id, cancellationToken);
 
             if (model == null)
@@ -1057,8 +1057,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Closed purchase order# {model.PurchaseOrderNo}", "Purchase Order", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Closed purchase order# {model.PurchaseOrderNo}", "Purchase Order", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -1088,7 +1088,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 var companyClaims = await GetCompanyClaimAsync();
 
-                var purchaseOrders = await _unitOfWork.FilpridePurchaseOrder
+                var purchaseOrders = await _unitOfWork.PurchaseOrder
                     .GetAllAsync(po => po.Company == companyClaims && po.Type == nameof(DocumentType.Documented), cancellationToken);
 
                 // Apply date range filter if provided
@@ -1140,7 +1140,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var totalRecords = purchaseOrders.Count();
 
                 // Apply pagination - HANDLE -1 FOR "ALL"
-                IEnumerable<FilpridePurchaseOrder> pagedPurchaseOrders;
+                IEnumerable<PurchaseOrder> pagedPurchaseOrders;
 
                 if (parameters.Length == -1)
                 {

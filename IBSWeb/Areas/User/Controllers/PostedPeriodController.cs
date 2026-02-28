@@ -2,7 +2,7 @@ using IBS.Utility.Constants;
 using IBS.DataAccess.Data;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models.Filpride.ViewModels;
+using IBS.Models.ViewModels;
 using IBS.Services;
 using IBS.Services.Attributes;
 using IBS.Utility.Helpers;

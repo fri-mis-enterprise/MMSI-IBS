@@ -50,7 +50,7 @@ namespace IBS.DataAccess.Repository.MMSI
 
             if (model!.CustomerId != 0 && model.CustomerId != null)
             {
-                model.Customer = await _db.FilprideCustomers
+                model.Customer = await _db.Customers
                     .FirstOrDefaultAsync(x => x.CustomerId == model.CustomerId, cancellationToken);
             }
 
@@ -159,7 +159,7 @@ namespace IBS.DataAccess.Repository.MMSI
 
         private async Task<List<SelectListItem>> GetMMSICustomersById(CancellationToken cancellationToken = default)
         {
-            return await _db.FilprideCustomers
+            return await _db.Customers
                 .Where(c => c.IsMMSI == true)
                 .OrderBy(s => s.CustomerName)
                 .Select(s => new SelectListItem

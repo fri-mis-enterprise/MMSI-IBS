@@ -4,9 +4,9 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models.Filpride.AccountsPayable;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.ViewModels;
+using IBS.Models.AccountsPayable;
+using IBS.Models;
+using IBS.Models.ViewModels;
 using IBS.Services.Attributes;
 using IBS.Utility.Constants;
 using IBS.Utility.Helpers;
@@ -106,7 +106,7 @@ namespace IBSWeb.Areas.User.Controllers
             return View("ExportIndex");
 
             //For the function of correcting the journal entries
-            // var receivingReportss = await _unitOfWork.FilprideReceivingReport
+            // var receivingReportss = await _unitOfWork.ReceivingReport
             //     .GetAllAsync();
             //
             // foreach (var receivingReports in receivingReportss)
@@ -126,7 +126,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var companyClaims = await GetCompanyClaimAsync();
                 var filterTypeClaim = await GetCurrentFilterType();
 
-                var receivingReports = await _unitOfWork.FilprideReceivingReport
+                var receivingReports = await _unitOfWork.ReceivingReport
                     .GetAllAsync(rr => rr.Company == companyClaims, cancellationToken);
 
                 if (!string.IsNullOrEmpty(filterTypeClaim))
@@ -246,7 +246,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.PurchaseOrders = await _unitOfWork.FilpridePurchaseOrder
+            viewModel.PurchaseOrders = await _unitOfWork.PurchaseOrder
                 .GetPurchaseOrderListAsyncById(companyClaims, cancellationToken);
 
             return View(viewModel);
@@ -263,7 +263,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.PurchaseOrders = await _unitOfWork.FilpridePurchaseOrder
+            viewModel.PurchaseOrders = await _unitOfWork.PurchaseOrder
                 .GetPurchaseOrderListAsyncById(companyClaims, cancellationToken);
 
             if (!ModelState.IsValid)
@@ -278,7 +278,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Retrieve PO
 
-                var existingPo = await _unitOfWork.FilpridePurchaseOrder
+                var existingPo = await _unitOfWork.PurchaseOrder
                     .GetAsync(po => po.PurchaseOrderId == viewModel.PurchaseOrderId, cancellationToken);
 
                 if (existingPo == null)
@@ -296,11 +296,11 @@ namespace IBSWeb.Areas.User.Controllers
                     return View(viewModel);
                 }
 
-                var model = new FilprideReceivingReport
+                var model = new ReceivingReport
                 {
-                    ReceivingReportNo = await _unitOfWork.FilprideReceivingReport.GenerateCodeAsync(companyClaims, existingPo.Type!, cancellationToken),
+                    ReceivingReportNo = await _unitOfWork.ReceivingReport.GenerateCodeAsync(companyClaims, existingPo.Type!, cancellationToken),
                     Date = viewModel.Date,
-                    DueDate = await _unitOfWork.FilprideReceivingReport.ComputeDueDateAsync(existingPo.Terms, viewModel.Date, cancellationToken),
+                    DueDate = await _unitOfWork.ReceivingReport.ComputeDueDateAsync(existingPo.Terms, viewModel.Date, cancellationToken),
                     POId = existingPo.PurchaseOrderId,
                     PONo = existingPo.PurchaseOrderNo,
                     SupplierInvoiceNumber = viewModel.SupplierSiNo,
@@ -309,7 +309,7 @@ namespace IBSWeb.Areas.User.Controllers
                     QuantityReceived = viewModel.QuantityReceived,
                     QuantityDelivered = viewModel.QuantityDelivered,
                     GainOrLoss = viewModel.QuantityReceived - viewModel.QuantityDelivered,
-                    Amount = viewModel.QuantityReceived * await _unitOfWork.FilpridePurchaseOrder.GetPurchaseOrderCost(existingPo.PurchaseOrderId, cancellationToken),
+                    Amount = viewModel.QuantityReceived * await _unitOfWork.PurchaseOrder.GetPurchaseOrderCost(existingPo.PurchaseOrderId, cancellationToken),
                     AuthorityToLoadNo = viewModel.AuthorityToLoadNo,
                     Remarks = viewModel.Remarks,
                     CreatedBy = GetUserFullName(),
@@ -323,12 +323,12 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CreatedBy!, $"Create new receiving report# {model.ReceivingReportNo}", "Receiving Report", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.CreatedBy!, $"Create new receiving report# {model.ReceivingReportNo}", "Receiving Report", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
-                await _unitOfWork.FilprideReceivingReport.AddAsync(model, cancellationToken);
+                await _unitOfWork.ReceivingReport.AddAsync(model, cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 TempData["success"] = $"Receiving Report #{model.ReceivingReportNo} created successfully";
                 return RedirectToAction(nameof(Index), new { filterType = await GetCurrentFilterType() });
@@ -361,7 +361,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return BadRequest();
                 }
 
-                var receivingReport = await _unitOfWork.FilprideReceivingReport
+                var receivingReport = await _unitOfWork.ReceivingReport
                     .GetAsync(x => x.ReceivingReportId == id, cancellationToken);
 
                 if (receivingReport == null)
@@ -383,7 +383,7 @@ namespace IBSWeb.Areas.User.Controllers
                     ReceivingReportId = receivingReport.ReceivingReportId,
                     Date = receivingReport.Date,
                     PurchaseOrderId = receivingReport.POId,
-                    PurchaseOrders = await _unitOfWork.FilpridePurchaseOrder
+                    PurchaseOrders = await _unitOfWork.PurchaseOrder
                         .GetPurchaseOrderListAsyncById(companyClaims, cancellationToken),
                     ReceivedDate = receivingReport.ReceivedDate,
                     SupplierSiNo = receivingReport.SupplierInvoiceNumber,
@@ -415,7 +415,7 @@ namespace IBSWeb.Areas.User.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(ReceivingReportViewModel viewModel, CancellationToken cancellationToken)
         {
-            var existingModel = await _unitOfWork.FilprideReceivingReport
+            var existingModel = await _unitOfWork.ReceivingReport
                 .GetAsync(x => x.ReceivingReportId == viewModel.ReceivingReportId, cancellationToken);
 
             if (existingModel == null)
@@ -430,7 +430,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.PurchaseOrders = await _unitOfWork.FilpridePurchaseOrder
+            viewModel.PurchaseOrders = await _unitOfWork.PurchaseOrder
                 .GetPurchaseOrderListAsyncById(companyClaims, cancellationToken);
 
             viewModel.MinDate = await _unitOfWork.GetMinimumPeriodBasedOnThePostedPeriods(Module.ReceivingReport, cancellationToken);
@@ -448,7 +448,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Retrieve PO
 
-                var po = await _unitOfWork.FilpridePurchaseOrder
+                var po = await _unitOfWork.PurchaseOrder
                     .GetAsync(x => x.PurchaseOrderId == viewModel.PurchaseOrderId, cancellationToken);
 
                 if (po == null)
@@ -469,7 +469,7 @@ namespace IBSWeb.Areas.User.Controllers
                 existingModel.Date = viewModel.Date;
                 existingModel.POId = po.PurchaseOrderId;
                 existingModel.PONo = po.PurchaseOrderNo;
-                existingModel.DueDate = await _unitOfWork.FilprideReceivingReport.ComputeDueDateAsync(po.Terms, viewModel.Date, cancellationToken);
+                existingModel.DueDate = await _unitOfWork.ReceivingReport.ComputeDueDateAsync(po.Terms, viewModel.Date, cancellationToken);
                 existingModel.SupplierInvoiceNumber = viewModel.SupplierSiNo;
                 existingModel.SupplierInvoiceDate = viewModel.SupplierSiDate;
                 existingModel.SupplierDrNo = viewModel.SupplierDrNo;
@@ -481,7 +481,7 @@ namespace IBSWeb.Areas.User.Controllers
                 existingModel.AuthorityToLoadNo = viewModel.AuthorityToLoadNo;
                 existingModel.Remarks = viewModel.Remarks;
                 existingModel.ReceivedDate = viewModel.ReceivedDate;
-                existingModel.Amount = viewModel.QuantityReceived * await _unitOfWork.FilpridePurchaseOrder.GetPurchaseOrderCost(po.PurchaseOrderId, cancellationToken);
+                existingModel.Amount = viewModel.QuantityReceived * await _unitOfWork.PurchaseOrder.GetPurchaseOrderCost(po.PurchaseOrderId, cancellationToken);
                 existingModel.OldRRNo = viewModel.OldRRNo;
                 existingModel.CostBasedOnSoa = viewModel.CostBasedOnSoa;
 
@@ -496,8 +496,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(existingModel.EditedBy!, $"Edited receiving report# {existingModel.ReceivingReportNo}", "Receiving Report", existingModel.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(existingModel.EditedBy!, $"Edited receiving report# {existingModel.ReceivingReportNo}", "Receiving Report", existingModel.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -518,7 +518,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> Print(int id, CancellationToken cancellationToken)
         {
-            var receivingReport = await _unitOfWork.FilprideReceivingReport
+            var receivingReport = await _unitOfWork.ReceivingReport
                 .GetAsync(rr => rr.ReceivingReportId == id, cancellationToken);
 
             ViewBag.FilterType = await GetCurrentFilterType();
@@ -532,8 +532,8 @@ namespace IBSWeb.Areas.User.Controllers
 
             #region --Audit Trail Recording
 
-            FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Preview receiving report# {receivingReport.ReceivingReportNo}", "Purchase Order", companyClaims!);
-            await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+            AuditTrail auditTrailBook = new(GetUserFullName(), $"Preview receiving report# {receivingReport.ReceivingReportNo}", "Purchase Order", companyClaims!);
+            await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
             #endregion --Audit Trail Recording
 
@@ -542,7 +542,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Post(int id, CancellationToken cancellationToken)
         {
-            var model = await _unitOfWork.FilprideReceivingReport
+            var model = await _unitOfWork.ReceivingReport
                 .GetAsync(rr => rr.ReceivingReportId == id, cancellationToken);
 
             if (model == null)
@@ -566,14 +566,14 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.PostedBy!, $"Posted receiving report# {model.ReceivingReportNo}", "Receiving Report", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.PostedBy!, $"Posted receiving report# {model.ReceivingReportNo}", "Receiving Report", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
-                await _unitOfWork.FilprideReceivingReport.PostAsync(model, cancellationToken);
+                await _unitOfWork.ReceivingReport.PostAsync(model, cancellationToken);
 
-                await _unitOfWork.FilprideReceivingReport.UpdatePoAsync(model.PurchaseOrder!.PurchaseOrderId,
+                await _unitOfWork.ReceivingReport.UpdatePoAsync(model.PurchaseOrder!.PurchaseOrderId,
                     model.QuantityReceived, cancellationToken);;
 
                 await transaction.CommitAsync(cancellationToken);
@@ -593,7 +593,7 @@ namespace IBSWeb.Areas.User.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Void(int id, CancellationToken cancellationToken)
         {
-            var model = await _unitOfWork.FilprideReceivingReport
+            var model = await _unitOfWork.ReceivingReport
                 .GetAsync(rr => rr.ReceivingReportId == id, cancellationToken);
 
             if (model == null)
@@ -613,7 +613,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-            var connectedSi = await _unitOfWork.FilprideSalesInvoice
+            var connectedSi = await _unitOfWork.SalesInvoice
                 .GetAsync(x => x.ReceivingReportId == id, cancellationToken);
 
             if (connectedSi != null)
@@ -629,15 +629,15 @@ namespace IBSWeb.Areas.User.Controllers
                 model.PostedBy = null;
                 model.DeliveryReceipt!.HasReceivingReport = false;
 
-                await _unitOfWork.FilprideReceivingReport.RemoveRecords<FilpridePurchaseBook>(pb => pb.DocumentNo == model.ReceivingReportNo, cancellationToken);
-                await _unitOfWork.FilprideReceivingReport.RemoveRecords<FilprideGeneralLedgerBook>(pb => pb.Reference == model.ReceivingReportNo, cancellationToken);
-                await _unitOfWork.FilprideInventory.VoidInventory(existingInventory, cancellationToken);
-                await _unitOfWork.FilprideReceivingReport.RemoveQuantityReceived(model.POId, model.QuantityReceived, cancellationToken);
+                await _unitOfWork.ReceivingReport.RemoveRecords<PurchaseBook>(pb => pb.DocumentNo == model.ReceivingReportNo, cancellationToken);
+                await _unitOfWork.ReceivingReport.RemoveRecords<GeneralLedgerBook>(pb => pb.Reference == model.ReceivingReportNo, cancellationToken);
+                await _unitOfWork.Inventory.VoidInventory(existingInventory, cancellationToken);
+                await _unitOfWork.ReceivingReport.RemoveQuantityReceived(model.POId, model.QuantityReceived, cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.VoidedBy!, $"Voided receiving report# {model.ReceivingReportNo}", "Receiving Report", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.VoidedBy!, $"Voided receiving report# {model.ReceivingReportNo}", "Receiving Report", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -657,7 +657,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Cancel(int id, string? cancellationRemarks, CancellationToken cancellationToken)
         {
-            var model = await _unitOfWork.FilprideReceivingReport
+            var model = await _unitOfWork.ReceivingReport
                 .GetAsync(rr => rr.ReceivingReportId == id, cancellationToken);
 
             if (model == null)
@@ -677,8 +677,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled receiving report# {model.ReceivingReportNo}", "Receiving Report", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled receiving report# {model.ReceivingReportNo}", "Receiving Report", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -699,7 +699,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> GetLiquidations(int id, CancellationToken cancellationToken)
         {
-            var po = await _unitOfWork.FilpridePurchaseOrder
+            var po = await _unitOfWork.PurchaseOrder
                 .GetAsync(po => po.PurchaseOrderId == id, cancellationToken);
 
             if (po == null)
@@ -708,7 +708,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             var receivingReports = await _unitOfWork
-                .FilprideReceivingReport
+                .ReceivingReport
                 .GetAllAsync(x => x.Company == po.Company
                                    && x.PONo == po.PurchaseOrderNo, cancellationToken);
 
@@ -758,7 +758,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Printed(int id, CancellationToken cancellationToken)
         {
-            var rr = await _unitOfWork.FilprideReceivingReport
+            var rr = await _unitOfWork.ReceivingReport
                 .GetAsync(x => x.ReceivingReportId == id, cancellationToken);
 
             if (rr == null)
@@ -770,8 +770,8 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of receiving report# {rr.ReceivingReportNo}", "Receiving Report", rr.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of receiving report# {rr.ReceivingReportNo}", "Receiving Report", rr.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -782,8 +782,8 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Printed re-printed copy of receiving report# {rr.ReceivingReportNo}", "Receiving Report", rr.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed re-printed copy of receiving report# {rr.ReceivingReportNo}", "Receiving Report", rr.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
             }
@@ -803,7 +803,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 var companyClaims = await GetCompanyClaimAsync();
 
-                var receivingReports = await _unitOfWork.FilprideReceivingReport
+                var receivingReports = await _unitOfWork.ReceivingReport
                     .GetAllAsync(rr => rr.Company == companyClaims && rr.Type == nameof(DocumentType.Documented), cancellationToken);
 
                 // Apply date range filter if provided
@@ -855,7 +855,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var totalRecords = receivingReports.Count();
 
                 // Apply pagination - HANDLE -1 FOR "ALL"
-                IEnumerable<FilprideReceivingReport> pagedReceivingReports;
+                IEnumerable<ReceivingReport> pagedReceivingReports;
 
                 if (parameters.Length == -1)
                 {
@@ -921,7 +921,7 @@ namespace IBSWeb.Areas.User.Controllers
             var recordIds = selectedRecord.Split(',').Select(int.Parse).ToList();
 
             // Retrieve the selected records from the database
-            var selectedList = await _dbContext.FilprideReceivingReports
+            var selectedList = await _dbContext.ReceivingReports
                 .Where(rr => recordIds.Contains(rr.ReceivingReportId))
                 .Include(rr => rr.PurchaseOrder)
                 .OrderBy(rr => rr.ReceivingReportNo)
@@ -1046,7 +1046,7 @@ namespace IBSWeb.Areas.User.Controllers
                     worksheet2.Cells[poRow, 1].Value = item.PurchaseOrder.Date.ToString("yyyy-MM-dd");
                     worksheet2.Cells[poRow, 2].Value = item.PurchaseOrder.Terms;
                     worksheet2.Cells[poRow, 3].Value = item.PurchaseOrder.Quantity;
-                    worksheet2.Cells[poRow, 4].Value = await _unitOfWork.FilpridePurchaseOrder.GetPurchaseOrderCost(item.PurchaseOrder.PurchaseOrderId);
+                    worksheet2.Cells[poRow, 4].Value = await _unitOfWork.PurchaseOrder.GetPurchaseOrderCost(item.PurchaseOrder.PurchaseOrderId);
                     worksheet2.Cells[poRow, 5].Value = item.PurchaseOrder.Amount;
                     worksheet2.Cells[poRow, 6].Value = item.PurchaseOrder.FinalPrice;
                     worksheet2.Cells[poRow, 7].Value = item.PurchaseOrder.QuantityReceived;
@@ -1090,7 +1090,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public IActionResult GetAllReceivingReportIds()
         {
-            var rrIds = _dbContext.FilprideReceivingReports
+            var rrIds = _dbContext.ReceivingReports
                                      .Where(rr => rr.Type == nameof(DocumentType.Documented))
                                      .Select(rr => rr.ReceivingReportId)
                                      .ToList();
@@ -1105,7 +1105,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var receivingReports = await _unitOfWork.FilprideReceivingReport
+                var receivingReports = await _unitOfWork.ReceivingReport
                     .GetAllAsync(x =>
                         x.Status == nameof(Status.Posted) &&
                         x.Date.Month == month &&
@@ -1120,7 +1120,7 @@ namespace IBSWeb.Areas.User.Controllers
                 foreach (var receivingReport in receivingReports
                              .OrderBy(x => x.Date))
                 {
-                    await _unitOfWork.FilprideReceivingReport
+                    await _unitOfWork.ReceivingReport
                         .PostAsync(receivingReport, cancellationToken);
                 }
 
