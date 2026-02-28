@@ -1,9 +1,9 @@
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.Filpride.AccountsReceivable;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.ViewModels;
+using IBS.Models.AccountsReceivable;
+using IBS.Models;
+using IBS.Models.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -75,7 +75,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 var companyClaims = await GetCompanyClaimAsync();
 
-                var creditMemos = await _unitOfWork.FilprideCreditMemo
+                var creditMemos = await _unitOfWork.CreditMemo
                     .GetAllAsync(cm => cm.Company == companyClaims, cancellationToken);
 
                 // Search filter
@@ -148,7 +148,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             var companyClaims = await GetCompanyClaimAsync();
 
-            viewModel.SalesInvoices = (await _unitOfWork.FilprideSalesInvoice
+            viewModel.SalesInvoices = (await _unitOfWork.SalesInvoice
                     .GetAllAsync(si => si.Company == companyClaims && si.PostedBy != null, cancellationToken))
                 .Select(si => new SelectListItem
                 {
@@ -157,7 +157,7 @@ namespace IBSWeb.Areas.User.Controllers
                 })
                 .ToList();
 
-            viewModel.ServiceInvoices = (await _unitOfWork.FilprideServiceInvoice
+            viewModel.ServiceInvoices = (await _unitOfWork.ServiceInvoice
                     .GetAllAsync(sv => sv.Company == companyClaims && sv.PostedBy != null, cancellationToken))
                 .Select(sv => new SelectListItem
                 {
@@ -187,7 +187,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return View(viewModel);
             }
 
-            var model = new FilprideCreditMemo
+            var model = new CreditMemo
             {
                 Source = viewModel.Source,
                 TransactionDate = viewModel.TransactionDate,
@@ -208,10 +208,10 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            var existingSalesInvoice = await _unitOfWork.FilprideSalesInvoice
+            var existingSalesInvoice = await _unitOfWork.SalesInvoice
                         .GetAsync(invoice => invoice.SalesInvoiceId == model.SalesInvoiceId, cancellationToken);
 
-            var existingSv = await _unitOfWork.FilprideServiceInvoice
+            var existingSv = await _unitOfWork.ServiceInvoice
                         .GetAsync(sv => sv.ServiceInvoiceId == model.ServiceInvoiceId, cancellationToken);
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -222,7 +222,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 if (model.SalesInvoiceId != null)
                 {
-                    var existingSidMs = (await _unitOfWork.FilprideDebitMemo
+                    var existingSidMs = (await _unitOfWork.DebitMemo
                                   .GetAllAsync(si => si.SalesInvoiceId == model.SalesInvoiceId && si.PostedBy != null && si.CanceledBy != null && si.VoidedBy != null, cancellationToken))
                                   .OrderBy(s => s.SalesInvoiceId)
                                   .ToList();
@@ -233,7 +233,7 @@ namespace IBSWeb.Areas.User.Controllers
                         return View(viewModel);
                     }
 
-                    var existingSicMs = (await _unitOfWork.FilprideCreditMemo
+                    var existingSicMs = (await _unitOfWork.CreditMemo
                                       .GetAllAsync(si => si.SalesInvoiceId == model.SalesInvoiceId && si.PostedBy != null && si.CanceledBy != null && si.VoidedBy != null, cancellationToken))
                                       .OrderBy(s => s.SalesInvoiceId)
                                       .ToList();
@@ -246,7 +246,7 @@ namespace IBSWeb.Areas.User.Controllers
                 }
                 else
                 {
-                    var existingSOADMs = (await _unitOfWork.FilprideDebitMemo
+                    var existingSOADMs = (await _unitOfWork.DebitMemo
                                   .GetAllAsync(si => si.ServiceInvoiceId == model.ServiceInvoiceId && si.PostedBy != null && si.CanceledBy != null && si.VoidedBy != null, cancellationToken))
                                   .OrderBy(s => s.ServiceInvoiceId)
                                   .ToList();
@@ -257,7 +257,7 @@ namespace IBSWeb.Areas.User.Controllers
                         return View(viewModel);
                     }
 
-                    var existingSOACMs = (await _unitOfWork.FilprideCreditMemo
+                    var existingSOACMs = (await _unitOfWork.CreditMemo
                                       .GetAllAsync(si => si.ServiceInvoiceId == model.ServiceInvoiceId && si.PostedBy != null && si.CanceledBy != null && si.VoidedBy != null, cancellationToken))
                                       .OrderBy(s => s.SalesInvoiceId)
                                       .ToList();
@@ -277,7 +277,7 @@ namespace IBSWeb.Areas.User.Controllers
                 if (model.Source == "Sales Invoice")
                 {
                     model.ServiceInvoiceId = null;
-                    model.CreditMemoNo = await _unitOfWork.FilprideCreditMemo.GenerateCodeAsync(companyClaims, existingSalesInvoice!.Type, cancellationToken);
+                    model.CreditMemoNo = await _unitOfWork.CreditMemo.GenerateCodeAsync(companyClaims, existingSalesInvoice!.Type, cancellationToken);
                     model.Type = existingSalesInvoice.Type;
                     model.CreditAmount = (decimal)(model.Quantity! * -model.AdjustedPrice!);
                 }
@@ -285,17 +285,17 @@ namespace IBSWeb.Areas.User.Controllers
                 {
                     model.SalesInvoiceId = null;
 
-                    model.CreditMemoNo = await _unitOfWork.FilprideCreditMemo.GenerateCodeAsync(companyClaims, existingSv!.Type, cancellationToken);
+                    model.CreditMemoNo = await _unitOfWork.CreditMemo.GenerateCodeAsync(companyClaims, existingSv!.Type, cancellationToken);
                     model.Type = existingSv.Type;
                     model.CreditAmount = -model.Amount ?? 0;
                 }
 
-                await _unitOfWork.FilprideCreditMemo.AddAsync(model, cancellationToken);
+                await _unitOfWork.CreditMemo.AddAsync(model, cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CreatedBy!, $"Create new credit memo# {model.CreditMemoNo}", "Credit Memo", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.CreatedBy!, $"Create new credit memo# {model.CreditMemoNo}", "Credit Memo", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -326,7 +326,7 @@ namespace IBSWeb.Areas.User.Controllers
             try
             {
                 var creditMemo =
-                    await _unitOfWork.FilprideCreditMemo.GetAsync(c => c.CreditMemoId == id, cancellationToken);
+                    await _unitOfWork.CreditMemo.GetAsync(c => c.CreditMemoId == id, cancellationToken);
 
                 if (creditMemo == null)
                 {
@@ -380,7 +380,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return View(viewModel);
             }
 
-            var model = new FilprideCreditMemo
+            var model = new CreditMemo
             {
                 CreditMemoId = viewModel.CreditMemoId,
                 Source = viewModel.Source,
@@ -399,7 +399,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var existingCm = await _unitOfWork.FilprideCreditMemo
+                var existingCm = await _unitOfWork.CreditMemo
                                 .GetAsync(cm => cm.CreditMemoId == model.CreditMemoId, cancellationToken);
 
                 if (existingCm == null)
@@ -451,8 +451,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(existingCm.EditedBy!, $"Edited credit memo# {existingCm.CreditMemoNo}", "Credit Memo", existingCm.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(existingCm.EditedBy!, $"Edited credit memo# {existingCm.CreditMemoNo}", "Credit Memo", existingCm.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -480,7 +480,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return NotFound();
             }
 
-            var creditMemo = await _unitOfWork.FilprideCreditMemo.GetAsync(c => c.CreditMemoId == id, cancellationToken);
+            var creditMemo = await _unitOfWork.CreditMemo.GetAsync(c => c.CreditMemoId == id, cancellationToken);
 
             if (creditMemo == null)
             {
@@ -491,8 +491,8 @@ namespace IBSWeb.Areas.User.Controllers
 
             #region --Audit Trail Recording
 
-            FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Preview credit memo# {creditMemo.CreditMemoNo}", "Credit Memo", companyClaims!);
-            await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+            AuditTrail auditTrailBook = new(GetUserFullName(), $"Preview credit memo# {creditMemo.CreditMemoNo}", "Credit Memo", companyClaims!);
+            await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
             #endregion --Audit Trail Recording
 
@@ -501,7 +501,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Post(int id, CancellationToken cancellationToken, ViewModelDMCM viewModelDmcm)
         {
-            var model = await _unitOfWork.FilprideCreditMemo.GetAsync(c => c.CreditMemoId == id, cancellationToken);
+            var model = await _unitOfWork.CreditMemo.GetAsync(c => c.CreditMemoId == id, cancellationToken);
 
             if (model == null)
             {
@@ -521,7 +521,7 @@ namespace IBSWeb.Areas.User.Controllers
                 model.PostedDate = DateTimeHelper.GetCurrentPhilippineTime();
                 model.Status = nameof(Status.Posted);
 
-                var accountTitlesDto = await _unitOfWork.FilprideServiceInvoice.GetListOfAccountTitleDto(cancellationToken);
+                var accountTitlesDto = await _unitOfWork.ServiceInvoice.GetListOfAccountTitleDto(cancellationToken);
                 var arTradeReceivableTitle = accountTitlesDto.Find(c => c.AccountNumber == "101020100") ?? throw new ArgumentException("Account title '101020100' not found.");
                 var arNonTradeTitle = accountTitlesDto.Find(c => c.AccountNumber == "101020500") ?? throw new ArgumentException("Account title '101020500' not found.");
                 var arTradeCwt = accountTitlesDto.Find(c => c.AccountNumber == "101020200") ?? throw new ArgumentException("Account title '101020200' not found.");
@@ -531,19 +531,19 @@ namespace IBSWeb.Areas.User.Controllers
 
                 if (model.SalesInvoiceId != null)
                 {
-                    var (salesAcctNo, salesAcctTitle) = _unitOfWork.FilprideSalesInvoice.GetSalesAccountTitle(model.SalesInvoice!.Product!.ProductCode);
+                    var (salesAcctNo, salesAcctTitle) = _unitOfWork.SalesInvoice.GetSalesAccountTitle(model.SalesInvoice!.Product!.ProductCode);
                     var salesTitle = accountTitlesDto.Find(c => c.AccountNumber == salesAcctNo) ?? throw new ArgumentException($"Account title '{salesAcctNo}' not found.");
 
                     #region --Retrieval of SI and SOA--
 
-                    var existingSi = await _unitOfWork.FilprideSalesInvoice
+                    var existingSi = await _unitOfWork.SalesInvoice
                         .GetAsync(si => si.SalesInvoiceId == model.SalesInvoiceId, cancellationToken);
 
                     #endregion --Retrieval of SI and SOA--
 
                     #region --Sales Book Recording(SI)--
 
-                    var sales = new FilprideSalesBook
+                    var sales = new SalesBook
                     {
                         TransactionDate = model.TransactionDate,
                         SerialNo = model.CreditMemoNo!,
@@ -557,8 +557,8 @@ namespace IBSWeb.Areas.User.Controllers
                     switch (model.SalesInvoice.CustomerOrderSlip!.VatType)
                     {
                         case SD.VatType_Vatable:
-                            sales.VatableSales = (_unitOfWork.FilprideCreditMemo.ComputeNetOfVat(Math.Abs(sales.Amount))) * -1;
-                            sales.VatAmount = (_unitOfWork.FilprideCreditMemo.ComputeVatAmount(Math.Abs(sales.VatableSales))) * -1;
+                            sales.VatableSales = (_unitOfWork.CreditMemo.ComputeNetOfVat(Math.Abs(sales.Amount))) * -1;
+                            sales.VatAmount = (_unitOfWork.CreditMemo.ComputeVatAmount(Math.Abs(sales.VatableSales))) * -1;
                             sales.NetSales = sales.VatableSales - sales.Discount;
                             break;
                         case SD.VatType_Exempt:
@@ -590,8 +590,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                     if (model.SalesInvoice.CustomerOrderSlip.VatType == SD.VatType_Vatable)
                     {
-                        netOfVatAmount = _unitOfWork.FilprideCreditMemo.ComputeNetOfVat(Math.Abs(model.CreditAmount)) * -1;
-                        vatAmount = (_unitOfWork.FilprideCreditMemo.ComputeVatAmount(Math.Abs(netOfVatAmount))) * -1;
+                        netOfVatAmount = _unitOfWork.CreditMemo.ComputeNetOfVat(Math.Abs(model.CreditAmount)) * -1;
+                        vatAmount = (_unitOfWork.CreditMemo.ComputeVatAmount(Math.Abs(netOfVatAmount))) * -1;
                     }
                     else
                     {
@@ -600,15 +600,15 @@ namespace IBSWeb.Areas.User.Controllers
 
                     if (model.SalesInvoice.CustomerOrderSlip.HasEWT)
                     {
-                        withHoldingTaxAmount = (_unitOfWork.FilprideCreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), 0.01m)) * -1;
+                        withHoldingTaxAmount = (_unitOfWork.CreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), 0.01m)) * -1;
                     }
 
                     if (model.SalesInvoice.CustomerOrderSlip.HasWVAT)
                     {
-                        withHoldingVatAmount = (_unitOfWork.FilprideCreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), 0.05m)) * -1;
+                        withHoldingVatAmount = (_unitOfWork.CreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), 0.05m)) * -1;
                     }
 
-                    var ledgers = new List<FilprideGeneralLedgerBook>
+                    var ledgers = new List<GeneralLedgerBook>
                     {
                         new()
                         {
@@ -633,7 +633,7 @@ namespace IBSWeb.Areas.User.Controllers
                     if (withHoldingTaxAmount < 0)
                     {
                         ledgers.Add(
-                            new FilprideGeneralLedgerBook
+                            new GeneralLedgerBook
                             {
                                 Date = model.TransactionDate,
                                 Reference = model.CreditMemoNo!,
@@ -653,7 +653,7 @@ namespace IBSWeb.Areas.User.Controllers
                     if (withHoldingVatAmount < 0)
                     {
                         ledgers.Add(
-                            new FilprideGeneralLedgerBook
+                            new GeneralLedgerBook
                             {
                                 Date = model.TransactionDate,
                                 Reference = model.CreditMemoNo!,
@@ -672,7 +672,7 @@ namespace IBSWeb.Areas.User.Controllers
                     }
 
                     ledgers.Add(
-                        new FilprideGeneralLedgerBook
+                        new GeneralLedgerBook
                         {
                             Date = model.TransactionDate,
                             Reference = model.CreditMemoNo!,
@@ -692,7 +692,7 @@ namespace IBSWeb.Areas.User.Controllers
                     if (vatAmount < 0)
                     {
                         ledgers.Add(
-                            new FilprideGeneralLedgerBook
+                            new GeneralLedgerBook
                             {
                                 Date = model.TransactionDate,
                                 Reference = model.CreditMemoNo!,
@@ -710,19 +710,19 @@ namespace IBSWeb.Areas.User.Controllers
                         );
                     }
 
-                    if (!_unitOfWork.FilprideCreditMemo.IsJournalEntriesBalanced(ledgers))
+                    if (!_unitOfWork.CreditMemo.IsJournalEntriesBalanced(ledgers))
                     {
                         throw new ArgumentException("Debit and Credit is not equal, check your entries.");
                     }
 
-                    await _dbContext.FilprideGeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
+                    await _dbContext.GeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
 
                     #endregion --General Ledger Book Recording(SI)--
                 }
 
                 if (model.ServiceInvoiceId != null)
                 {
-                    var existingSv = await _unitOfWork.FilprideServiceInvoice
+                    var existingSv = await _unitOfWork.ServiceInvoice
                         .GetAsync(sv => sv.ServiceInvoiceId == model.ServiceInvoiceId, cancellationToken);
 
                     #region --SV Computation--
@@ -768,7 +768,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                     #region --Sales Book Recording(SV)--
 
-                    var sales = new FilprideSalesBook
+                    var sales = new SalesBook
                     {
                         TransactionDate = model.TransactionDate,
                         SerialNo = model.CreditMemoNo!,
@@ -782,8 +782,8 @@ namespace IBSWeb.Areas.User.Controllers
                     switch (model.ServiceInvoice.VatType)
                     {
                         case SD.VatType_Vatable:
-                            sales.VatableSales = (_unitOfWork.FilprideCreditMemo.ComputeNetOfVat(Math.Abs(sales.Amount))) * -1;
-                            sales.VatAmount = (_unitOfWork.FilprideCreditMemo.ComputeVatAmount(Math.Abs(sales.VatableSales))) * -1;
+                            sales.VatableSales = (_unitOfWork.CreditMemo.ComputeNetOfVat(Math.Abs(sales.Amount))) * -1;
+                            sales.VatAmount = (_unitOfWork.CreditMemo.ComputeVatAmount(Math.Abs(sales.VatableSales))) * -1;
                             sales.NetSales = sales.VatableSales - sales.Discount;
                             break;
                         case SD.VatType_Exempt:
@@ -816,8 +816,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                     if (model.ServiceInvoice.VatType == SD.VatType_Vatable)
                     {
-                        netOfVatAmount = (_unitOfWork.FilprideCreditMemo.ComputeNetOfVat(Math.Abs(model.CreditAmount))) * -1;
-                        vatAmount = (_unitOfWork.FilprideCreditMemo.ComputeVatAmount(Math.Abs(netOfVatAmount))) * -1;
+                        netOfVatAmount = (_unitOfWork.CreditMemo.ComputeNetOfVat(Math.Abs(model.CreditAmount))) * -1;
+                        vatAmount = (_unitOfWork.CreditMemo.ComputeVatAmount(Math.Abs(netOfVatAmount))) * -1;
                     }
                     else
                     {
@@ -826,15 +826,15 @@ namespace IBSWeb.Areas.User.Controllers
 
                     if (model.ServiceInvoice.HasEwt)
                     {
-                        withHoldingTaxAmount = (_unitOfWork.FilprideCreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), 0.01m)) * -1;
+                        withHoldingTaxAmount = (_unitOfWork.CreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), 0.01m)) * -1;
                     }
 
                     if (model.ServiceInvoice.HasWvat)
                     {
-                        withHoldingVatAmount = (_unitOfWork.FilprideCreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), 0.05m)) * -1;
+                        withHoldingVatAmount = (_unitOfWork.CreditMemo.ComputeEwtAmount(Math.Abs(netOfVatAmount), 0.05m)) * -1;
                     }
 
-                    var ledgers = new List<FilprideGeneralLedgerBook>
+                    var ledgers = new List<GeneralLedgerBook>
                     {
                         new()
                         {
@@ -859,7 +859,7 @@ namespace IBSWeb.Areas.User.Controllers
                     if (withHoldingTaxAmount < 0)
                     {
                         ledgers.Add(
-                            new FilprideGeneralLedgerBook
+                            new GeneralLedgerBook
                             {
                                 Date = model.TransactionDate,
                                 Reference = model.CreditMemoNo!,
@@ -879,7 +879,7 @@ namespace IBSWeb.Areas.User.Controllers
                     if (withHoldingVatAmount < 0)
                     {
                         ledgers.Add(
-                            new FilprideGeneralLedgerBook
+                            new GeneralLedgerBook
                             {
                                 Date = model.TransactionDate,
                                 Reference = model.CreditMemoNo!,
@@ -897,7 +897,7 @@ namespace IBSWeb.Areas.User.Controllers
                         );
                     }
 
-                    ledgers.Add(new FilprideGeneralLedgerBook
+                    ledgers.Add(new GeneralLedgerBook
                     {
                         Date = model.TransactionDate,
                         Reference = model.CreditMemoNo!,
@@ -916,7 +916,7 @@ namespace IBSWeb.Areas.User.Controllers
                     if (vatAmount < 0)
                     {
                         ledgers.Add(
-                            new FilprideGeneralLedgerBook
+                            new GeneralLedgerBook
                             {
                                 Date = model.TransactionDate,
                                 Reference = model.CreditMemoNo!,
@@ -934,20 +934,20 @@ namespace IBSWeb.Areas.User.Controllers
                         );
                     }
 
-                    if (!_unitOfWork.FilprideCreditMemo.IsJournalEntriesBalanced(ledgers))
+                    if (!_unitOfWork.CreditMemo.IsJournalEntriesBalanced(ledgers))
                     {
                         throw new ArgumentException("Debit and Credit is not equal, check your entries.");
                     }
 
-                    await _dbContext.FilprideGeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
+                    await _dbContext.GeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
 
                     #endregion --General Ledger Book Recording(SV)--
                 }
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.PostedBy!, $"Posted credit memo# {model.CreditMemoNo}", "Credit Memo", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.PostedBy!, $"Posted credit memo# {model.CreditMemoNo}", "Credit Memo", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -970,7 +970,7 @@ namespace IBSWeb.Areas.User.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Void(int id, CancellationToken cancellationToken)
         {
-            var model = await _unitOfWork.FilprideCreditMemo.GetAsync(cm => cm.CreditMemoId == id, cancellationToken);
+            var model = await _unitOfWork.CreditMemo.GetAsync(cm => cm.CreditMemoId == id, cancellationToken);
 
             if (model == null)
             {
@@ -986,13 +986,13 @@ namespace IBSWeb.Areas.User.Controllers
                 model.VoidedDate = DateTimeHelper.GetCurrentPhilippineTime();
                 model.Status = nameof(Status.Voided);
 
-                await _unitOfWork.FilprideCreditMemo.RemoveRecords<FilprideSalesBook>(crb => crb.SerialNo == model.CreditMemoNo, cancellationToken);
-                await _unitOfWork.FilprideCreditMemo.RemoveRecords<FilprideGeneralLedgerBook>(gl => gl.Reference == model.CreditMemoNo, cancellationToken);
+                await _unitOfWork.CreditMemo.RemoveRecords<SalesBook>(crb => crb.SerialNo == model.CreditMemoNo, cancellationToken);
+                await _unitOfWork.CreditMemo.RemoveRecords<GeneralLedgerBook>(gl => gl.Reference == model.CreditMemoNo, cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.VoidedBy!, $"Voided credit memo# {model.CreditMemoNo}", "Credit Memo", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.VoidedBy!, $"Voided credit memo# {model.CreditMemoNo}", "Credit Memo", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -1012,7 +1012,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Cancel(int id, string? cancellationRemarks, CancellationToken cancellationToken)
         {
-            var model = await _unitOfWork.FilprideCreditMemo
+            var model = await _unitOfWork.CreditMemo
                 .GetAsync(cm => cm.CreditMemoId == id, cancellationToken);
 
             if (model == null)
@@ -1031,8 +1031,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled credit memo# {model.CreditMemoNo}", "Credit Memo", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled credit memo# {model.CreditMemoNo}", "Credit Memo", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -1055,7 +1055,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<JsonResult> GetSVDetails(int svId, CancellationToken cancellationToken)
         {
-            var model = await _unitOfWork.FilprideServiceInvoice.GetAsync(sv => sv.ServiceInvoiceId == svId, cancellationToken);
+            var model = await _unitOfWork.ServiceInvoice.GetAsync(sv => sv.ServiceInvoiceId == svId, cancellationToken);
             if (model == null)
             {
                 return Json(null);
@@ -1071,7 +1071,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Printed(int id, CancellationToken cancellationToken)
         {
-            var cm = await _unitOfWork.FilprideCreditMemo
+            var cm = await _unitOfWork.CreditMemo
                 .GetAsync(x => x.CreditMemoId == id, cancellationToken);
 
             if (cm == null)
@@ -1083,8 +1083,8 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of credit memo# {cm.CreditMemoNo}", "Credit Memo", cm.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of credit memo# {cm.CreditMemoNo}", "Credit Memo", cm.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -1096,8 +1096,8 @@ namespace IBSWeb.Areas.User.Controllers
                 #region --Audit Trail Recording
 
                 var printedBy = GetUserFullName();
-                FilprideAuditTrail auditTrailBook = new(printedBy, $"Printed re-printed copy of credit memo# {cm.CreditMemoNo}", "Credit Memo", cm.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(printedBy, $"Printed re-printed copy of credit memo# {cm.CreditMemoNo}", "Credit Memo", cm.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
             }
@@ -1117,7 +1117,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 var companyClaims = await GetCompanyClaimAsync();
 
-                var creditMemos = await _unitOfWork.FilprideCreditMemo
+                var creditMemos = await _unitOfWork.CreditMemo
                     .GetAllAsync(cm => cm.Company == companyClaims, cancellationToken);
 
                 // Apply date range filter if provided
@@ -1170,7 +1170,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var totalRecords = creditMemos.Count();
 
                 // Apply pagination - HANDLE -1 FOR "ALL"
-                IEnumerable<FilprideCreditMemo> pagedCreditMemos;
+                IEnumerable<CreditMemo> pagedCreditMemos;
 
                 if (parameters.Length == -1)
                 {
@@ -1238,7 +1238,7 @@ namespace IBSWeb.Areas.User.Controllers
             var recordIds = selectedRecord.Split(',').Select(int.Parse).ToList();
 
             // Retrieve the selected invoices from the database
-            var selectedList = (await _unitOfWork.FilprideCreditMemo
+            var selectedList = (await _unitOfWork.CreditMemo
                 .GetAllAsync(cm => recordIds.Contains(cm.CreditMemoId)))
                 .OrderBy(cm => cm.CreditMemoNo)
                 .ToList();
@@ -1480,7 +1480,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllCreditMemoIds()
         {
-            var cmIds = (await _unitOfWork.FilprideCreditMemo
+            var cmIds = (await _unitOfWork.CreditMemo
                  .GetAllAsync(cm => cm.Type == nameof(DocumentType.Documented)))
                  .Select(cm => cm.CreditMemoId)
                  .ToList();

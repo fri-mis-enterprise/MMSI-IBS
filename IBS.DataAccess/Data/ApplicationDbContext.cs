@@ -1,13 +1,11 @@
 using IBS.Models;
-using IBS.Models.Filpride;
-using IBS.Models.Filpride.AccountsPayable;
-using IBS.Models.Filpride.AccountsReceivable;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.Integrated;
-using IBS.Models.Filpride.MasterFile;
+using IBS.Models.AccountsPayable;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.Integrated;
 using IBS.Models.MasterFile;
 using IBS.Models.MMSI;
 using IBS.Models.MMSI.MasterFile;
+using IBS.Models.Books;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -38,45 +36,47 @@ namespace IBS.DataAccess.Data
 
         public DbSet<PostedPeriod> PostedPeriods { get; set; }
 
-        #region--FILPRIDE
+        public DbSet<AuditTrail> AuditTrails { get; set; }
 
-        public DbSet<FilprideCustomerOrderSlip> FilprideCustomerOrderSlips { get; set; }
+        #region--Integrated
 
-        public DbSet<FilprideDeliveryReceipt> FilprideDeliveryReceipts { get; set; }
+        public DbSet<CustomerOrderSlip> CustomerOrderSlips { get; set; }
 
-        public DbSet<FilprideFreight> FilprideFreights { get; set; }
+        public DbSet<DeliveryReceipt> DeliveryReceipts { get; set; }
 
-        public DbSet<FilprideAuthorityToLoad> FilprideAuthorityToLoads { get; set; }
+        public DbSet<Freight> Freights { get; set; }
 
-        public DbSet<FilprideCOSAppointedSupplier> FilprideCOSAppointedSuppliers { get; set; }
+        public DbSet<AuthorityToLoad> AuthorityToLoads { get; set; }
 
-        public DbSet<FilpridePOActualPrice> FilpridePOActualPrices { get; set; }
+        public DbSet<COSAppointedSupplier> COSAppointedSuppliers { get; set; }
 
-        public DbSet<FilprideCustomerBranch> FilprideCustomerBranches { get; set; }
+        public DbSet<POActualPrice> POActualPrices { get; set; }
 
-        public DbSet<FilprideBookAtlDetail> FilprideBookAtlDetails { get; set; }
+        public DbSet<CustomerBranch> CustomerBranches { get; set; }
 
-        public DbSet<FilprideMonthlyNibit> FilprideMonthlyNibits { get; set; }
+        public DbSet<BookAtlDetail> BookAtlDetails { get; set; }
 
-        public DbSet<FilprideSalesLockedRecordsQueue> FilprideSalesLockedRecordsQueues { get; set; }
+        public DbSet<MonthlyNibit> MonthlyNibits { get; set; }
 
-        public DbSet<FilpridePurchaseLockedRecordsQueue> FilpridePurchaseLockedRecordsQueues { get; set; }
+        public DbSet<SalesLockedRecordsQueue> SalesLockedRecordsQueues { get; set; }
 
-        public DbSet<FilprideGLPeriodBalance> FilprideGlPeriodBalances { get; set; }
+        public DbSet<PurchaseLockedRecordsQueue> PurchaseLockedRecordsQueues { get; set; }
 
-        public DbSet<FilprideGLSubAccountBalance> FilprideGlSubAccountBalances { get; set; }
+        public DbSet<GLPeriodBalance> GlPeriodBalances { get; set; }
+
+        public DbSet<GLSubAccountBalance> GlSubAccountBalances { get; set; }
 
         #region--Master File
 
-        public DbSet<FilprideCustomer> FilprideCustomers { get; set; }
+        public DbSet<Customer> Customers { get; set; }
 
-        public DbSet<FilprideSupplier> FilprideSuppliers { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
 
-        public DbSet<FilpridePickUpPoint> FilpridePickUpPoints { get; set; }
+        public DbSet<PickUpPoint> PickUpPoints { get; set; }
 
-        public DbSet<FilprideEmployee> FilprideEmployees { get; set; }
+        public DbSet<Employee> Employees { get; set; }
 
-        public DbSet<FilprideTerms> FilprideTerms { get; set; }
+        public DbSet<Terms> Terms { get; set; }
 
         #endregion
 
@@ -107,7 +107,7 @@ namespace IBS.DataAccess.Data
 
         public DbSet<Company> Companies { get; set; }
 
-        public DbSet<FilprideChartOfAccount> FilprideChartOfAccounts { get; set; }
+        public DbSet<ChartOfAccount> ChartOfAccounts { get; set; }
         public DbSet<Product> Products { get; set; }
 
         #endregion --Master File Entities
@@ -115,29 +115,29 @@ namespace IBS.DataAccess.Data
         #region AAS Migration
 
         #region Accounts Receivable
-        public DbSet<FilprideBankAccount> FilprideBankAccounts { get; set; }
-        public DbSet<FilprideService> FilprideServices { get; set; }
-        public DbSet<FilprideCollectionReceipt> FilprideCollectionReceipts { get; set; }
-        public DbSet<FilprideCreditMemo> FilprideCreditMemos { get; set; }
-        public DbSet<FilprideDebitMemo> FilprideDebitMemos { get; set; }
-        public DbSet<FilprideSalesInvoice> FilprideSalesInvoices { get; set; }
-        public DbSet<FilprideServiceInvoice> FilprideServiceInvoices { get; set; }
-        public DbSet<FilprideOffsettings> FilprideOffsettings { get; set; }
-        public DbSet<FilprideCollectionReceiptDetail> FilprideCollectionReceiptDetails { get; set; }
+        public DbSet<BankAccount> BankAccounts { get; set; }
+        public DbSet<Service> Services { get; set; }
+        public DbSet<CollectionReceipt> CollectionReceipts { get; set; }
+        public DbSet<CreditMemo> CreditMemos { get; set; }
+        public DbSet<DebitMemo> DebitMemos { get; set; }
+        public DbSet<SalesInvoice> SalesInvoices { get; set; }
+        public DbSet<ServiceInvoice> ServiceInvoices { get; set; }
+        public DbSet<Offsettings> Offsettings { get; set; }
+        public DbSet<CollectionReceiptDetail> CollectionReceiptDetails { get; set; }
         #endregion
 
         #region Accounts Payable
 
-        public DbSet<FilprideCheckVoucherHeader> FilprideCheckVoucherHeaders { get; set; }
-        public DbSet<FilprideCheckVoucherDetail> FilprideCheckVoucherDetails { get; set; }
-        public DbSet<FilprideJournalVoucherHeader> FilprideJournalVoucherHeaders { get; set; }
-        public DbSet<FilprideJournalVoucherDetail> FilprideJournalVoucherDetails { get; set; }
-        public DbSet<FilpridePurchaseOrder> FilpridePurchaseOrders { get; set; }
-        public DbSet<FilprideReceivingReport> FilprideReceivingReports { get; set; }
+        public DbSet<CheckVoucherHeader> CheckVoucherHeaders { get; set; }
+        public DbSet<CheckVoucherDetail> CheckVoucherDetails { get; set; }
+        public DbSet<JournalVoucherHeader> JournalVoucherHeaders { get; set; }
+        public DbSet<JournalVoucherDetail> JournalVoucherDetails { get; set; }
+        public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
+        public DbSet<ReceivingReport> ReceivingReports { get; set; }
 
-        public DbSet<FilprideMultipleCheckVoucherPayment> FilprideMultipleCheckVoucherPayments { get; set; }
+        public DbSet<MultipleCheckVoucherPayment> MultipleCheckVoucherPayments { get; set; }
 
-        public DbSet<FilprideCVTradePayment> FilprideCVTradePayments { get; set; }
+        public DbSet<CVTradePayment> CVTradePayments { get; set; }
 
         public DbSet<JvAmortizationSetting> JvAmortizationSettings { get; set; }
 
@@ -145,14 +145,13 @@ namespace IBS.DataAccess.Data
 
         #region Books
 
-        public DbSet<FilprideCashReceiptBook> FilprideCashReceiptBooks { get; set; }
-        public DbSet<FilprideDisbursementBook> FilprideDisbursementBooks { get; set; }
-        public DbSet<FilprideGeneralLedgerBook> FilprideGeneralLedgerBooks { get; set; }
-        public DbSet<FilprideJournalBook> FilprideJournalBooks { get; set; }
-        public DbSet<FilpridePurchaseBook> FilpridePurchaseBooks { get; set; }
-        public DbSet<FilprideSalesBook> FilprideSalesBooks { get; set; }
-        public DbSet<FilprideInventory> FilprideInventories { get; set; }
-        public DbSet<FilprideAuditTrail> FilprideAuditTrails { get; set; }
+        public DbSet<CashReceiptBook> CashReceiptBooks { get; set; }
+        public DbSet<DisbursementBook> DisbursementBooks { get; set; }
+        public DbSet<GeneralLedgerBook> GeneralLedgerBooks { get; set; }
+        public DbSet<JournalBook> JournalBooks { get; set; }
+        public DbSet<PurchaseBook> PurchaseBooks { get; set; }
+        public DbSet<SalesBook> SalesBooks { get; set; }
+        public DbSet<Inventory> Inventories { get; set; }
 
         #endregion
 
@@ -183,16 +182,16 @@ namespace IBS.DataAccess.Data
             #endregion
 
             #region--Chart Of Account
-            builder.Entity<FilprideChartOfAccount>(coa =>
+            builder.Entity<ChartOfAccount>(coa =>
             {
                 coa.HasIndex(coa => coa.AccountNumber).IsUnique();
                 coa.HasIndex(coa => coa.AccountName);
             });
             #endregion
 
-            #region--Filpride
+            #region--Integrated
 
-            builder.Entity<FilprideCustomerOrderSlip>(cos =>
+            builder.Entity<CustomerOrderSlip>(cos =>
             {
                 cos.HasIndex(cos => new
                 {
@@ -219,7 +218,7 @@ namespace IBS.DataAccess.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            builder.Entity<FilprideDeliveryReceipt>(dr =>
+            builder.Entity<DeliveryReceipt>(dr =>
             {
                 dr.HasIndex(dr => new
                 {
@@ -256,7 +255,7 @@ namespace IBS.DataAccess.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            builder.Entity<FilprideCOSAppointedSupplier>(a =>
+            builder.Entity<COSAppointedSupplier>(a =>
             {
                 a.HasOne(a => a.PurchaseOrder)
                     .WithMany()
@@ -274,7 +273,7 @@ namespace IBS.DataAccess.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            builder.Entity<FilpridePOActualPrice>(p =>
+            builder.Entity<POActualPrice>(p =>
             {
                 p.HasOne(p => p.PurchaseOrder)
                     .WithMany(po => po.ActualPrices)
@@ -282,7 +281,7 @@ namespace IBS.DataAccess.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            builder.Entity<FilprideCustomerBranch>(b =>
+            builder.Entity<CustomerBranch>(b =>
             {
                 b.HasOne(b => b.Customer)
                     .WithMany(c => c.Branches)
@@ -290,7 +289,7 @@ namespace IBS.DataAccess.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            builder.Entity<FilprideBookAtlDetail>(b =>
+            builder.Entity<BookAtlDetail>(b =>
             {
                 b.HasOne(b => b.Header)
                     .WithMany(b => b.Details)
@@ -308,7 +307,7 @@ namespace IBS.DataAccess.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            builder.Entity<FilprideAuthorityToLoad>(b =>
+            builder.Entity<AuthorityToLoad>(b =>
             {
                 b.HasOne(b => b.Supplier)
                     .WithMany()
@@ -323,14 +322,14 @@ namespace IBS.DataAccess.Data
                 .IsUnique();
             });
 
-            builder.Entity<FilprideMonthlyNibit>(n =>
+            builder.Entity<MonthlyNibit>(n =>
             {
                 n.HasIndex(n => n.Company);
                 n.HasIndex(n => n.Month);
                 n.HasIndex(n => n.Year);
             });
 
-            builder.Entity<FilprideSalesLockedRecordsQueue>(x =>
+            builder.Entity<SalesLockedRecordsQueue>(x =>
             {
                 x.HasOne(s => s.DeliveryReceipt)
                     .WithMany()
@@ -339,7 +338,7 @@ namespace IBS.DataAccess.Data
                 x.HasIndex(s => s.LockedDate);
             });
 
-            builder.Entity<FilpridePurchaseLockedRecordsQueue>(x =>
+            builder.Entity<PurchaseLockedRecordsQueue>(x =>
             {
                 x.HasOne(s => s.ReceivingReport)
                     .WithMany()
@@ -350,28 +349,28 @@ namespace IBS.DataAccess.Data
 
             #region-- Master File
 
-            // FilprideCustomer
-            builder.Entity<FilprideCustomer>(c =>
+            // Customer
+            builder.Entity<Customer>(c =>
             {
                 c.HasIndex(c => c.CustomerCode);
                 c.HasIndex(c => c.CustomerName);
             });
 
-            // FilprideSupplier
-            builder.Entity<FilprideSupplier>(s =>
+            // Supplier
+            builder.Entity<Supplier>(s =>
             {
                 s.HasIndex(s => s.SupplierCode);
                 s.HasIndex(s => s.SupplierName);
             });
 
-            // FilprideEmployee
-            builder.Entity<FilprideEmployee>(c =>
+            // Employee
+            builder.Entity<Employee>(c =>
             {
                 c.HasIndex(c => c.EmployeeNumber);
             });
 
-            // FilpridePickUpPoint
-            builder.Entity<FilpridePickUpPoint>(p =>
+            // PickUpPoint
+            builder.Entity<PickUpPoint>(p =>
             {
                 p.HasIndex(p => p.Company);
 
@@ -381,7 +380,7 @@ namespace IBS.DataAccess.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            builder.Entity<FilprideGLPeriodBalance>(b =>
+            builder.Entity<GLPeriodBalance>(b =>
             {
                 b.HasOne(a => a.Account)
                     .WithMany(c => c.Balances)
@@ -389,7 +388,7 @@ namespace IBS.DataAccess.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            builder.Entity<FilprideGLSubAccountBalance>(b =>
+            builder.Entity<GLSubAccountBalance>(b =>
             {
                 b.HasOne(a => a.Account)
                     .WithMany(c => c.SubAccountBalances)
@@ -403,7 +402,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Sales Invoice --
 
-            builder.Entity<FilprideSalesInvoice>(si =>
+            builder.Entity<SalesInvoice>(si =>
             {
                 si.HasOne(si => si.Product)
                 .WithMany()
@@ -432,7 +431,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Service Invoice --
 
-            builder.Entity<FilprideServiceInvoice>(sv =>
+            builder.Entity<ServiceInvoice>(sv =>
             {
                 sv.HasOne(sv => sv.Customer)
                 .WithMany()
@@ -461,7 +460,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Collection Receipt --
 
-            builder.Entity<FilprideCollectionReceipt>(cr =>
+            builder.Entity<CollectionReceipt>(cr =>
             {
                 cr.HasOne(cr => cr.SalesInvoice)
                 .WithMany()
@@ -491,9 +490,9 @@ namespace IBS.DataAccess.Data
                 .IsUnique();
             });
 
-            builder.Entity<FilprideCollectionReceiptDetail>(crd =>
+            builder.Entity<CollectionReceiptDetail>(crd =>
             {
-                crd.HasOne(d => d.FilprideCollectionReceipt)
+                crd.HasOne(d => d.CollectionReceipt)
                     .WithMany(d => d.ReceiptDetails)
                     .HasForeignKey(d => d.CollectionReceiptId)
                     .OnDelete(DeleteBehavior.Restrict);
@@ -507,7 +506,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Debit Memo --
 
-            builder.Entity<FilprideDebitMemo>(dm =>
+            builder.Entity<DebitMemo>(dm =>
             {
                 dm.HasOne(dm => dm.SalesInvoice)
                 .WithMany()
@@ -531,7 +530,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Credit Memo --
 
-            builder.Entity<FilprideCreditMemo>(cm =>
+            builder.Entity<CreditMemo>(cm =>
             {
                 cm.HasOne(cm => cm.SalesInvoice)
                     .WithMany()
@@ -559,7 +558,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Purchase Order --
 
-            builder.Entity<FilpridePurchaseOrder>(po =>
+            builder.Entity<PurchaseOrder>(po =>
             {
                 po.HasOne(po => po.Supplier)
                 .WithMany()
@@ -593,7 +592,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Receving Report --
 
-            builder.Entity<FilprideReceivingReport>(rr =>
+            builder.Entity<ReceivingReport>(rr =>
             {
                 rr.HasOne(rr => rr.PurchaseOrder)
                 .WithMany(po => po.ReceivingReports)
@@ -617,7 +616,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Check Voucher Header --
 
-            builder.Entity<FilprideCheckVoucherHeader>(cv =>
+            builder.Entity<CheckVoucherHeader>(cv =>
             {
                 cv.HasOne(cv => cv.Supplier)
                 .WithMany()
@@ -641,7 +640,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Check Voucher Details --
 
-            builder.Entity<FilprideCheckVoucherDetail>(cv =>
+            builder.Entity<CheckVoucherDetail>(cv =>
             {
                 cv.HasOne(cv => cv.CheckVoucherHeader)
                     .WithMany(cv => cv.Details)
@@ -653,7 +652,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Check Voucher Trade Payment --
 
-            builder.Entity<FilprideCVTradePayment>(cv =>
+            builder.Entity<CVTradePayment>(cv =>
             {
                 cv.HasOne(cv => cv.CV)
                     .WithMany()
@@ -665,7 +664,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Journal Voucher Header --
 
-            builder.Entity<FilprideJournalVoucherHeader>(jv =>
+            builder.Entity<JournalVoucherHeader>(jv =>
             {
                 jv.HasOne(jv => jv.CheckVoucherHeader)
                 .WithMany()
@@ -684,7 +683,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Journal Voucher Details --
 
-            builder.Entity<FilprideJournalVoucherDetail>(jv =>
+            builder.Entity<JournalVoucherDetail>(jv =>
             {
                 jv.HasOne(jv => jv.JournalVoucherHeader)
                     .WithMany(jv => jv.Details)
@@ -708,7 +707,7 @@ namespace IBS.DataAccess.Data
 
             #region -- Multiple Check Voucher Payment --
 
-            builder.Entity<FilprideMultipleCheckVoucherPayment>(mcvp =>
+            builder.Entity<MultipleCheckVoucherPayment>(mcvp =>
             {
                 mcvp.HasOne(mcvp => mcvp.CheckVoucherHeaderPayment)
                     .WithMany()
@@ -727,15 +726,13 @@ namespace IBS.DataAccess.Data
 
             #region-- Books --
 
-            builder.Entity<FilprideGeneralLedgerBook>(gl =>
+            builder.Entity<GeneralLedgerBook>(gl =>
             {
                 gl.HasOne(gl => gl.Account)
                     .WithMany()
                     .HasForeignKey(gl => gl.AccountId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
-
-            #endregion
 
             #endregion
 

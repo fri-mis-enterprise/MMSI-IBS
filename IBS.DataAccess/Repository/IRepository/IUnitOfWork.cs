@@ -1,4 +1,8 @@
-using IBS.DataAccess.Repository.Filpride.IRepository;
+using IBS.DataAccess.Repository.AccountsPayable.IRepository;
+using IBS.DataAccess.Repository.AccountsReceivable.IRepository;
+using IBS.DataAccess.Repository.Books.IRepository;
+using IBS.DataAccess.Repository.Integrated.IRepository;
+using IBS.DataAccess.Repository.IRepository;
 using IBS.DataAccess.Repository.MasterFile.IRepository;
 using IBS.DataAccess.Repository.MMSI.IRepository;
 using IBS.Models.Enums;
@@ -8,7 +12,7 @@ namespace IBS.DataAccess.Repository.IRepository
 {
     public interface IUnitOfWork : IDisposable
     {
-        MasterFile.IRepository.IProductRepository Product { get; }
+        IProductRepository Product { get; }
 
         ICompanyRepository Company { get; }
 
@@ -125,7 +129,7 @@ namespace IBS.DataAccess.Repository.IRepository
 
         IBankAccountRepository BankAccount { get; }
 
-        IServiceRepository Service { get; }
+        IServiceRepository ServiceMaster { get; }
 
         IPickUpPointRepository PickUpPoint { get; }
 

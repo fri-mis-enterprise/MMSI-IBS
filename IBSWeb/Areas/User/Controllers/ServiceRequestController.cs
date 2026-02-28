@@ -5,7 +5,7 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models.Filpride.Books;
+using IBS.Models;
 using IBS.Models.MMSI;
 using IBS.Models.MMSI.ViewModels;
 using IBS.Services;
@@ -114,7 +114,7 @@ namespace IBSWeb.Areas.User.Controllers
             var companyClaims = await GetCompanyClaimAsync();
             var viewModel = new ServiceRequestViewModel();
             viewModel = await _unitOfWork.ServiceRequest.GetDispatchTicketSelectLists(viewModel, cancellationToken);
-            viewModel.Customers = await _unitOfWork.GetFilprideCustomerListAsyncById(companyClaims!, cancellationToken);
+            viewModel.Customers = await _unitOfWork.GetCustomerListAsyncById(companyClaims!, cancellationToken);
             ViewData["PortId"] = 0;
             return View(viewModel);
         }
@@ -141,7 +141,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 if (model.CustomerId != null)
                 {
-                    model.Customer = await _unitOfWork.FilprideCustomer.GetAsync(c => c.CustomerId == model.CustomerId, cancellationToken);
+                    model.Customer = await _unitOfWork.Customer.GetAsync(c => c.CustomerId == model.CustomerId, cancellationToken);
                 }
 
                 if (imageFile != null && imageFile.Length > 0)
@@ -213,7 +213,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                var audit = new FilprideAuditTrail
+                var audit = new AuditTrail
                 {
                     Date = DateTimeHelper.GetCurrentPhilippineTime(),
                     Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
@@ -223,7 +223,7 @@ namespace IBSWeb.Areas.User.Controllers
                     Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
                 };
 
-                await _unitOfWork.FilprideAuditTrail.AddAsync(audit, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 
                 #endregion --Audit Trail
 
@@ -259,7 +259,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             var viewModel = DispatchTicketModelToServiceRequestVm(model);
             viewModel = await _unitOfWork.ServiceRequest.GetDispatchTicketSelectLists(viewModel, cancellationToken);
-            viewModel.Customers = await _unitOfWork.GetFilprideCustomerListAsyncById(companyClaims!, cancellationToken);
+            viewModel.Customers = await _unitOfWork.GetCustomerListAsyncById(companyClaims!, cancellationToken);
 
             if (!string.IsNullOrEmpty(viewModel.ImageName))
             {
@@ -310,7 +310,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 if (model.CustomerId != null)
                 {
-                    model.Customer = await _unitOfWork.FilprideCustomer.GetAsync(c => c.CustomerId == model.CustomerId, cancellationToken);
+                    model.Customer = await _unitOfWork.Customer.GetAsync(c => c.CustomerId == model.CustomerId, cancellationToken);
                 }
 
                 if (imageFile != null)
@@ -453,7 +453,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                var audit = new FilprideAuditTrail
+                var audit = new AuditTrail
                 {
                     Date = DateTimeHelper.GetCurrentPhilippineTime(),
                     Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
@@ -465,7 +465,7 @@ namespace IBSWeb.Areas.User.Controllers
                     Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
                 };
 
-                await _unitOfWork.FilprideAuditTrail.AddAsync(audit, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 
                 #endregion --Audit Trail
 
@@ -743,7 +743,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                var audit = new FilprideAuditTrail
+                var audit = new AuditTrail
                 {
                     Date = DateTimeHelper.GetCurrentPhilippineTime(),
                     Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
@@ -755,7 +755,7 @@ namespace IBSWeb.Areas.User.Controllers
                     Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
                 };
 
-                await _unitOfWork.FilprideAuditTrail.AddAsync(audit, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 
                 #endregion --Audit Trail
 
@@ -809,7 +809,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                var audit = new FilprideAuditTrail
+                var audit = new AuditTrail
                 {
                     Date = DateTimeHelper.GetCurrentPhilippineTime(),
                     Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
@@ -821,7 +821,7 @@ namespace IBSWeb.Areas.User.Controllers
                     Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
                 };
 
-                await _unitOfWork.FilprideAuditTrail.AddAsync(audit, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 
                 #endregion --Audit Trail
 

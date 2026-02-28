@@ -1,0 +1,11 @@
+using IBS.DataAccess.Repository.IRepository;
+using IBS.Models;
+using IBS.Models.MasterFile;
+
+namespace IBS.DataAccess.Repository.MasterFile.IRepository
+{
+    public interface ICustomerBranchRepository : IRepository<CustomerBranch>
+    {
+        Task UpdateAsync(CustomerBranch model, CancellationToken cancellationToken);
+    }
+}

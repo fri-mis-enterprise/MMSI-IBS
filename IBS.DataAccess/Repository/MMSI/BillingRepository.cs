@@ -1,6 +1,6 @@
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.MMSI.IRepository;
-using IBS.Models.Filpride.Books;
+using IBS.Models;
 using IBS.Models.MMSI;
 using IBS.Utility.Constants;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -27,7 +27,7 @@ namespace IBS.DataAccess.Repository.MMSI
         {
             #region --Sales Book Recording
 
-            var salesBook = new FilprideSalesBook
+            var salesBook = new SalesBook
             {
                 TransactionDate = billing.Date,
                 SerialNo = billing.MMSIBillingNumber!,
@@ -57,7 +57,7 @@ namespace IBS.DataAccess.Repository.MMSI
             salesBook.DocumentId = billing.MMSIBillingId;
             salesBook.Company = billing.Company;
 
-            await _db.FilprideSalesBooks.AddAsync(salesBook, cancellationToken);
+            await _db.SalesBooks.AddAsync(salesBook, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
 
             #endregion --Sales Book Recording
@@ -153,7 +153,7 @@ namespace IBS.DataAccess.Repository.MMSI
                 .Distinct()
                 .ToList();
 
-            return await _db.FilprideCustomers
+            return await _db.Customers
                 .Where(c => c.IsMMSI == true && listOfCustomerWithBillableTickets.Contains(c.CustomerId) &&
                             (string.IsNullOrEmpty(type) || c.Type == type))
                 .OrderBy(s => s.CustomerName)

@@ -2,8 +2,8 @@ using System.Linq.Expressions;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.MMSI.IRepository;
 using IBS.Models.Enums;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.Integrated;
+using IBS.Models;
+using IBS.Models.Integrated;
 using IBS.Models.MMSI;
 using IBS.Utility.Constants;
 using IBS.Utility.Helpers;
@@ -51,7 +51,7 @@ namespace IBS.DataAccess.Repository.MMSI
 
         public async Task<List<SelectListItem>> GetMMSICustomersById(CancellationToken cancellationToken = default)
         {
-            return await _db.FilprideCustomers
+            return await _db.Customers
                 .Where(c => c.IsMMSI == true)
                 .OrderBy(s => s.CustomerName)
                 .Select(s => new SelectListItem
@@ -73,7 +73,7 @@ namespace IBS.DataAccess.Repository.MMSI
                 .Distinct()
                 .ToList();
 
-            return await _db.FilprideCustomers
+            return await _db.Customers
                 .Where(c => c.IsMMSI == true && listOfCustomerWithCollectibleBillings.Contains(c.CustomerId) &&
                             (string.IsNullOrEmpty(type) || c.Type == type))
                 .OrderBy(s => s.CustomerName)
@@ -128,9 +128,9 @@ namespace IBS.DataAccess.Repository.MMSI
             return billingsList;
         }
 
-        public async Task PostAsync(MMSICollection collection, List<FilprideOffsettings> offsettings, CancellationToken cancellationToken = default)
+        public async Task PostAsync(MMSICollection collection, List<Offsettings> offsettings, CancellationToken cancellationToken = default)
         {
-            var ledgers = new List<FilprideGeneralLedgerBook>();
+            var ledgers = new List<GeneralLedgerBook>();
             var accountTitlesDto = await GetListOfAccountTitleDto(cancellationToken);
             var cashInBankTitle = accountTitlesDto.Find(c => c.AccountNumber == "101010100") ?? throw new ArgumentException("Account title '101010100' not found.");
             var arTradeTitle = accountTitlesDto.Find(c => c.AccountNumber == "101020100") ?? throw new ArgumentException("Account title '101020100' not found.");
@@ -145,7 +145,7 @@ namespace IBS.DataAccess.Repository.MMSI
             if (collection.CashAmount > 0 || collection.CheckAmount > 0)
             {
                 ledgers.Add(
-                    new FilprideGeneralLedgerBook
+                    new GeneralLedgerBook
                     {
                         Date = collection.Date,
                         Reference = collection.MMSICollectionNumber!,
@@ -171,7 +171,7 @@ namespace IBS.DataAccess.Repository.MMSI
             if (collection.EWT > 0)
             {
                 ledgers.Add(
-                    new FilprideGeneralLedgerBook
+                    new GeneralLedgerBook
                     {
                         Date = collection.Date,
                         Reference = collection.MMSICollectionNumber!,
@@ -192,7 +192,7 @@ namespace IBS.DataAccess.Repository.MMSI
             if (collection.WVAT > 0)
             {
                 ledgers.Add(
-                    new FilprideGeneralLedgerBook
+                    new GeneralLedgerBook
                     {
                         Date = collection.Date,
                         Reference = collection.MMSICollectionNumber!,
@@ -216,7 +216,7 @@ namespace IBS.DataAccess.Repository.MMSI
                               throw new ArgumentException($"Account title '{item.AccountNo}' not found.");
 
                 ledgers.Add(
-                    new FilprideGeneralLedgerBook
+                    new GeneralLedgerBook
                     {
                         Date = collection.Date,
                         Reference = collection.MMSICollectionNumber!,
@@ -239,7 +239,7 @@ namespace IBS.DataAccess.Repository.MMSI
             if (collection.CashAmount > 0 || collection.CheckAmount > 0 || offsetAmount > 0)
             {
                 ledgers.Add(
-                    new FilprideGeneralLedgerBook
+                    new GeneralLedgerBook
                     {
                         Date = collection.Date,
                         Reference = collection.MMSICollectionNumber!,
@@ -263,7 +263,7 @@ namespace IBS.DataAccess.Repository.MMSI
             if (collection.EWT > 0)
             {
                 ledgers.Add(
-                    new FilprideGeneralLedgerBook
+                    new GeneralLedgerBook
                     {
                         Date = collection.Date,
                         Reference = collection.MMSICollectionNumber!,
@@ -284,7 +284,7 @@ namespace IBS.DataAccess.Repository.MMSI
             if (collection.WVAT > 0)
             {
                 ledgers.Add(
-                    new FilprideGeneralLedgerBook
+                    new GeneralLedgerBook
                     {
                         Date = collection.Date,
                         Reference = collection.MMSICollectionNumber!,
@@ -302,13 +302,13 @@ namespace IBS.DataAccess.Repository.MMSI
                 );
             }
 
-            await _db.FilprideGeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
+            await _db.GeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
 
             #region Cash Receipt Book Recording
 
             var particulars = string.Join(", ", collection.PaidBills?.Select(b => b.MMSIBillingNumber) ?? new List<string>());
 
-            var crb = new List<FilprideCashReceiptBook>
+            var crb = new List<CashReceiptBook>
             {
                 new()
                 {
@@ -330,7 +330,7 @@ namespace IBS.DataAccess.Repository.MMSI
             if (collection.EWT > 0)
             {
                 crb.Add(
-                    new FilprideCashReceiptBook
+                    new CashReceiptBook
                     {
                         Date = collection.Date,
                         RefNo = collection.MMSICollectionNumber!,
@@ -351,7 +351,7 @@ namespace IBS.DataAccess.Repository.MMSI
             if (collection.WVAT > 0)
             {
                 crb.Add(
-                    new FilprideCashReceiptBook
+                    new CashReceiptBook
                     {
                         Date = collection.Date,
                         RefNo = collection.MMSICollectionNumber!,
@@ -375,7 +375,7 @@ namespace IBS.DataAccess.Repository.MMSI
                               throw new ArgumentException($"Account title '{item.AccountNo}' not found.");
 
                 crb.Add(
-                    new FilprideCashReceiptBook
+                    new CashReceiptBook
                     {
                         Date = collection.Date,
                         RefNo = collection.MMSICollectionNumber!,
@@ -394,7 +394,7 @@ namespace IBS.DataAccess.Repository.MMSI
             }
 
             crb.Add(
-                new FilprideCashReceiptBook
+                new CashReceiptBook
                 {
                     Date = collection.Date,
                     RefNo = collection.MMSICollectionNumber!,
@@ -414,7 +414,7 @@ namespace IBS.DataAccess.Repository.MMSI
             if (collection.EWT > 0)
             {
                 crb.Add(
-                    new FilprideCashReceiptBook
+                    new CashReceiptBook
                     {
                         Date = collection.Date,
                         RefNo = collection.MMSICollectionNumber!,
@@ -435,7 +435,7 @@ namespace IBS.DataAccess.Repository.MMSI
             if (collection.WVAT > 0)
             {
                 crb.Add(
-                    new FilprideCashReceiptBook
+                    new CashReceiptBook
                     {
                         Date = collection.Date,
                         RefNo = collection.MMSICollectionNumber!,
@@ -461,7 +461,7 @@ namespace IBS.DataAccess.Repository.MMSI
 
         public async Task DepositAsync(MMSICollection collection, CancellationToken cancellationToken = default)
         {
-            var ledgers = new List<FilprideGeneralLedgerBook>();
+            var ledgers = new List<GeneralLedgerBook>();
             var accountTitlesDto = await GetListOfAccountTitleDto(cancellationToken);
             var cashInBankTitle = accountTitlesDto.Find(c => c.AccountNumber == "101010100")
                                   ?? throw new ArgumentException("Account title '101010100' not found.");
@@ -471,7 +471,7 @@ namespace IBS.DataAccess.Repository.MMSI
             var description = $"CR Ref collected from {customerName} for {billingsStr} Check No. {collection.CheckNumber} issued by {collection.BankAccountNumber} {collection.BankAccountName}";
 
             ledgers.Add(
-                new FilprideGeneralLedgerBook
+                new GeneralLedgerBook
                 {
                     Date = collection.Date,
                     Reference = collection.MMSICollectionNumber!,
@@ -494,7 +494,7 @@ namespace IBS.DataAccess.Repository.MMSI
             );
 
             ledgers.Add(
-                new FilprideGeneralLedgerBook
+                new GeneralLedgerBook
                 {
                     Date = collection.Date,
                     Reference = collection.MMSICollectionNumber!,
@@ -511,17 +511,17 @@ namespace IBS.DataAccess.Repository.MMSI
                 }
             );
 
-            await _db.FilprideGeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
+            await _db.GeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
         }
 
         public async Task ReturnedCheck(string collectionNo, string company, string userName, CancellationToken cancellationToken = default)
         {
-            var originalEntries = await _db.FilprideGeneralLedgerBooks
+            var originalEntries = await _db.GeneralLedgerBooks
                 .Where(x => x.Reference == collectionNo && x.Company == company)
                 .ToListAsync(cancellationToken);
 
-            var reversalEntries = originalEntries.Select(originalEntry => new FilprideGeneralLedgerBook
+            var reversalEntries = originalEntries.Select(originalEntry => new GeneralLedgerBook
             {
                 Reference = originalEntry.Reference,
                 AccountNo = originalEntry.AccountNo,
@@ -540,7 +540,7 @@ namespace IBS.DataAccess.Repository.MMSI
                 ModuleType = originalEntry.ModuleType,
             }).ToList();
 
-            await _db.FilprideGeneralLedgerBooks.AddRangeAsync(reversalEntries, cancellationToken);
+            await _db.GeneralLedgerBooks.AddRangeAsync(reversalEntries, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
         }
 
@@ -548,7 +548,7 @@ namespace IBS.DataAccess.Repository.MMSI
         {
             // Similar logic to PostAsync but focused on redepositing a previously returned check
             // For now, let's mirror Filpride's RedepositAsync logic
-            var ledgers = new List<FilprideGeneralLedgerBook>();
+            var ledgers = new List<GeneralLedgerBook>();
             var accountTitlesDto = await GetListOfAccountTitleDto(cancellationToken);
             var cashInBankTitle = accountTitlesDto.Find(c => c.AccountNumber == "101010100") ?? throw new ArgumentException("Account title '101010100' not found.");
             var arTradeTitle = accountTitlesDto.Find(c => c.AccountNumber == "101020100") ?? throw new ArgumentException("Account title '101020100' not found.");
@@ -563,7 +563,7 @@ namespace IBS.DataAccess.Repository.MMSI
 
             if (collection.CashAmount > 0 || collection.CheckAmount > 0)
             {
-                ledgers.Add(new FilprideGeneralLedgerBook
+                ledgers.Add(new GeneralLedgerBook
                 {
                     Date = collection.Date,
                     Reference = collection.MMSICollectionNumber!,
@@ -587,7 +587,7 @@ namespace IBS.DataAccess.Repository.MMSI
 
             if (collection.CashAmount > 0 || collection.CheckAmount > 0)
             {
-                ledgers.Add(new FilprideGeneralLedgerBook
+                ledgers.Add(new GeneralLedgerBook
                 {
                     Date = collection.Date,
                     Reference = collection.MMSICollectionNumber!,
@@ -607,7 +607,7 @@ namespace IBS.DataAccess.Repository.MMSI
                 });
             }
 
-            await _db.FilprideGeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
+            await _db.GeneralLedgerBooks.AddRangeAsync(ledgers, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
         }
 

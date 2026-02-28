@@ -2,10 +2,10 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models.Filpride.AccountsReceivable;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.Integrated;
-using IBS.Models.Filpride.ViewModels;
+using IBS.Models.AccountsReceivable;
+using IBS.Models;
+using IBS.Models.Integrated;
+using IBS.Models.ViewModels;
 using IBS.Services.Attributes;
 using IBS.Utility.Constants;
 using IBS.Utility.Helpers;
@@ -76,7 +76,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 var companyClaims = await GetCompanyClaimAsync();
 
-                var serviceInvoices = await _unitOfWork.FilprideServiceInvoice
+                var serviceInvoices = await _unitOfWork.ServiceInvoice
                     .GetAllAsync(sv => sv.Company == companyClaims, cancellationToken);
 
                 // Search filter
@@ -156,8 +156,8 @@ namespace IBSWeb.Areas.User.Controllers
 
             var viewModel = new ServiceInvoiceViewModel
             {
-                Customers = await _unitOfWork.GetFilprideCustomerListAsyncById(companyClaims, cancellationToken),
-                Services = await _unitOfWork.GetFilprideServiceListById(companyClaims, cancellationToken)
+                Customers = await _unitOfWork.GetCustomerListAsyncById(companyClaims, cancellationToken),
+                Services = await _unitOfWork.GetServiceListById(companyClaims, cancellationToken)
             };
 
             return View(viewModel);
@@ -174,8 +174,8 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            viewModel.Customers = await _unitOfWork.GetFilprideCustomerListAsyncById(companyClaims, cancellationToken);
-            viewModel.Services = await _unitOfWork.GetFilprideServiceListById(companyClaims, cancellationToken);
+            viewModel.Customers = await _unitOfWork.GetCustomerListAsyncById(companyClaims, cancellationToken);
+            viewModel.Services = await _unitOfWork.GetServiceListById(companyClaims, cancellationToken);
 
             if (!ModelState.IsValid)
             {
@@ -189,10 +189,10 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Retrieval of Customer/Service
 
-                var customer = await _unitOfWork.FilprideCustomer
+                var customer = await _unitOfWork.Customer
                     .GetAsync(c => c.CustomerId == viewModel.CustomerId, cancellationToken);
 
-                var service = await _unitOfWork.FilprideService
+                var service = await _unitOfWork.Service
                     .GetAsync(c => c.ServiceId == viewModel.ServiceId, cancellationToken);
 
                 if (customer == null || service == null)
@@ -202,9 +202,9 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #endregion --Retrieval of Customer/Service
 
-                var model = new FilprideServiceInvoice
+                var model = new ServiceInvoice
                 {
-                    ServiceInvoiceNo = await _unitOfWork.FilprideServiceInvoice.GenerateCodeAsync(companyClaims, viewModel.Type, cancellationToken),
+                    ServiceInvoiceNo = await _unitOfWork.ServiceInvoice.GenerateCodeAsync(companyClaims, viewModel.Type, cancellationToken),
                     ServiceId = service.ServiceId,
                     ServiceName = service.Name,
                     ServicePercent = service.Percent,
@@ -231,7 +231,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 if (viewModel.DeliveryReceiptId != null)
                 {
-                    var deliveryReceipt = await _unitOfWork.FilprideDeliveryReceipt
+                    var deliveryReceipt = await _unitOfWork.DeliveryReceipt
                         .GetAsync(x => x.DeliveryReceiptId == viewModel.DeliveryReceiptId, cancellationToken);
 
                     if (deliveryReceipt == null)
@@ -247,12 +247,12 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #endregion --Additional procedure for Transaction Fee
 
-                await _unitOfWork.FilprideServiceInvoice.AddAsync(model, cancellationToken);
+                await _unitOfWork.ServiceInvoice.AddAsync(model, cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CreatedBy!, $"Created new service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.CreatedBy!, $"Created new service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -273,7 +273,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Print(int id, CancellationToken cancellationToken)
         {
-            var sv = await _unitOfWork.FilprideServiceInvoice
+            var sv = await _unitOfWork.ServiceInvoice
                 .GetAsync(s => s.ServiceInvoiceId == id, cancellationToken);
 
             if (sv == null)
@@ -285,8 +285,8 @@ namespace IBSWeb.Areas.User.Controllers
 
             #region --Audit Trail Recording
 
-            FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Preview service invoice#{sv.ServiceInvoiceNo}", "Service Invoice", companyClaims!);
-            await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+            AuditTrail auditTrailBook = new(GetUserFullName(), $"Preview service invoice#{sv.ServiceInvoiceNo}", "Service Invoice", companyClaims!);
+            await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
             #endregion --Audit Trail Recording
 
@@ -295,7 +295,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Post(int id, CancellationToken cancellationToken)
         {
-            var model = await _unitOfWork.FilprideServiceInvoice
+            var model = await _unitOfWork.ServiceInvoice
                 .GetAsync(s => s.ServiceInvoiceId == id, cancellationToken);
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
@@ -311,7 +311,7 @@ namespace IBSWeb.Areas.User.Controllers
                 model.PostedDate = DateTimeHelper.GetCurrentPhilippineTime();
                 model.Status = nameof(Status.Posted);
 
-                await _unitOfWork.FilprideServiceInvoice.PostAsync(model, cancellationToken);
+                await _unitOfWork.ServiceInvoice.PostAsync(model, cancellationToken);
 
                 if (model.ServiceName == "TRANSACTION FEE")
                 {
@@ -321,8 +321,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.PostedBy!, $"Posted service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.PostedBy!, $"Posted service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -343,7 +343,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Cancel(int id, string? cancellationRemarks, CancellationToken cancellationToken)
         {
-            var model = await _unitOfWork.FilprideServiceInvoice.GetAsync(x => x.ServiceInvoiceId == id, cancellationToken);
+            var model = await _unitOfWork.ServiceInvoice.GetAsync(x => x.ServiceInvoiceId == id, cancellationToken);
 
             if (model == null)
             {
@@ -361,7 +361,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 if (model.DeliveryReceiptId != null)
                 {
-                    var previousDr = await _unitOfWork.FilprideDeliveryReceipt
+                    var previousDr = await _unitOfWork.DeliveryReceipt
                         .GetAsync(x => x.DeliveryReceiptId == model.DeliveryReceiptId, cancellationToken);
 
                     if (previousDr == null)
@@ -375,8 +375,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -398,7 +398,7 @@ namespace IBSWeb.Areas.User.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Void(int id, CancellationToken cancellationToken)
         {
-            var model = await _unitOfWork.FilprideServiceInvoice.GetAsync(x => x.ServiceInvoiceId == id, cancellationToken);
+            var model = await _unitOfWork.ServiceInvoice.GetAsync(x => x.ServiceInvoiceId == id, cancellationToken);
 
             if (model == null)
             {
@@ -406,9 +406,9 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             var hasAlreadyBeenUsed =
-                await _dbContext.FilprideCollectionReceipts.AnyAsync(cr => cr.ServiceInvoiceId == model.ServiceInvoiceId && cr.Status != nameof(Status.Voided), cancellationToken) ||
-                await _dbContext.FilprideDebitMemos.AnyAsync(dm => dm.ServiceInvoiceId == model.ServiceInvoiceId && dm.Status != nameof(Status.Voided), cancellationToken) ||
-                await _dbContext.FilprideCreditMemos.AnyAsync(cm => cm.ServiceInvoiceId == model.ServiceInvoiceId && cm.Status != nameof(Status.Voided), cancellationToken);
+                await _dbContext.CollectionReceipts.AnyAsync(cr => cr.ServiceInvoiceId == model.ServiceInvoiceId && cr.Status != nameof(Status.Voided), cancellationToken) ||
+                await _dbContext.DebitMemos.AnyAsync(dm => dm.ServiceInvoiceId == model.ServiceInvoiceId && dm.Status != nameof(Status.Voided), cancellationToken) ||
+                await _dbContext.CreditMemos.AnyAsync(cm => cm.ServiceInvoiceId == model.ServiceInvoiceId && cm.Status != nameof(Status.Voided), cancellationToken);
 
             if (hasAlreadyBeenUsed)
             {
@@ -427,7 +427,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 if (model.ServiceName == "TRANSACTION FEE")
                 {
-                    var dr = await _unitOfWork.FilprideDeliveryReceipt
+                    var dr = await _unitOfWork.DeliveryReceipt
                         .GetAsync(x => x.DeliveryReceiptId == model.DeliveryReceiptId, cancellationToken);
 
                     if (dr == null)
@@ -441,13 +441,13 @@ namespace IBSWeb.Areas.User.Controllers
                     await RevertTheReversalOfDrEntries(dr, dr.Company, cancellationToken);
                 }
 
-                await _unitOfWork.FilprideServiceInvoice.RemoveRecords<FilprideSalesBook>(gl => gl.SerialNo == model.ServiceInvoiceNo, cancellationToken);
-                await _unitOfWork.FilprideServiceInvoice.RemoveRecords<FilprideGeneralLedgerBook>(gl => gl.Reference == model.ServiceInvoiceNo, cancellationToken);
+                await _unitOfWork.ServiceInvoice.RemoveRecords<SalesBook>(gl => gl.SerialNo == model.ServiceInvoiceNo, cancellationToken);
+                await _unitOfWork.ServiceInvoice.RemoveRecords<GeneralLedgerBook>(gl => gl.Reference == model.ServiceInvoiceNo, cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(model.VoidedBy!, $"Voided service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(model.VoidedBy!, $"Voided service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -476,7 +476,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return BadRequest();
             }
 
-            var existingModel = await _unitOfWork.FilprideServiceInvoice
+            var existingModel = await _unitOfWork.ServiceInvoice
                 .GetAsync(sv => sv.ServiceInvoiceId == id, cancellationToken);
 
             if (existingModel == null)
@@ -488,9 +488,9 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 ServiceInvoiceId = existingModel.ServiceInvoiceId,
                 CustomerId = existingModel.CustomerId,
-                Customers = await _unitOfWork.GetFilprideCustomerListAsyncById(companyClaims, cancellationToken),
+                Customers = await _unitOfWork.GetCustomerListAsyncById(companyClaims, cancellationToken),
                 ServiceId = existingModel.ServiceId,
-                Services = await _unitOfWork.GetFilprideServiceListById(companyClaims, cancellationToken),
+                Services = await _unitOfWork.GetServiceListById(companyClaims, cancellationToken),
                 DueDate = existingModel.DueDate,
                 Instructions = existingModel.Instructions,
                 Period = existingModel.Period,
@@ -505,7 +505,7 @@ namespace IBSWeb.Areas.User.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(ServiceInvoiceViewModel viewModel, CancellationToken cancellationToken)
         {
-            var existingModel = await _unitOfWork.FilprideServiceInvoice
+            var existingModel = await _unitOfWork.ServiceInvoice
                 .GetAsync(s => s.ServiceInvoiceId == viewModel.ServiceInvoiceId, cancellationToken);
 
             if (existingModel == null)
@@ -513,8 +513,8 @@ namespace IBSWeb.Areas.User.Controllers
                 return NotFound();
             }
 
-            viewModel.Customers = await _unitOfWork.GetFilprideCustomerListAsyncById(existingModel.Company, cancellationToken);
-            viewModel.Services = await _unitOfWork.GetFilprideServiceListById(existingModel.Company, cancellationToken);
+            viewModel.Customers = await _unitOfWork.GetCustomerListAsyncById(existingModel.Company, cancellationToken);
+            viewModel.Services = await _unitOfWork.GetServiceListById(existingModel.Company, cancellationToken);
 
             if (!ModelState.IsValid)
             {
@@ -526,10 +526,10 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var customer = await _unitOfWork.FilprideCustomer
+                var customer = await _unitOfWork.Customer
                     .GetAsync(c => c.CustomerId == viewModel.CustomerId, cancellationToken);
 
-                var service = await _unitOfWork.FilprideService
+                var service = await _unitOfWork.Service
                     .GetAsync(c => c.ServiceId == viewModel.ServiceId, cancellationToken);
 
                 if (customer == null || service == null)
@@ -564,8 +564,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(existingModel.EditedBy!, $"Edited service invoice# {existingModel.ServiceInvoiceNo}", "Service Invoice", existingModel.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(existingModel.EditedBy!, $"Edited service invoice# {existingModel.ServiceInvoiceNo}", "Service Invoice", existingModel.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -573,7 +573,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 if (existingModel.DeliveryReceiptId != viewModel.DeliveryReceiptId && existingModel.DeliveryReceipt != null)
                 {
-                    var previousDr = await _unitOfWork.FilprideDeliveryReceipt
+                    var previousDr = await _unitOfWork.DeliveryReceipt
                         .GetAsync(x => x.DeliveryReceiptId == existingModel.DeliveryReceiptId, cancellationToken);
 
                     if (previousDr == null)
@@ -587,7 +587,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 if (viewModel.DeliveryReceiptId != null)
                 {
-                    var deliveryReceipt = await _unitOfWork.FilprideDeliveryReceipt
+                    var deliveryReceipt = await _unitOfWork.DeliveryReceipt
                         .GetAsync(x => x.DeliveryReceiptId == viewModel.DeliveryReceiptId, cancellationToken);
 
                     if (deliveryReceipt == null)
@@ -620,7 +620,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Printed(int id, CancellationToken cancellationToken)
         {
-            var sv = await _unitOfWork.FilprideServiceInvoice
+            var sv = await _unitOfWork.ServiceInvoice
                 .GetAsync(x => x.ServiceInvoiceId == id, cancellationToken);
 
             if (sv == null)
@@ -632,8 +632,8 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of service invoice# {sv.ServiceInvoiceNo}", "Service Invoice", sv.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of service invoice# {sv.ServiceInvoiceNo}", "Service Invoice", sv.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -644,8 +644,8 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), $"Printed re-printed copy of service invoice# {sv.ServiceInvoiceNo}", "Service Invoice", sv.Company);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed re-printed copy of service invoice# {sv.ServiceInvoiceNo}", "Service Invoice", sv.Company);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
             }
@@ -669,7 +669,7 @@ namespace IBSWeb.Areas.User.Controllers
             var recordIds = selectedRecord.Split(',').Select(int.Parse).ToList();
 
             // Retrieve the selected invoices from the database
-            var selectedList = _unitOfWork.FilprideServiceInvoice
+            var selectedList = _unitOfWork.ServiceInvoice
                 .GetAllAsync(sv => recordIds.Contains(sv.ServiceInvoiceId))
                 .Result
                 .OrderBy(sv => sv.ServiceInvoiceNo);
@@ -745,7 +745,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public IActionResult GetAllServiceInvoiceIds()
         {
-            var svIds = _unitOfWork.FilprideServiceInvoice
+            var svIds = _unitOfWork.ServiceInvoice
                                      .GetAllAsync(sv => sv.Type == nameof(DocumentType.Documented))
                                      .Result
                                      .Select(sv => sv.ServiceInvoiceId);
@@ -756,7 +756,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDRsByCustomer(int customerId, int previousSelectedDr)
         {
-            var drs = await _unitOfWork.FilprideDeliveryReceipt
+            var drs = await _unitOfWork.DeliveryReceipt
                 .GetAllAsync(x =>
                 x.CustomerId == customerId &&
                 x.Status == nameof(DRStatus.ForInvoicing) &&
@@ -767,7 +767,7 @@ namespace IBSWeb.Areas.User.Controllers
             foreach (var dr in drs)
             {
                 var cosPrice = dr.CustomerOrderSlip!.DeliveredPrice;
-                var cost = await _unitOfWork.FilpridePurchaseOrder.GetPurchaseOrderCost((int)dr.PurchaseOrderId!);
+                var cost = await _unitOfWork.PurchaseOrder.GetPurchaseOrderCost((int)dr.PurchaseOrderId!);
                 var freight = dr.Freight;
                 var commission = dr.CommissionRate;
                 var grossMargin = cosPrice - (cost + freight + commission);
@@ -784,13 +784,13 @@ namespace IBSWeb.Areas.User.Controllers
             return Json(result);
         }
 
-        private async Task RevertTheReversalOfDrEntries(FilprideDeliveryReceipt dr, string company, CancellationToken cancellationToken)
+        private async Task RevertTheReversalOfDrEntries(DeliveryReceipt dr, string company, CancellationToken cancellationToken)
         {
-            var relatedRrNo = (await _unitOfWork.FilprideReceivingReport
+            var relatedRrNo = (await _unitOfWork.ReceivingReport
                     .GetAsync(x => x.DeliveryReceiptId == dr.DeliveryReceiptId, cancellationToken))?
                 .ReceivingReportNo;
 
-            await _dbContext.FilprideGeneralLedgerBooks
+            await _dbContext.GeneralLedgerBooks
                 .Where(x => (x.Reference == dr.DeliveryReceiptNo || (relatedRrNo != null && x.Reference == relatedRrNo))
                             && x.Company == company && x.Description.StartsWith("Reversal"))
                 .ExecuteDeleteAsync(cancellationToken);
@@ -798,22 +798,22 @@ namespace IBSWeb.Areas.User.Controllers
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        private async Task ReverseTheDrEntries(FilprideDeliveryReceipt dr, string company, CancellationToken cancellationToken)
+        private async Task ReverseTheDrEntries(DeliveryReceipt dr, string company, CancellationToken cancellationToken)
         {
-            var relatedRrNo = (await _unitOfWork.FilprideReceivingReport
+            var relatedRrNo = (await _unitOfWork.ReceivingReport
                     .GetAsync(x => x.DeliveryReceiptId == dr.DeliveryReceiptId, cancellationToken))?
                 .ReceivingReportNo;
 
-            var originalEntries = await _dbContext.FilprideGeneralLedgerBooks
+            var originalEntries = await _dbContext.GeneralLedgerBooks
                 .Where(x => (x.Reference == dr.DeliveryReceiptNo || (relatedRrNo != null && x.Reference == relatedRrNo))
                             && x.Company == company)
                 .ToListAsync(cancellationToken);
 
-            var reversalEntries = new List<FilprideGeneralLedgerBook>();
+            var reversalEntries = new List<GeneralLedgerBook>();
 
             foreach (var originalEntry in originalEntries)
             {
-                var reversalEntry = new FilprideGeneralLedgerBook
+                var reversalEntry = new GeneralLedgerBook
                 {
                     Date = new DateOnly(
                         originalEntry.Date.Year,
@@ -840,7 +840,7 @@ namespace IBSWeb.Areas.User.Controllers
                 reversalEntries.Add(reversalEntry);
             }
 
-            await _dbContext.FilprideGeneralLedgerBooks.AddRangeAsync(reversalEntries, cancellationToken);
+            await _dbContext.GeneralLedgerBooks.AddRangeAsync(reversalEntries, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
 
@@ -856,7 +856,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 var companyClaims = await GetCompanyClaimAsync();
 
-                var serviceInvoices = await _unitOfWork.FilprideServiceInvoice
+                var serviceInvoices = await _unitOfWork.ServiceInvoice
                     .GetAllAsync(sv => sv.Company == companyClaims && sv.Type == nameof(DocumentType.Documented), cancellationToken);
 
                 // Apply month range filter if provided
@@ -921,7 +921,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var totalRecords = serviceInvoices.Count();
 
                 // Apply pagination - HANDLE -1 FOR "ALL"
-                IEnumerable<FilprideServiceInvoice> pagedServiceInvoices;
+                IEnumerable<ServiceInvoice> pagedServiceInvoices;
 
                 if (parameters.Length == -1)
                 {
@@ -978,7 +978,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var serviceInvoices = await _unitOfWork.FilprideServiceInvoice
+                var serviceInvoices = await _unitOfWork.ServiceInvoice
                     .GetAllAsync(x =>
                             x.Status == nameof(Status.Posted) &&
                             x.Period.Month == month &&
@@ -993,7 +993,7 @@ namespace IBSWeb.Areas.User.Controllers
                 foreach (var service in serviceInvoices
                              .OrderBy(x => x.Period))
                 {
-                    await _unitOfWork.FilprideServiceInvoice.PostAsync(service, cancellationToken);
+                    await _unitOfWork.ServiceInvoice.PostAsync(service, cancellationToken);
 
                     if (service.ServiceName == "TRANSACTION FEE")
                     {

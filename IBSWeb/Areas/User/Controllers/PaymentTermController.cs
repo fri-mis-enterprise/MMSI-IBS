@@ -4,8 +4,8 @@ using System.Security.Claims;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.MasterFile;
+using IBS.Models;
+using IBS.Models.MasterFile;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -61,7 +61,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             try
             {
-                var queried = await _unitOfWork.FilprideTerms
+                var queried = await _unitOfWork.Terms
                     .GetAllAsync(null, cancellationToken);
 
                 // Global search
@@ -113,14 +113,14 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public IActionResult Create()
         {
-            FilprideTerms viewModel = new();
+            Terms viewModel = new();
 
             return View(viewModel);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(FilprideTerms model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create(Terms model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
@@ -146,14 +146,14 @@ namespace IBSWeb.Areas.User.Controllers
                 model.CreatedBy = getUserFullName;
                 model.CreatedDate = DateTimeHelper.GetCurrentPhilippineTime();
                 model.EditedBy = string.Empty;
-                await _unitOfWork.FilprideTerms.AddAsync(model, cancellationToken);
+                await _unitOfWork.Terms.AddAsync(model, cancellationToken);
                 await _unitOfWork.SaveAsync(cancellationToken);
 
                 #region -- Audit Trail Recording --
 
-                FilprideAuditTrail auditTrailBook = new(getUserFullName,
+                AuditTrail auditTrailBook = new(getUserFullName,
                     $"Create new Terms #{model.TermsCode}", "Terms", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
 
@@ -178,7 +178,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return NotFound();
             }
 
-            var supplier = await _unitOfWork.FilprideTerms.GetAsync(c => c.TermsCode == code, cancellationToken);
+            var supplier = await _unitOfWork.Terms.GetAsync(c => c.TermsCode == code, cancellationToken);
 
             if (supplier == null)
             {
@@ -190,7 +190,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(FilprideTerms model, CancellationToken cancellationToken)
+        public async Task<IActionResult> Edit(Terms model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
@@ -211,13 +211,13 @@ namespace IBSWeb.Areas.User.Controllers
             try
             {
                 model.EditedBy = getUserFullName;
-                await _unitOfWork.FilprideTerms.UpdateAsync(model, cancellationToken);
+                await _unitOfWork.Terms.UpdateAsync(model, cancellationToken);
 
                 #region -- Audit Trail Recording --
 
-                FilprideAuditTrail auditTrailBook = new (getUserFullName,
+                AuditTrail auditTrailBook = new (getUserFullName,
                     $"Edited Terms #{model.TermsCode}", "Terms", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
 
@@ -254,7 +254,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var existingTerms = await _dbContext.FilprideTerms
+                var existingTerms = await _dbContext.Terms
                                         .FirstOrDefaultAsync(x => x.TermsCode == code, cancellationToken)
                                     ?? throw new InvalidOperationException("Terms with code not found.");
 
@@ -263,9 +263,9 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail Recording --
 
-                FilprideAuditTrail auditTrailBook = new (getUserFullName,
+                AuditTrail auditTrailBook = new (getUserFullName,
                     $"Deleted Terms #{code}", "Terms", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
 

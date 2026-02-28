@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using System.Security.Claims;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
-using IBS.Models.Filpride.ViewModels;
+using IBS.Models.ViewModels;
 using IBS.Services.Attributes;
 using IBS.Utility.Constants;
 using Microsoft.AspNetCore.Identity;
@@ -14,8 +14,8 @@ using IBS.Utility.Helpers;
 using Microsoft.EntityFrameworkCore;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.Integrated;
+using IBS.Models;
+using IBS.Models.Integrated;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using Color = System.Drawing.Color;
@@ -90,7 +90,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var cosSummary = await _unitOfWork.FilprideReport.GetCosUnservedVolume(model.DateFrom, model.DateTo, companyClaims);
+                var cosSummary = await _unitOfWork.Report.GetCosUnservedVolume(model.DateFrom, model.DateTo, companyClaims);
 
                 if (cosSummary.Count == 0)
                 {
@@ -237,8 +237,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate cos unserved volume report quest pdf", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate cos unserved volume report quest pdf", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -276,7 +276,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var cosSummary = await _unitOfWork.FilprideReport.GetCosUnservedVolume(model.DateFrom, model.DateTo, companyClaims);
+                var cosSummary = await _unitOfWork.Report.GetCosUnservedVolume(model.DateFrom, model.DateTo, companyClaims);
 
                 using var package = new ExcelPackage();
                 var worksheet = package.Workbook.Worksheets.Add("COS Unserved Volume");
@@ -356,8 +356,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate cos unserved volume report excel file", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate cos unserved volume report excel file", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -418,7 +418,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 var currentUser = GetUserFullName();
                 var today = DateTimeHelper.GetCurrentPhilippineTime();
-                Expression<Func<FilprideDeliveryReceipt, bool>>? filter;
+                Expression<Func<DeliveryReceipt, bool>>? filter;
                 var dateRangeType = viewModel.DateTo != default ? "ByRange" : "AsOf";
                 //var currencyFormatTwoDecimal = "#,##0.00";
 
@@ -448,7 +448,7 @@ namespace IBSWeb.Areas.User.Controllers
                                   && i.VoidedBy == null;
                 }
 
-                var deliveryReceipts = await _unitOfWork.FilprideDeliveryReceipt
+                var deliveryReceipts = await _unitOfWork.DeliveryReceipt
                     .GetAllAsync(filter, cancellationToken);
 
                 if (!deliveryReceipts.Any())
@@ -629,7 +629,7 @@ namespace IBSWeb.Areas.User.Controllers
                                             {
                                                 if (record.HasReceivingReport)
                                                 {
-                                                    var getReceivingReport = _dbContext.FilprideReceivingReports.FirstOrDefault(x => x.DeliveryReceiptId == record.DeliveryReceiptId);
+                                                    var getReceivingReport = _dbContext.ReceivingReports.FirstOrDefault(x => x.DeliveryReceiptId == record.DeliveryReceiptId);
                                                     liftedQuantity = getReceivingReport?.QuantityReceived ?? 0m;
                                                     table.Cell().Border(0.5f).Padding(3).Text(getReceivingReport?.Date.ToString(SD.Date_Format) ?? string.Empty);
                                                     table.Cell().Border(0.5f).Padding(3).AlignRight().Text(liftedQuantity != 0 ? liftedQuantity < 0 ? $"({Math.Abs(liftedQuantity).ToString(SD.Two_Decimal_Format)})" : liftedQuantity.ToString(SD.Two_Decimal_Format) : null).FontColor(liftedQuantity < 0 ? Colors.Red.Medium : Colors.Black);
@@ -993,8 +993,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate dispatch report quest pdf", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate dispatch report quest pdf", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -1030,7 +1030,7 @@ namespace IBSWeb.Areas.User.Controllers
                 }
                 var currentUser = GetUserFullName();
                 var today = DateTimeHelper.GetCurrentPhilippineTime();
-                Expression<Func<FilprideDeliveryReceipt, bool>>? filter;
+                Expression<Func<DeliveryReceipt, bool>>? filter;
                 var dateRangeType = viewModel.DateTo != default ? "ByRange" : "AsOf";
                 var currencyFormatTwoDecimal = "#,##0.00";
 
@@ -1057,7 +1057,7 @@ namespace IBSWeb.Areas.User.Controllers
                         && i.Status == nameof(DRStatus.PendingDelivery);
                 }
 
-                var deliveryReceipts = await _unitOfWork.FilprideDeliveryReceipt
+                var deliveryReceipts = await _unitOfWork.DeliveryReceipt
                     .GetAllAsync(filter, cancellationToken);
 
                 if (!deliveryReceipts.Any())
@@ -1070,7 +1070,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var drIds = deliveryReceipts
                     .Select(dr => dr.DeliveryReceiptId)
                     .ToList();
-                var receivingReports = await _dbContext.FilprideReceivingReports
+                var receivingReports = await _dbContext.ReceivingReports
                     .Where(rr => rr.DeliveryReceiptId != null
                                  && drIds.Contains(rr.DeliveryReceiptId.Value)
                                  && rr.Status == nameof(Status.Posted))
@@ -1490,8 +1490,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate dispatch report excel file", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate dispatch report excel file", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -1523,7 +1523,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             ViewModelBook viewmodel = new()
             {
-                CommissioneeList = await _unitOfWork.GetFilprideCommissioneeListAsyncById(companyClaims)
+                CommissioneeList = await _unitOfWork.GetCommissioneeListAsyncById(companyClaims)
             };
             return View(viewmodel);
         }
@@ -1548,7 +1548,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var sales = await _unitOfWork.FilprideReport.GetSalesReport(model.DateFrom, model.DateTo, companyClaims, model.Commissionee, cancellationToken);
+                var sales = await _unitOfWork.Report.GetSalesReport(model.DateFrom, model.DateTo, companyClaims, model.Commissionee, cancellationToken);
 
                 if (!sales.Any())
                 {
@@ -1672,7 +1672,7 @@ namespace IBSWeb.Areas.User.Controllers
                                     var overallTotalQuantity = 0m;
                                     var overallTotalAmount = 0m;
 
-                                    var repoCalculator = _unitOfWork.FilprideDeliveryReceipt;
+                                    var repoCalculator = _unitOfWork.DeliveryReceipt;
 
                                 #endregion
 
@@ -1943,8 +1943,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate sales report quest pdf", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate sales report quest pdf", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -1988,7 +1988,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return RedirectToAction(nameof(GenerateSalesInvoiceReportExcelFile), new { dateFrom = model.DateFrom, dateTo = model.DateTo, cancellationToken });
                 }
 
-                var salesReport = await _unitOfWork.FilprideReport.GetSalesReport(model.DateFrom, model.DateTo, companyClaims, model.Commissionee, cancellationToken);
+                var salesReport = await _unitOfWork.Report.GetSalesReport(model.DateFrom, model.DateTo, companyClaims, model.Commissionee, cancellationToken);
                 if (salesReport.Count == 0)
                 {
                     TempData["info"] = "No Record Found";
@@ -2063,7 +2063,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var totalFreightNetOfVat = 0m;
                 var totalCommissionRate = 0m;
                 var totalVat = 0m;
-                var repoCalculator = _unitOfWork.FilprideDeliveryReceipt;
+                var repoCalculator = _unitOfWork.DeliveryReceipt;
 
                 foreach (var dr in salesReport)
                 {
@@ -2453,8 +2453,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate sales report excel file", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate sales report excel file", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -2490,7 +2490,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return BadRequest();
                 }
 
-                var salesReport = await _unitOfWork.FilprideReport.GetSalesInvoiceReport(dateFrom, dateTo, companyClaims, cancellationToken);
+                var salesReport = await _unitOfWork.Report.GetSalesInvoiceReport(dateFrom, dateTo, companyClaims, cancellationToken);
                 if (salesReport.Count == 0)
                 {
                     TempData["info"] = "No Record Found";
@@ -2951,8 +2951,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate sales invoice report excel file", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate sales invoice report excel file", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -2997,7 +2997,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var collectionReceiptReport = await _unitOfWork.FilprideReport
+                var collectionReceiptReport = await _unitOfWork.Report
                     .GetCollectionReceiptReport(model.DateFrom, model.DateTo, companyClaims);
 
                 if (!collectionReceiptReport.Any())
@@ -3137,7 +3137,7 @@ namespace IBSWeb.Areas.User.Controllers
                                     }
                                     if (record.MultipleSIId != null)
                                     {
-                                        var getSalesInvoice = _unitOfWork.FilprideSalesInvoice.GetAllAsync(x => record.MultipleSIId.Contains(x.SalesInvoiceId));
+                                        var getSalesInvoice = _unitOfWork.SalesInvoice.GetAllAsync(x => record.MultipleSIId.Contains(x.SalesInvoiceId));
                                         foreach (var sales in getSalesInvoice.Result)
                                         {
                                             var currentAmount = record.CashAmount + record.CheckAmount;
@@ -3188,8 +3188,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate posted collection report quest pdf", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate posted collection report quest pdf", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -3229,7 +3229,7 @@ namespace IBSWeb.Areas.User.Controllers
                         return BadRequest();
                     }
 
-                    var collectionReceiptReport = await _unitOfWork.FilprideReport
+                    var collectionReceiptReport = await _unitOfWork.Report
                         .GetCollectionReceiptReport(model.DateFrom, model.DateTo, companyClaims, cancellationToken);
 
                     using var package = new ExcelPackage();
@@ -3324,7 +3324,7 @@ namespace IBSWeb.Areas.User.Controllers
                         }
                         if (cr.MultipleSIId != null)
                         {
-                            var getSalesInvoice = await _unitOfWork.FilprideSalesInvoice.GetAllAsync(x => cr.MultipleSIId.Contains(x.SalesInvoiceId), cancellationToken);
+                            var getSalesInvoice = await _unitOfWork.SalesInvoice.GetAllAsync(x => cr.MultipleSIId.Contains(x.SalesInvoiceId), cancellationToken);
                             foreach (var sales in getSalesInvoice)
                             {
                                 var currentAmount = cr.CashAmount + cr.CheckAmount;
@@ -3379,8 +3379,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                     #region -- Audit Trail --
 
-                    FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate posted collection report excel file", "Accounts Receivable Report", companyClaims);
-                    await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                    AuditTrail auditTrailBook = new(GetUserFullName(), "Generate posted collection report excel file", "Accounts Receivable Report", companyClaims);
+                    await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                     #endregion
 
@@ -3426,7 +3426,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var salesInvoice = await _unitOfWork.FilprideSalesInvoice
+                var salesInvoice = await _unitOfWork.SalesInvoice
                     .GetAllAsync(si => si.PostedBy != null
                                        && si.AmountPaid == 0
                                        && !si.IsPaid && si.Company == companyClaims, cancellationToken);
@@ -3564,7 +3564,7 @@ namespace IBSWeb.Areas.User.Controllers
                                 var totalSixtyOneToNinetyDays = 0m;
                                 var totalOverNinetyDays = 0m;
 
-                                var repoCalculator = _unitOfWork.FilprideSalesInvoice;
+                                var repoCalculator = _unitOfWork.SalesInvoice;
 
                                 foreach (var record in salesInvoice)
                                 {
@@ -3671,8 +3671,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate aging report quest pdf", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate aging report quest pdf", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -3708,7 +3708,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var extractedBy = GetUserFullName();
                 var companyClaims = await GetCompanyClaimAsync();
 
-                var salesInvoice = await _unitOfWork.FilprideSalesInvoice
+                var salesInvoice = await _unitOfWork.SalesInvoice
                     .GetAllAsync(si => si.PostedBy != null
                                        && si.AmountPaid == 0 && !si.IsPaid
                                        && si.Company == companyClaims, cancellationToken);
@@ -3796,7 +3796,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var totalThirtyOneToSixtyDays = 0m;
                 var totalSixtyOneToNinetyDays = 0m;
                 var totalOverNinetyDays = 0m;
-                var repoCalculator = _unitOfWork.FilprideSalesInvoice;
+                var repoCalculator = _unitOfWork.SalesInvoice;
 
                 foreach (var si in salesInvoice)
                 {
@@ -3928,8 +3928,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate aging report excel file", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate aging report excel file", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -3961,7 +3961,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             ViewModelBook viewmodel = new()
             {
-                CustomerList = await _unitOfWork.GetFilprideCustomerListAsyncById(companyClaims)
+                CustomerList = await _unitOfWork.GetCustomerListAsyncById(companyClaims)
             };
 
             return View(viewmodel);
@@ -3986,7 +3986,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var salesInvoice = await _unitOfWork.FilprideReport
+                var salesInvoice = await _unitOfWork.Report
                     .GetARPerCustomerReport(model.DateFrom, model.DateTo, companyClaims, model.Customers, cancellationToken);
 
                 if (!salesInvoice.Any())
@@ -4123,7 +4123,7 @@ namespace IBSWeb.Areas.User.Controllers
                                 var totalEwtAmount = 0m;
                                 var totalEwtAmountPaid = 0m;
                                 var totalEwtBalance = 0m;
-                                var repoCalculator = _unitOfWork.FilprideDeliveryReceipt;
+                                var repoCalculator = _unitOfWork.DeliveryReceipt;
 
                                 foreach (var groupByCustomer in salesInvoice.GroupBy(x => x.Customer))
                                 {
@@ -4270,8 +4270,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate ar per customer report quest pdf", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate ar per customer report quest pdf", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -4310,7 +4310,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return BadRequest();
                 }
 
-                var salesInvoice = await _unitOfWork.FilprideReport
+                var salesInvoice = await _unitOfWork.Report
                     .GetARPerCustomerReport(model.DateFrom, model.DateTo, companyClaims, model.Customers, cancellationToken);
 
                 if (!salesInvoice.Any())
@@ -4393,7 +4393,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var totalEwtAmount = 0m;
                 var totalEwtAmountPaid = 0m;
                 var totalEwtBalance = 0m;
-                var repoCalculator = _unitOfWork.FilprideDeliveryReceipt;
+                var repoCalculator = _unitOfWork.DeliveryReceipt;
 
                 foreach (var groupByCustomer in salesInvoice.GroupBy(x => x.Customer))
                 {
@@ -4580,8 +4580,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate ar per customer report excel file", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate ar per customer report excel file", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -4628,7 +4628,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var serviceInvoice = await _unitOfWork.FilprideReport
+                var serviceInvoice = await _unitOfWork.Report
                     .GetServiceInvoiceReport(model.DateFrom, model.DateTo, companyClaims, cancellationToken);
 
                 if (!serviceInvoice.Any())
@@ -4784,8 +4784,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate service invoice report quest pdf", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate service invoice report quest pdf", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -4824,7 +4824,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return BadRequest();
                 }
 
-                var serviceReport = await _unitOfWork.FilprideReport.GetServiceInvoiceReport(model.DateFrom, model.DateTo, companyClaims, cancellationToken);
+                var serviceReport = await _unitOfWork.Report.GetServiceInvoiceReport(model.DateFrom, model.DateTo, companyClaims, cancellationToken);
 
                 if (serviceReport.Count == 0)
                 {
@@ -4940,8 +4940,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail --
 
-                FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate service invoice report excel file", "Accounts Receivable Report", companyClaims);
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                AuditTrail auditTrailBook = new(GetUserFullName(), "Generate service invoice report excel file", "Accounts Receivable Report", companyClaims);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion
 
@@ -4978,7 +4978,7 @@ namespace IBSWeb.Areas.User.Controllers
             try
 		    {
                 // Retrieve the selected invoices from the database
-                var salesInvoiceList = await _dbContext.FilprideSalesInvoices
+                var salesInvoiceList = await _dbContext.SalesInvoices
                     .OrderBy(invoice => invoice.TransactionDate)
                     .ThenBy(invoice => invoice.SalesInvoiceNo)
                     .Include(salesInvoice => salesInvoice.Customer)
@@ -5063,11 +5063,11 @@ namespace IBSWeb.Areas.User.Controllers
                 {
                     var netDiscount = item.Amount - item.Discount;
                     var netOfVatAmount = item.Customer?.CustomerType == SD.VatType_Vatable
-                        ? _unitOfWork.FilprideSalesInvoice.ComputeNetOfVat(netDiscount)
+                        ? _unitOfWork.SalesInvoice.ComputeNetOfVat(netDiscount)
                         : netDiscount;
-                    var vatAmount = item.Customer?.CustomerType == SD.VatType_Vatable ? _unitOfWork.FilprideSalesInvoice.ComputeVatAmount(netOfVatAmount) : 0m;
-                    var withHoldingTaxAmount = item.Customer!.WithHoldingTax ? _unitOfWork.FilprideSalesInvoice.ComputeEwtAmount(netOfVatAmount, 0.01m) : 0;
-                    var withHoldingVatAmount = item.Customer.WithHoldingVat ? _unitOfWork.FilprideSalesInvoice.ComputeEwtAmount(netOfVatAmount, 0.05m) : 0;
+                    var vatAmount = item.Customer?.CustomerType == SD.VatType_Vatable ? _unitOfWork.SalesInvoice.ComputeVatAmount(netOfVatAmount) : 0m;
+                    var withHoldingTaxAmount = item.Customer!.WithHoldingTax ? _unitOfWork.SalesInvoice.ComputeEwtAmount(netOfVatAmount, 0.01m) : 0;
+                    var withHoldingVatAmount = item.Customer.WithHoldingVat ? _unitOfWork.SalesInvoice.ComputeEwtAmount(netOfVatAmount, 0.05m) : 0;
 
                     worksheet.Cells[row, 1].Value = item.TransactionDate.ToString("MMM/dd/yyyy");
                     worksheet.Cells[row, 2].Value = item.SalesInvoiceNo;
@@ -5203,7 +5203,7 @@ namespace IBSWeb.Areas.User.Controllers
                 }
 
                 // fetch sales report
-                var salesReport = await _unitOfWork.FilprideReport
+                var salesReport = await _unitOfWork.Report
                     .GetSalesReport(model.DateFrom, model.DateTo, companyClaims, cancellationToken: cancellationToken);
 
                 // check if there is no record

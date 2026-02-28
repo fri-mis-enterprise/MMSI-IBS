@@ -2,8 +2,8 @@ using IBS.Utility.Constants;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.ViewModels;
+using IBS.Models;
+using IBS.Models.ViewModels;
 using IBS.Services.Attributes;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -59,7 +59,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             var companyClaims = await GetCompanyClaimAsync();
 
-            viewModel.PO = await _dbContext.FilpridePurchaseOrders
+            viewModel.PO = await _dbContext.PurchaseOrders
                 .OrderBy(p => p.PurchaseOrderNo)
                 .Where(p => p.Company == companyClaims)
                 .Select(p => new SelectListItem
@@ -86,7 +86,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 viewModel.ProductList = await _unitOfWork.GetProductListAsyncById(cancellationToken);
 
-                viewModel.PO = await _dbContext.FilpridePurchaseOrders
+                viewModel.PO = await _dbContext.PurchaseOrders
                     .OrderBy(p => p.PurchaseOrderNo)
                     .Where(p => p.Company == companyClaims)
                     .Select(p => new SelectListItem
@@ -104,7 +104,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var hasBeginningInventory = await _unitOfWork.FilprideInventory.HasAlreadyBeginningInventory(viewModel.ProductId, viewModel.POId, companyClaims, cancellationToken);
+                var hasBeginningInventory = await _unitOfWork.Inventory.HasAlreadyBeginningInventory(viewModel.ProductId, viewModel.POId, companyClaims, cancellationToken);
 
                 if (hasBeginningInventory)
                 {
@@ -115,7 +115,7 @@ namespace IBSWeb.Areas.User.Controllers
                 }
 
                 viewModel.CurrentUser = _userManager.GetUserName(User)!;
-                await _unitOfWork.FilprideInventory.AddBeginningInventory(viewModel, companyClaims, cancellationToken);
+                await _unitOfWork.Inventory.AddBeginningInventory(viewModel, companyClaims, cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 TempData["success"] = "Beginning balance created successfully";
                 return RedirectToAction(nameof(BeginningInventory));
@@ -137,7 +137,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             viewModel.Products = await _unitOfWork.GetProductListAsyncById(cancellationToken);
 
-            viewModel.PO = await _dbContext.FilpridePurchaseOrders
+            viewModel.PO = await _dbContext.PurchaseOrders
                 .OrderBy(p => p.PurchaseOrderNo)
                 .Where(p => p.Company == companyClaims)
                 .Select(p => new SelectListItem
@@ -173,7 +173,7 @@ namespace IBSWeb.Areas.User.Controllers
                                     .LastOrDefaultAsync(e =>
                                         viewModel.POId == null || e.POId == viewModel.POId, cancellationToken);
 
-            List<FilprideInventory> inventories = new List<FilprideInventory>();
+            List<Inventory> inventories = new List<Inventory>();
             if (endingBalance != null)
             {
                 inventories = await _dbContext.FilprideInventories
@@ -211,7 +211,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             var companyClaims = await GetCompanyClaimAsync();
-            var purchaseOrders = await _dbContext.FilpridePurchaseOrders
+            var purchaseOrders = await _dbContext.PurchaseOrders
                 .OrderBy(p => p.PurchaseOrderNo)
                 .Where(p => p.Company == companyClaims && p.ProductId == productId)
                 .Select(p => new SelectListItem
@@ -233,7 +233,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             var companyClaims = await GetCompanyClaimAsync();
             var dateFrom = viewModel.DateTo.AddDays(-viewModel.DateTo.Day + 1);
-            List<FilprideInventory> inventories = new List<FilprideInventory>();
+            List<Inventory> inventories = new List<Inventory>();
             if (viewModel.POId == null)
             {
                 inventories = await _dbContext.FilprideInventories
@@ -272,7 +272,7 @@ namespace IBSWeb.Areas.User.Controllers
             viewModel.ProductList = await _unitOfWork.GetProductListAsyncById(cancellationToken);
             var companyClaims = await GetCompanyClaimAsync();
 
-            viewModel.COA = await _dbContext.FilprideChartOfAccounts
+            viewModel.COA = await _dbContext.ChartOfAccounts
                 .Where(coa => coa.Level == 4 && (coa.AccountName.StartsWith("AR-Non Trade Receivable") || coa.AccountName.StartsWith("Cost of Goods Sold") || coa.AccountNumber!.StartsWith("6010103")))
                 .Select(s => new SelectListItem
                 {
@@ -280,7 +280,7 @@ namespace IBSWeb.Areas.User.Controllers
                     Text = s.AccountNumber + " " + s.AccountName
                 })
                 .ToListAsync(cancellationToken);
-            viewModel.PO = await _dbContext.FilpridePurchaseOrders
+            viewModel.PO = await _dbContext.PurchaseOrders
                 .OrderBy(p => p.PurchaseOrderNo)
                 .Where(p => p.Company == companyClaims)
                 .Select(p => new SelectListItem
@@ -329,7 +329,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 viewModel.ProductList = await _unitOfWork.GetProductListAsyncById(cancellationToken);
 
-                viewModel.COA = await _dbContext.FilprideChartOfAccounts
+                viewModel.COA = await _dbContext.ChartOfAccounts
                     .Where(coa => coa.Level == 4 &&
                                   (coa.AccountName.StartsWith("AR-Non Trade Receivable") ||
                                    coa.AccountName.StartsWith("Cost of Goods Sold") ||
@@ -350,7 +350,7 @@ namespace IBSWeb.Areas.User.Controllers
             try
             {
                 viewModel.CurrentUser = _userManager.GetUserName(User)!;
-                await _unitOfWork.FilprideInventory.AddActualInventory(viewModel, companyClaims, cancellationToken);
+                await _unitOfWork.Inventory.AddActualInventory(viewModel, companyClaims, cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 TempData["success"] = "Actual inventory created successfully";
                 return RedirectToAction(nameof(ActualInventory));
@@ -360,7 +360,7 @@ namespace IBSWeb.Areas.User.Controllers
                 _logger.LogError(ex, "Failed to create actual inventory. Created by: {UserName}", _userManager.GetUserName(User));
                 viewModel.ProductList = await _unitOfWork.GetProductListAsyncById(cancellationToken);
 
-                viewModel.PO = await _dbContext.FilpridePurchaseOrders
+                viewModel.PO = await _dbContext.PurchaseOrders
                     .OrderBy(p => p.PurchaseOrderNo)
                     .Where(p => p.Company == companyClaims)
                     .Select(p => new SelectListItem
@@ -370,7 +370,7 @@ namespace IBSWeb.Areas.User.Controllers
                     })
                     .ToListAsync(cancellationToken);
 
-                viewModel.COA = await _dbContext.FilprideChartOfAccounts
+                viewModel.COA = await _dbContext.ChartOfAccounts
                     .Where(coa => coa.Level == 4 &&
                                   (coa.AccountName.StartsWith("AR-Non Trade Receivable") ||
                                    coa.AccountName.StartsWith("Cost of Goods Sold") ||

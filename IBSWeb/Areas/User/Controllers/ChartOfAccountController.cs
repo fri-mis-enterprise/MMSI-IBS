@@ -4,8 +4,8 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models.Filpride.Books;
-using IBS.Models.Filpride.MasterFile;
+using IBS.Models;
+using IBS.Models.MasterFile;
 using IBS.Services;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Identity;
@@ -63,7 +63,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return View("ExportIndex");
             }
 
-            var level1 = await _unitOfWork.FilprideChartOfAccount
+            var level1 = await _unitOfWork.ChartOfAccount
                 .GetAllAsync(cancellationToken : cancellationToken);
 
             return View(level1.Where(c => c.Level == 1)
@@ -77,7 +77,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var parentAccount = await _unitOfWork.FilprideChartOfAccount
+                var parentAccount = await _unitOfWork.ChartOfAccount
                     .GetAsync(c => c.AccountId == parentId, cancellationToken);
 
                 if (parentAccount == null)
@@ -85,7 +85,7 @@ namespace IBSWeb.Areas.User.Controllers
                     throw new InvalidOperationException("Parent Account not found");
                 }
 
-                var lastAccount = (await _unitOfWork.FilprideChartOfAccount
+                var lastAccount = (await _unitOfWork.ChartOfAccount
                         .GetAllAsync(c => c.ParentAccountId == parentId, cancellationToken: cancellationToken))
                     .OrderByDescending(c => c.AccountNumber)
                     .FirstOrDefault();
@@ -94,7 +94,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 var levelToCreate = parentAccount.Level + 1;
 
-                var newAccount = new FilprideChartOfAccount
+                var newAccount = new ChartOfAccount
                 {
                     IsMain = false,
                     AccountType = parentAccount?.AccountType,
@@ -116,15 +116,15 @@ namespace IBSWeb.Areas.User.Controllers
                         break;
                 }
 
-                await _unitOfWork.FilprideChartOfAccount.AddAsync(newAccount, cancellationToken);
+                await _unitOfWork.ChartOfAccount.AddAsync(newAccount, cancellationToken);
                 await _unitOfWork.SaveAsync(cancellationToken);
                 await _cacheService.RemoveAsync($"coa:{await GetCompanyClaimAsync()}", cancellationToken);
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new (GetUserFullName(),
+                AuditTrail auditTrailBook = new (GetUserFullName(),
                     $"Created new Account #{newAccount.AccountNumber}", "Chart of Accounts", (await GetCompanyClaimAsync())! );
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -144,7 +144,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int accountId, string accountName, CancellationToken cancellationToken)
         {
-            var existingAccount = await _unitOfWork.FilprideChartOfAccount
+            var existingAccount = await _unitOfWork.ChartOfAccount
                 .GetAsync(x => x.AccountId == accountId, cancellationToken);
 
             if (existingAccount == null)
@@ -164,9 +164,9 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                FilprideAuditTrail auditTrailBook = new (GetUserFullName(),
+                AuditTrail auditTrailBook = new (GetUserFullName(),
                     $"Edited Account #{existingAccount.AccountNumber}", "Chart of Accounts", (await GetCompanyClaimAsync())! );
-                await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
@@ -193,7 +193,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             try
             {
-                var chartOfAccounts = await _unitOfWork.FilprideChartOfAccount
+                var chartOfAccounts = await _unitOfWork.ChartOfAccount
                     .GetAllAsync(cancellationToken: cancellationToken);
 
                 // Apply date range filter if provided (using CreatedDate)
@@ -261,7 +261,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var totalRecords = chartOfAccounts.Count();
 
                 // Apply pagination - HANDLE -1 FOR "ALL"
-                IEnumerable<FilprideChartOfAccount> pagedChartOfAccounts;
+                IEnumerable<ChartOfAccount> pagedChartOfAccounts;
 
                 if (parameters.Length == -1)
                 {
@@ -324,7 +324,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var recordIds = selectedRecord.Split(',').Select(int.Parse).ToList();
 
                 // Retrieve the selected invoices from the database
-                var selectedList = (await _unitOfWork.FilprideChartOfAccount
+                var selectedList = (await _unitOfWork.ChartOfAccount
                     .GetAllAsync(coa => recordIds.Contains(coa.AccountId), cancellationToken))
                     .OrderBy(coa => coa.AccountId)
                     .ToList();
@@ -396,7 +396,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllChartOfAccountIds(CancellationToken cancellationToken)
         {
-            var coaIds = await _dbContext.FilprideChartOfAccounts
+            var coaIds = await _dbContext.ChartOfAccounts
                 .Select(coa => coa.AccountId) // Assuming Id is the primary key
                 .ToListAsync(cancellationToken);
             return Json(coaIds);

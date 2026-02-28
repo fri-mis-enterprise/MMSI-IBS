@@ -22,7 +22,7 @@ namespace IBS.DataAccess.Repository.MMSI.IRepository
         Task<string> GenerateCollectionNumber(CancellationToken cancellationToken = default);
 
         // Accounting Methods
-        Task PostAsync(MMSICollection collection, List<FilprideOffsettings> offsettings, CancellationToken cancellationToken = default);
+        Task PostAsync(MMSICollection collection, List<Offsettings> offsettings, CancellationToken cancellationToken = default);
 
         Task DepositAsync(MMSICollection collection, CancellationToken cancellationToken = default);
 

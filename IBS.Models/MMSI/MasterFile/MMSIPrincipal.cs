@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using IBS.Models.Filpride.MasterFile;
+using IBS.Models.MasterFile;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace IBS.Models.MMSI.MasterFile
@@ -43,7 +43,7 @@ namespace IBS.Models.MMSI.MasterFile
         public int CustomerId { get; set; }
 
         [ForeignKey(nameof(CustomerId))]
-        public FilprideCustomer? Customer { get; set; }
+        public Customer? Customer { get; set; }
 
         #region -- Select List
 

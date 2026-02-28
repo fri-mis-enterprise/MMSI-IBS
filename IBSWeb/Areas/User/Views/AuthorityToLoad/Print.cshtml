@@ -1,12 +1,12 @@
 ﻿@using IBS.Models
 @using IBS.Utility.Constants
 @using Microsoft.AspNetCore.Identity
-@model FilprideAuthorityToLoad
+@model AuthorityToLoad
 @inject SignInManager<ApplicationUser> SignInManager
 
 @{
     ViewData["Title"] = "Authority To Load - Preview";
-    var purchaseOrders = ViewData["PurchaseOrders"] as List<FilprideCOSAppointedSupplier>;
+    var purchaseOrders = ViewData["PurchaseOrders"] as List<COSAppointedSupplier>;
         
     var selectedCompany = string.Empty;
 

@@ -2,7 +2,7 @@ using System.Security.Claims;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.Filpride.Books;
+using IBS.Models;
 using IBS.Services.Attributes;
 using IBS.Utility.Constants;
 using Microsoft.AspNetCore.Identity;
@@ -81,7 +81,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 if (category == "Sales")
                 {
-                    var lockedSales = await _dbContext.FilprideSalesLockedRecordsQueues
+                    var lockedSales = await _dbContext.SalesLockedRecordsQueues
                         .Include(x => x.DeliveryReceipt)
                         .ThenInclude(x => x.CustomerOrderSlip)
                         .Where(x => x.LockedDate.Month == monthDate.Month
@@ -275,8 +275,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                     #region -- Audit Trail --
 
-                    FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate sales comparative report quest pdf", "Comparative Report", companyClaims);
-                    await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                    AuditTrail auditTrailBook = new(GetUserFullName(), "Generate sales comparative report quest pdf", "Comparative Report", companyClaims);
+                    await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                     #endregion
 
@@ -286,7 +286,7 @@ namespace IBSWeb.Areas.User.Controllers
                 }
                 else
                 {
-                    var lockedPurchases = await _dbContext.FilpridePurchaseLockedRecordsQueues
+                    var lockedPurchases = await _dbContext.PurchaseLockedRecordsQueues
                         .Include(x => x.ReceivingReport)
                         .ThenInclude(x => x.PurchaseOrder)
                         .ThenInclude(x => x!.ActualPrices)
@@ -481,8 +481,8 @@ namespace IBSWeb.Areas.User.Controllers
 
                     #region -- Audit Trail --
 
-                    FilprideAuditTrail auditTrailBook = new(GetUserFullName(), "Generate purchase comparative report quest pdf", "Comparative Report", companyClaims);
-                    await _unitOfWork.FilprideAuditTrail.AddAsync(auditTrailBook, cancellationToken);
+                    AuditTrail auditTrailBook = new(GetUserFullName(), "Generate purchase comparative report quest pdf", "Comparative Report", companyClaims);
+                    await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                     #endregion
 

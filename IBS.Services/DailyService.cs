@@ -52,7 +52,7 @@ namespace IBS.Services
 
         private async Task CosExpiration(DateOnly today)
         {
-            var cosList = await _dbContext.FilprideCustomerOrderSlips
+            var cosList = await _dbContext.CustomerOrderSlips
                 .Where(cos => cos.ExpirationDate <= today
                               && cos.Status != nameof(CosStatus.Completed)
                               && cos.Status != nameof(CosStatus.Expired)
