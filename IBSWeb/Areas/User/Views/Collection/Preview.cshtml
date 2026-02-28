@@ -48,19 +48,19 @@
         <tr>
             <td>
                 <span><b>Sold to:</b></span>
-                &nbsp; @Model.Customer!.CustomerName.ToUpper() &nbsp;<br />
+                &nbsp; @Model.Customer?.CustomerName?.ToUpper() &nbsp;<br />
 
                 <span><b>Address:</b></span>
-                &nbsp; @Model.Customer.CustomerAddress.ToUpper() &nbsp;<br />
+                &nbsp; @Model.Customer?.CustomerAddress?.ToUpper() &nbsp;<br />
 
                 <span><b>TIN:</b></span>
-                &nbsp; @Model.Customer.CustomerTin &nbsp;<br />
+                &nbsp; @Model.Customer?.CustomerTin &nbsp;<br />
 
                 <span><b>Business Style:</b></span>
-                &nbsp; @Model.Customer.BusinessStyle?.ToUpper() &nbsp;<br />
+                &nbsp; @Model.Customer?.BusinessStyle?.ToUpper() &nbsp;<br />
                 
                 <span><b>Check Number:</b></span>
-                &nbsp; @Model.CheckNumber.ToUpper() &nbsp;<br />
+                &nbsp; @Model.CheckNumber?.ToUpper() &nbsp;<br />
                 
                 <span><b>Check Date:</b></span>
                 &nbsp; @Model.CheckDate.ToString() &nbsp;<br />
@@ -91,15 +91,19 @@
         </tr>
         </thead>
         <tbody>
-        @foreach(var billing in Model.PaidBills){
-            <tr style="height:30px !important;">
-                <td>
-                    <a href="@Url.Action("Preview", "Billing", new { id = billing.MMSIBillingId })" class="text-decoration-none">@billing.MMSIBillingNumber</a>
-                </td>
-                <td>@billing.CreatedDate</td>
-                <td>@billing.Customer!.CustomerName</td>
-                <td>@billing.Amount</td>
-            </tr>
+        @if (Model.PaidBills != null)
+        {
+            @foreach (var billing in Model.PaidBills)
+            {
+                <tr style="height:30px !important;">
+                    <td>
+                        <a href="@Url.Action("Preview", "Billing", new { id = billing.MMSIBillingId })" class="text-decoration-none">@billing.MMSIBillingNumber</a>
+                    </td>
+                    <td>@billing.CreatedDate</td>
+                    <td>@billing.Customer?.CustomerName</td>
+                    <td>@billing.Amount</td>
+                </tr>
+            }
         }
         </tbody>
     </table>
