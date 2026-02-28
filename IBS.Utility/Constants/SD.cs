@@ -2,6 +2,9 @@ namespace IBS.Utility.Constants
 {
     public static class SD
     {
+        public const string Company_Filpride = "Filpride";
+        public const string Company_MMSI = "MMSI";
+
         #region Terms
 
         public const string Terms_Cod = "COD";

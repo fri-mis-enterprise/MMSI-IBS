@@ -176,6 +176,10 @@ namespace IBSWeb.Areas.Identity.Pages.Account
                     identity.AddClaim(new Claim(ClaimTypes.NameIdentifier, user.Id));
                     identity.AddClaim(new Claim(ClaimTypes.Name, user.UserName));
                     identity.AddClaim(new Claim(ClaimTypes.GivenName, user.Name));
+                    if (!string.IsNullOrEmpty(user.Department))
+                    {
+                        identity.AddClaim(new Claim("Department", user.Department));
+                    }
                     identity.AddClaims(updatedClaims);
 
                     // Add role claims
