@@ -27,52 +27,61 @@ namespace IBS.Services
     {
         private readonly GCSConfigOptions _options;
         private readonly ILogger<CloudStorageService> _logger;
-        private readonly GoogleCredential _googleCredential;
-        private readonly StorageClient _storageClient;
+        private GoogleCredential? _googleCredential;
+        private StorageClient? _storageClient;
+        private readonly object _lock = new();
 
         public CloudStorageService(IOptions<GCSConfigOptions> options, ILogger<CloudStorageService> logger)
         {
             _options = options.Value;
             _logger = logger;
+        }
 
-            try
+        private void EnsureInitialized()
+        {
+            if (_storageClient != null) return;
+
+            lock (_lock)
             {
-                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-                if (environment == Environments.Production)
-                {
-                    _googleCredential = GoogleCredential.GetApplicationDefault();
-                }
-                else
-                {
-                    // Log for debugging purposes
-                    _logger.LogInformation($"Environment: {environment}, Auth File: {_options.GCPStorageAuthFile}");
+                if (_storageClient != null) return;
 
-                    if (!File.Exists(_options.GCPStorageAuthFile))
+                try
+                {
+                    var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+                    if (environment == Environments.Production)
                     {
-                        throw new FileNotFoundException($"Auth file not found: {_options.GCPStorageAuthFile}");
+                        _googleCredential = GoogleCredential.GetApplicationDefault();
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"Environment: {environment}, Auth File: {_options.GCPStorageAuthFile}");
+
+                        if (!File.Exists(_options.GCPStorageAuthFile))
+                        {
+                            throw new FileNotFoundException($"Auth file not found: {_options.GCPStorageAuthFile}");
+                        }
+
+                        using var stream = File.OpenRead(_options.GCPStorageAuthFile);
+                        var serviceAccountCredential = CredentialFactory.FromStream<ServiceAccountCredential>(stream);
+                        _googleCredential = serviceAccountCredential.ToGoogleCredential();
                     }
 
-                    using var stream = File.OpenRead(_options.GCPStorageAuthFile);
-
-                    var serviceAccountCredential = CredentialFactory.FromStream<ServiceAccountCredential>(stream);
-
-                    _googleCredential = serviceAccountCredential.ToGoogleCredential();
+                    _storageClient = StorageClient.Create(_googleCredential);
                 }
-
-                _storageClient = StorageClient.Create(_googleCredential);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to initialize Google Cloud Storage client: {ex.Message}");
-                throw;
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Failed to initialize Google Cloud Storage client: {ex.Message}");
+                    throw;
+                }
             }
         }
 
         public async Task DeleteFileAsync(string fileNameToDelete)
         {
+            EnsureInitialized();
             try
             {
-                await _storageClient.DeleteObjectAsync(_options.GoogleCloudStorageBucketName, fileNameToDelete);
+                await _storageClient!.DeleteObjectAsync(_options.GoogleCloudStorageBucketName, fileNameToDelete);
             }
             catch (Exception ex)
             {
@@ -83,10 +92,11 @@ namespace IBS.Services
 
         public async Task<string> GetSignedUrlAsync(string fileNameToRead, int timeOutInMinutes = 30)
         {
+            EnsureInitialized();
             try
             {
                 var bucketName = _options.GoogleCloudStorageBucketName;
-                var urlSigner = UrlSigner.FromCredential(_googleCredential);
+                var urlSigner = UrlSigner.FromCredential(_googleCredential!);
 
                 var signedUrl = await urlSigner.SignAsync(bucketName, fileNameToRead, TimeSpan.FromMinutes(timeOutInMinutes));
 
@@ -102,6 +112,7 @@ namespace IBS.Services
 
         public async Task<string> UploadFileAsync(IFormFile fileToUpload, string fileNameToSave)
         {
+            EnsureInitialized();
             if (fileToUpload == null || fileToUpload.Length == 0)
             {
                 _logger.LogError("File upload failed: No file provided or file is empty.");
@@ -115,7 +126,7 @@ namespace IBS.Services
                     await fileToUpload.CopyToAsync(memoryStream);
                     memoryStream.Position = 0; // Reset stream position after copying
 
-                    var uploadedFile = await _storageClient.UploadObjectAsync(
+                    var uploadedFile = await _storageClient!.UploadObjectAsync(
                         _options.GoogleCloudStorageBucketName,
                         fileNameToSave,
                         fileToUpload.ContentType ?? "application/octet-stream",
@@ -133,16 +144,14 @@ namespace IBS.Services
 
         public async Task<Stream> DownloadFileAsync(string fileNameToDownload)
         {
+            EnsureInitialized();
             try
             {
-                using (var storageClient = StorageClient.Create(_googleCredential))
-                {
-                    var memoryStream = new MemoryStream();
-                    await storageClient.DownloadObjectAsync(_options.GoogleCloudStorageBucketName, fileNameToDownload, memoryStream);
-                    memoryStream.Seek(0, SeekOrigin.Begin); // Reset stream position to the beginning for reading
-                    _logger.LogInformation($"File {fileNameToDownload} downloaded successfully");
-                    return memoryStream;
-                }
+                var memoryStream = new MemoryStream();
+                await _storageClient!.DownloadObjectAsync(_options.GoogleCloudStorageBucketName, fileNameToDownload, memoryStream);
+                memoryStream.Seek(0, SeekOrigin.Begin); // Reset stream position to the beginning for reading
+                _logger.LogInformation($"File {fileNameToDownload} downloaded successfully");
+                return memoryStream;
             }
             catch (Exception ex)
             {
