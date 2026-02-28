@@ -3,7 +3,7 @@ using IBS.Models.MasterFile;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace IBS.Models
+namespace IBS.Models.Books
 {
     public class Inventory
     {

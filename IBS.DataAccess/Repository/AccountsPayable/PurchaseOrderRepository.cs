@@ -1,3 +1,4 @@
+using IBS.Models.Books;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.AccountsPayable.IRepository;
 using IBS.Models.Enums;
@@ -197,7 +198,7 @@ namespace IBS.DataAccess.Repository.AccountsPayable
             }
 
             // Get inventories and purchase books in parallel
-            var inventories = await _db.FilprideInventories
+            var inventories = await _db.Inventories
                 .Where(i => i.POId == model.PurchaseOrderId)
                 .OrderBy(i => i.Date)
                 .ThenBy(i => i.Particular == "Purchases" ? 0 : 1)

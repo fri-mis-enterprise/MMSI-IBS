@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using IBS.Utility.Constants;
 using System.Linq.Dynamic.Core;
 using System.Security.Claims;
@@ -59,7 +64,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             var services = await _dbContext.Services.ToListAsync(cancellationToken);
 
-            if (view == nameof(DynamicView.Service))
+            if (view == nameof(DynamicView.ServiceMaster))
             {
                 return View("ExportIndex");
             }
@@ -70,7 +75,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> Create(CancellationToken cancellationToken)
         {
-            var viewModel = new Service
+            var viewModel = new ServiceMaster
             {
                 CurrentAndPreviousTitles = await _dbContext.ChartOfAccounts
                     .Where(coa => coa.Level == 4 || coa.Level == 5)
@@ -97,7 +102,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Service services, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create(ServiceMaster services, CancellationToken cancellationToken)
         {
             services.CurrentAndPreviousTitles = await _dbContext.ChartOfAccounts
                 .Where(coa => coa.Level == 4 || coa.Level == 5)
@@ -135,7 +140,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                if (await _unitOfWork.Service.IsServicesExist(services.Name, companyClaims, cancellationToken))
+                if (await _unitOfWork.ServiceMaster.IsServicesExist(services.Name, companyClaims, cancellationToken))
                 {
                     ModelState.AddModelError("Name", "Services already exist!");
                     return View(services);
@@ -153,13 +158,13 @@ namespace IBSWeb.Areas.User.Controllers
                 services.UnearnedTitle = unearned.AccountName;
                 services.Company = companyClaims;
                 services.CreatedBy = GetUserFullName();
-                services.ServiceNo = await _unitOfWork.Service.GetLastNumber(cancellationToken);
-                await _unitOfWork.Service.AddAsync(services, cancellationToken);
+                services.ServiceNo = await _unitOfWork.ServiceMaster.GetLastNumber(cancellationToken);
+                await _unitOfWork.ServiceMaster.AddAsync(services, cancellationToken);
 
                 #region --Audit Trail Recording
 
                 AuditTrail auditTrailBook = new (GetUserFullName(),
-                    $"Create Service #{services.ServiceNo}", "Service", (await GetCompanyClaimAsync())! );
+                    $"Create ServiceMaster #{services.ServiceNo}", "ServiceMaster", (await GetCompanyClaimAsync())! );
                 await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -182,7 +187,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             try
             {
-                var query = await _unitOfWork.Service
+                var query = await _unitOfWork.ServiceMaster
                     .GetAllAsync(null, cancellationToken);
 
                 // Global search
@@ -241,7 +246,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return NotFound();
             }
 
-            var services = await _unitOfWork.Service
+            var services = await _unitOfWork.ServiceMaster
                 .GetAsync(x => x.ServiceId == id, cancellationToken);
 
             if (services == null)
@@ -253,14 +258,14 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(Service services, CancellationToken cancellationToken)
+        public async Task<IActionResult> Edit(ServiceMaster services, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
                 return View(services);
             }
 
-            var existingModel =  await _unitOfWork.Service
+            var existingModel =  await _unitOfWork.ServiceMaster
                 .GetAsync(x => x.ServiceId == services.ServiceId, cancellationToken);
 
             if (existingModel == null)
@@ -280,7 +285,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region --Audit Trail Recording
 
                 AuditTrail auditTrailBook = new (GetUserFullName(),
-                    $"Edited Service #{existingModel.ServiceNo}", "Service", (await GetCompanyClaimAsync())! );
+                    $"Edited ServiceMaster #{existingModel.ServiceNo}", "ServiceMaster", (await GetCompanyClaimAsync())! );
                 await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording

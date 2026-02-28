@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using IBS.Utility.Constants;
 using CsvHelper;
 using CsvHelper.Configuration;
@@ -1098,12 +1103,16 @@ namespace IBSWeb.Areas.User.Controllers
                 {
                     newRecord.PortId = existingPorts.FirstOrDefault(p => p.PortNumber == paddedPortNum)?.PortId;
                 }
-
                 if (!decimal.TryParse(record.amount, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal amount))
                 {
                     continue;
                 }
                 newRecord.Amount = amount;
+                newRecord.Balance = amount;
+                newRecord.AmountPaid = 0;
+                newRecord.IsPaid = false;
+                newRecord.Company = "MMSI";
+                newRecord.DueDate = billingDate; // Default to billing date for imported records if unknown
                 newRecord.IsUndocumented = record.undocumented == "T";
                 if (!decimal.TryParse(record.apothertug, NumberStyles.Number, CultureInfo.InvariantCulture, out decimal apOtherTug))
                 {
@@ -1243,6 +1252,9 @@ namespace IBSWeb.Areas.User.Controllers
                 newRecord.MMSICollectionNumber = record.crnum;
                 newRecord.CheckNumber = record.checkno;
                 newRecord.Status = "Create";
+                newRecord.Company = "MMSI";
+                newRecord.CashAmount = 0;
+                newRecord.WVAT = 0;
 
                 DateOnly crDate = default;
                 DateOnly depositDate = default;
@@ -1266,7 +1278,9 @@ namespace IBSWeb.Areas.User.Controllers
 
                 newRecord.DepositDate = depositDate;
                 newRecord.Amount = amount;
+                newRecord.CheckAmount = amount;
                 newRecord.EWT = ewt;
+                newRecord.Total = amount + ewt;
                 newRecord.IsUndocumented = record.undocumented == "T";
                 if (!DateTime.TryParseExact(record.createddate, "MM/dd/yyyy HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime createdDate))
                 {

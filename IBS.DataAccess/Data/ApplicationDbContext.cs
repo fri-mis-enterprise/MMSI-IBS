@@ -116,7 +116,7 @@ namespace IBS.DataAccess.Data
 
         #region Accounts Receivable
         public DbSet<BankAccount> BankAccounts { get; set; }
-        public DbSet<Service> Services { get; set; }
+        public DbSet<ServiceMaster> Services { get; set; }
         public DbSet<CollectionReceipt> CollectionReceipts { get; set; }
         public DbSet<CreditMemo> CreditMemos { get; set; }
         public DbSet<DebitMemo> DebitMemos { get; set; }
@@ -766,6 +766,8 @@ namespace IBS.DataAccess.Data
 
             #endregion
         }
+
+        #endregion
 
         #endregion
     }

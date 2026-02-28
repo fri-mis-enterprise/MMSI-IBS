@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
@@ -187,12 +192,12 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                #region --Retrieval of Customer/Service
+                #region --Retrieval of Customer/ServiceMaster
 
                 var customer = await _unitOfWork.Customer
                     .GetAsync(c => c.CustomerId == viewModel.CustomerId, cancellationToken);
 
-                var service = await _unitOfWork.Service
+                var service = await _unitOfWork.ServiceMaster
                     .GetAsync(c => c.ServiceId == viewModel.ServiceId, cancellationToken);
 
                 if (customer == null || service == null)
@@ -200,7 +205,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return NotFound();
                 }
 
-                #endregion --Retrieval of Customer/Service
+                #endregion --Retrieval of Customer/ServiceMaster
 
                 var model = new ServiceInvoice
                 {
@@ -251,12 +256,12 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                AuditTrail auditTrailBook = new(model.CreatedBy!, $"Created new service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
+                AuditTrail auditTrailBook = new(model.CreatedBy!, $"Created new service invoice# {model.ServiceInvoiceNo}", "ServiceMaster Invoice", model.Company);
                 await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
-                TempData["success"] = $"Service invoice #{model.ServiceInvoiceNo} created successfully.";
+                TempData["success"] = $"ServiceMaster invoice #{model.ServiceInvoiceNo} created successfully.";
                 await _unitOfWork.SaveAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 return RedirectToAction(nameof(Index));
@@ -285,7 +290,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             #region --Audit Trail Recording
 
-            AuditTrail auditTrailBook = new(GetUserFullName(), $"Preview service invoice#{sv.ServiceInvoiceNo}", "Service Invoice", companyClaims!);
+            AuditTrail auditTrailBook = new(GetUserFullName(), $"Preview service invoice#{sv.ServiceInvoiceNo}", "ServiceMaster Invoice", companyClaims!);
             await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
             #endregion --Audit Trail Recording
@@ -321,14 +326,14 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                AuditTrail auditTrailBook = new(model.PostedBy!, $"Posted service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
+                AuditTrail auditTrailBook = new(model.PostedBy!, $"Posted service invoice# {model.ServiceInvoiceNo}", "ServiceMaster Invoice", model.Company);
                 await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
                 await _unitOfWork.SaveAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
-                TempData["success"] = "Service invoice has been posted.";
+                TempData["success"] = "ServiceMaster invoice has been posted.";
                 return RedirectToAction(nameof(Print), new { id });
             }
             catch (Exception ex)
@@ -375,14 +380,14 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                AuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
+                AuditTrail auditTrailBook = new(model.CanceledBy!, $"Canceled service invoice# {model.ServiceInvoiceNo}", "ServiceMaster Invoice", model.Company);
                 await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
                 await _unitOfWork.SaveAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
-                TempData["success"] = "Service invoice has been Cancelled.";
+                TempData["success"] = "ServiceMaster invoice has been Cancelled.";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
@@ -446,14 +451,14 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                AuditTrail auditTrailBook = new(model.VoidedBy!, $"Voided service invoice# {model.ServiceInvoiceNo}", "Service Invoice", model.Company);
+                AuditTrail auditTrailBook = new(model.VoidedBy!, $"Voided service invoice# {model.ServiceInvoiceNo}", "ServiceMaster Invoice", model.Company);
                 await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
 
                 await _unitOfWork.SaveAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
-                TempData["success"] = "Service invoice has been voided.";
+                TempData["success"] = "ServiceMaster invoice has been voided.";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
@@ -529,7 +534,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var customer = await _unitOfWork.Customer
                     .GetAsync(c => c.CustomerId == viewModel.CustomerId, cancellationToken);
 
-                var service = await _unitOfWork.Service
+                var service = await _unitOfWork.ServiceMaster
                     .GetAsync(c => c.ServiceId == viewModel.ServiceId, cancellationToken);
 
                 if (customer == null || service == null)
@@ -564,7 +569,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region --Audit Trail Recording
 
-                AuditTrail auditTrailBook = new(existingModel.EditedBy!, $"Edited service invoice# {existingModel.ServiceInvoiceNo}", "Service Invoice", existingModel.Company);
+                AuditTrail auditTrailBook = new(existingModel.EditedBy!, $"Edited service invoice# {existingModel.ServiceInvoiceNo}", "ServiceMaster Invoice", existingModel.Company);
                 await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -605,7 +610,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 await _unitOfWork.SaveAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
-                TempData["success"] = "Service invoice updated successfully.";
+                TempData["success"] = "ServiceMaster invoice updated successfully.";
                 return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
@@ -632,7 +637,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of service invoice# {sv.ServiceInvoiceNo}", "Service Invoice", sv.Company);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed original copy of service invoice# {sv.ServiceInvoiceNo}", "ServiceMaster Invoice", sv.Company);
                 await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -644,7 +649,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 #region --Audit Trail Recording
 
-                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed re-printed copy of service invoice# {sv.ServiceInvoiceNo}", "Service Invoice", sv.Company);
+                AuditTrail auditTrailBook = new(GetUserFullName(), $"Printed re-printed copy of service invoice# {sv.ServiceInvoiceNo}", "ServiceMaster Invoice", sv.Company);
                 await _unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording

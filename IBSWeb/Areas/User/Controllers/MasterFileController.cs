@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
@@ -335,13 +340,13 @@ namespace IBSWeb.Areas.User.Controllers
 
         #endregion
 
-        #region -- Service Master File --
+        #region -- ServiceMaster Master File --
         private async Task<(MemoryStream? stream, string fileName)> GenerateServiceExcel(
             string extractedBy,
             string company,
             CancellationToken cancellationToken)
         {
-            var services = await _unitOfWork.Service.GetAllAsync(
+            var services = await _unitOfWork.ServiceMaster.GetAllAsync(
                 cancellationToken: cancellationToken);
             var servicesList = services.ToList();
 
@@ -352,9 +357,9 @@ namespace IBSWeb.Areas.User.Controllers
 
             var columns = new List<ColumnDefinition>
             {
-                new() { Header = "SERVICE NO", ValueSelector = s => ((Service)s).ServiceNo },
-                new() { Header = "SERVICE NAME", ValueSelector = s => ((Service)s).Name },
-                new() { Header = "PERCENT", ValueSelector = s => ((Service)s).Percent},
+                new() { Header = "SERVICE NO", ValueSelector = s => ((ServiceMaster)s).ServiceNo },
+                new() { Header = "SERVICE NAME", ValueSelector = s => ((ServiceMaster)s).Name },
+                new() { Header = "PERCENT", ValueSelector = s => ((ServiceMaster)s).Percent},
             };
 
             var customWidths = new Dictionary<string, double>

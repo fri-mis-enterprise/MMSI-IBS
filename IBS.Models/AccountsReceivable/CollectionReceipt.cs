@@ -1,8 +1,9 @@
-using IBS.Models.MasterFile;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using IBS.Models;
+using IBS.Models.Books;
+using IBS.Models.MasterFile;
 
 namespace IBS.Models.AccountsReceivable
 {

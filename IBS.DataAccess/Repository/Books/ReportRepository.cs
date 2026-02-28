@@ -1,3 +1,5 @@
+using IBS.DataAccess.Repository.AccountsPayable;
+using IBS.Models.Books;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.Books.IRepository;
 using IBS.Models.Enums;
@@ -118,7 +120,7 @@ namespace IBS.DataAccess.Repository.Books
             }
 
             var inventoryBooks = _db
-             .FilprideInventories
+             .Inventories
              .Include(i => i.Product)
              .AsEnumerable()
              .Where(i => i.Company == company && i.Date >= dateFrom && i.Date <= dateTo)

@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using System.Security.Claims;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
@@ -100,7 +105,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var inventories = await _dbContext.FilprideInventories
+                var inventories = await _dbContext.Inventories
                     .OrderBy(i => i.POId)
                     .Where(i => i.Date >= viewModel.DateTo
                                 && i.Date <= viewModel.DateTo.AddMonths(1).AddDays(-1)
@@ -314,7 +319,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var inventories = await _dbContext.FilprideInventories
+                var inventories = await _dbContext.Inventories
                     .OrderBy(i => i.POId)
                     .Where(i => i.Date >= viewModel.DateTo
                                 && i.Date <= viewModel.DateTo.AddMonths(1).AddDays(-1)

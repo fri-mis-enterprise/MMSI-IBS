@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using System.Security.Claims;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
@@ -1195,7 +1200,7 @@ namespace IBSWeb.Areas.User.Controllers
                     return BadRequest();
                 }
 
-                var glPeriodBalances = await _dbContext.FilprideGlPeriodBalances
+                var glPeriodBalances = await _dbContext.GlPeriodBalances
                     .Include(g => g.Account)
                     .Where(pb =>
                         pb.PeriodStartDate >= dateFrom &&

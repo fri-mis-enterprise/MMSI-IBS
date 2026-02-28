@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using System.Linq.Dynamic.Core;
 using System.Security.Claims;
 using IBS.DataAccess.Data;
@@ -601,7 +606,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return NotFound();
             }
 
-            var existingInventory = await _dbContext.FilprideInventories
+            var existingInventory = await _dbContext.Inventories
                 .Include(i => i.Product)
                 .FirstOrDefaultAsync(i => i.Reference == model.ReceivingReportNo
                                           && i.Company == model.Company, cancellationToken: cancellationToken);

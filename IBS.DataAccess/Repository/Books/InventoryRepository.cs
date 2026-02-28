@@ -1,3 +1,4 @@
+using IBS.Models.Books;
 ﻿using System.Linq.Expressions;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.Books.IRepository;
@@ -43,7 +44,7 @@ namespace IBS.DataAccess.Repository.Books
                 POId = viewModel.POId,
                 Company = company
             };
-            await _db.FilprideInventories.AddAsync(inventory, cancellationToken);
+            await _db.Inventories.AddAsync(inventory, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
 
             #endregion -- Actual Inventory Entry --
@@ -95,13 +96,13 @@ namespace IBS.DataAccess.Repository.Books
                 Company = company
             };
 
-            await _db.FilprideInventories.AddAsync(inventory, cancellationToken);
+            await _db.Inventories.AddAsync(inventory, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
         }
 
         public async Task AddPurchaseToInventoryAsync(ReceivingReport receivingReport, CancellationToken cancellationToken = default)
         {
-            var sortedInventory = await _db.FilprideInventories
+            var sortedInventory = await _db.Inventories
                 .Where(i => i.Company == receivingReport.Company &&
                             i.ProductId == receivingReport.PurchaseOrder!.Product!.ProductId &&
                             i.POId == receivingReport.POId)
@@ -216,10 +217,10 @@ namespace IBS.DataAccess.Repository.Books
             // Batch updates for better performance
             if (subsequentTransactions.Count != 0)
             {
-                _db.FilprideInventories.UpdateRange(subsequentTransactions);
+                _db.Inventories.UpdateRange(subsequentTransactions);
             }
 
-            await _db.FilprideInventories.AddAsync(inventory, cancellationToken);
+            await _db.Inventories.AddAsync(inventory, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
         }
 
@@ -254,7 +255,7 @@ namespace IBS.DataAccess.Repository.Books
 
         public async Task AddSalesToInventoryAsync(DeliveryReceipt deliveryReceipt, CancellationToken cancellationToken = default)
         {
-            var sortedInventory = await _db.FilprideInventories
+            var sortedInventory = await _db.Inventories
                 .Where(i => i.Company == deliveryReceipt.Company &&
                             i.ProductId == deliveryReceipt.CustomerOrderSlip!.ProductId &&
                             i.POId == deliveryReceipt.PurchaseOrderId)
@@ -386,10 +387,10 @@ namespace IBS.DataAccess.Repository.Books
 
             if (subsequentTransactions.Count != 0)
             {
-                _db.FilprideInventories.UpdateRange(subsequentTransactions);
+                _db.Inventories.UpdateRange(subsequentTransactions);
             }
 
-            await _db.FilprideInventories.AddAsync(inventory, cancellationToken);
+            await _db.Inventories.AddAsync(inventory, cancellationToken);
             await _db.SaveChangesAsync(cancellationToken);
         }
 
@@ -422,13 +423,13 @@ namespace IBS.DataAccess.Repository.Books
 
         public async Task<bool> HasAlreadyBeginningInventory(int productId, int poId, string company, CancellationToken cancellationToken = default)
         {
-            return await _db.FilprideInventories
+            return await _db.Inventories
                 .AnyAsync(i => i.Company == company && i.ProductId == productId && i.POId == poId, cancellationToken);
         }
 
         public async Task VoidInventory(Inventory model, CancellationToken cancellationToken = default)
         {
-            var sortedInventory = await _db.FilprideInventories
+            var sortedInventory = await _db.Inventories
             .Where(i => i.Company == model.Company
                         && i.ProductId == model.ProductId
                         && i.POId == model.POId
@@ -515,8 +516,8 @@ namespace IBS.DataAccess.Repository.Books
                 }
             }
 
-            _db.FilprideInventories.UpdateRange(sortedInventory);
-            _db.FilprideInventories.Remove(model);
+            _db.Inventories.UpdateRange(sortedInventory);
+            _db.Inventories.Remove(model);
 
             await _db.SaveChangesAsync(cancellationToken);
         }

@@ -44,7 +44,7 @@ namespace IBS.Models.AccountsReceivable
         public int ServiceId { get; set; }
 
         [ForeignKey(nameof(ServiceId))]
-        public Service? Service { get; set; }
+        public ServiceMaster? Service { get; set; }
 
         [StringLength(100)]
         public string ServiceName { get; set; } = string.Empty;

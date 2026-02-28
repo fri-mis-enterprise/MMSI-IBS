@@ -66,50 +66,78 @@
                                     <label asp-for="Date" for="Date" class="ms-2">Date</label>
                                     <span asp-validation-for="Date" class="text-danger"></span>
                                 </div>
-                                <input type="hidden" id="undeductedAmount">
-                                <input type="hidden" asp-for="Amount" value="@Model.Amount" id="amount">
                                 <div class="form-floating col-4">
-                                    <input type="number" class="form-control border-0 shadow" step="0.01" id="amountShow" value="0.00"  placeholder=" " min="0">
-                                    <label class="ms-2">Amount</label>
+                                    <input asp-for="ReferenceNo" type="text" class="form-control border-0 shadow" placeholder="Reference No">
+                                    <label asp-for="ReferenceNo" class="ms-2">Reference No</label>
+                                    <span asp-validation-for="ReferenceNo" class="text-danger"></span>
                                 </div>
-                                <input type="hidden" asp-for="EWT" value="@Model.EWT" id="ewt">
                                 <div class="form-floating col-4">
-                                    <input type="number" class="form-control border-0 shadow" step="0.01" id="ewtShow" value="0.00" placeholder=" " min="0">
-                                    <label class="ms-2">EWT</label>
+                                    <input asp-for="Remarks" type="text" class="form-control border-0 shadow" placeholder="Remarks">
+                                    <label asp-for="Remarks" class="ms-2">Remarks</label>
+                                    <span asp-validation-for="Remarks" class="text-danger"></span>
                                 </div>
-                            </div>
-                            <div class="row py-2">
-                                <div class="col-2"><h3 class="m-0 p-0">Deposit</h3></div>
                             </div>
                             <div class="row mb-3">
                                 <div class="form-floating col-4">
-                                    <input type="text" class="form-control border-0 shadow" placeholder="#" value="MBTC" readonly>
-                                    <label class="ms-2">Bank</label>
+                                    <input asp-for="CashAmount" type="number" step="0.01" class="form-control border-0 shadow" id="cashAmount" value="0.00">
+                                    <label asp-for="CashAmount" class="ms-2">Cash Amount</label>
                                 </div>
                                 <div class="form-floating col-4">
-                                    <input type="text" class="form-control border-0 shadow" placeholder="#" value="167-7-16753668-5" readonly>
-                                    <label class="ms-2">Account Number</label>
+                                    <input asp-for="CheckAmount" type="number" step="0.01" class="form-control border-0 shadow" id="checkAmount" value="0.00">
+                                    <label asp-for="CheckAmount" class="ms-2">Check Amount</label>
                                 </div>
                                 <div class="form-floating col-4">
-                                    <input type="text" class="form-control border-0 shadow" placeholder="#" value="MALAYAN MARITIME SERVICES INC." readonly>
-                                    <label class="ms-2">Account Name</label>
+                                    <select asp-for="BankId" asp-items="@Model.BankAccounts" class="form-select border-0 shadow">
+                                        <option value="">--Select Bank--</option>
+                                    </select>
+                                    <label asp-for="BankId" class="ms-2">Deposit To Bank</label>
                                 </div>
+                            </div>
+                            <div class="row mb-3">
+                                <input type="hidden" id="undeductedAmount">
+                                <input type="hidden" asp-for="Amount" value="@Model.Amount" id="amount">
+                                <div class="form-floating col-4">
+                                    <input type="number" class="form-control border-0 shadow" step="0.01" id="amountShow" value="0.00"  placeholder=" " readonly>
+                                    <label class="ms-2">Total Collected (Net)</label>
+                                </div>
+                                <input type="hidden" asp-for="EWT" value="@Model.EWT" id="ewt">
+                                <div class="form-floating col-4">
+                                    <input type="number" class="form-control border-0 shadow" step="0.01" id="ewtShow" value="0.00" placeholder=" " readonly>
+                                    <label class="ms-2">EWT</label>
+                                </div>
+                                <div class="form-floating col-4">
+                                    <input asp-for="WVAT" type="number" step="0.01" class="form-control border-0 shadow" id="wvat" value="0.00">
+                                    <label asp-for="WVAT" class="ms-2">WVAT</label>
+                                </div>
+                            </div>
+                            <div class="row py-2">
+                                <div class="col-2"><h3 class="m-0 p-0">Check Details</h3></div>
                             </div>
                             <div class="row my-3">
                                 <div class="form-floating col-4">
-                                    <input asp-for="CheckNumber" id="CheckNumber" type="text" class="form-control border-0 shadow" placeholder="#" required>
-                                    <label asp-for="CheckNumber" for="CheckNumber" class="ms-2">Check Number<span class="required text-danger">*</span></label>
+                                    <input asp-for="CheckNumber" id="CheckNumber" type="text" class="form-control border-0 shadow" placeholder="#">
+                                    <label asp-for="CheckNumber" for="CheckNumber" class="ms-2">Check Number</label>
                                     <span asp-validation-for="CheckNumber" class="text-danger"></span>
                                 </div>
                                 <div class="form-floating col-4">
-                                    <input asp-for="CheckDate" id="CheckDate" type="date" value="@DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd")" class="form-control border-0 shadow" required>
-                                    <label asp-for="CheckDate" for="CheckDate" class="ms-2">CheckDate<span class="required text-danger">*</span></label>
+                                    <input asp-for="CheckDate" id="CheckDate" type="date" value="@DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd")" class="form-control border-0 shadow">
+                                    <label asp-for="CheckDate" for="CheckDate" class="ms-2">Check Date</label>
                                     <span asp-validation-for="CheckDate" class="text-danger"></span>
                                 </div>
                                 <div class="form-floating col-4">
-                                    <input asp-for="DepositDate" id="DepositDate" type="date" value="@DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd")" class="form-control border-0 shadow" required>
-                                    <label asp-for="DepositDate" for="DepositDate" class="ms-2">Date Deposited<span class="required text-danger">*</span></label>
+                                    <input asp-for="DepositDate" id="DepositDate" type="date" value="@DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd")" class="form-control border-0 shadow">
+                                    <label asp-for="DepositDate" for="DepositDate" class="ms-2">Date Deposited</label>
                                     <span asp-validation-for="DepositDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="form-floating col-6">
+                                    <input asp-for="CheckBank" type="text" class="form-control border-0 shadow" placeholder="Check Issuing Bank">
+                                    <label asp-for="CheckBank" class="ms-2">Check Issuing Bank</label>
+                                </div>
+                                <div class="form-floating col-6">
+                                    <input asp-for="CheckBranch" type="text" class="form-control border-0 shadow" placeholder="Check Issuing Branch">
+                                    <label asp-for="CheckBranch" class="ms-2">Check Issuing Branch</label>
                                 </div>
                             </div>
                             <div class="row my-2">
@@ -346,6 +374,7 @@
                         // Update totals and form fields
                         $('#billingsTotal').html(`<u>Total: ₱ ${undeductedTotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</u>`);
                         $('#amount').val(totalAmount.toFixed(2));
+                        $('#checkAmount').val(totalAmount.toFixed(2));
                         $('#ewt').val(totalEwt.toFixed(2));
                         $('#undeductedAmount').val(undeductedTotalAmount);
                         $('#amountShow').val(totalAmount.toFixed(2));
@@ -356,11 +385,18 @@
                     },
                     complete: function () {
                         isProcessing = false;
-
-                        // calculateEWTDeduction();
                     }
                 });
             }
+
+            // Update Total Amount when Cash or Check amount changes
+            $('#cashAmount, #checkAmount').on('input', function() {
+                const cash = parseFloat($('#cashAmount').val()) || 0;
+                const check = parseFloat($('#checkAmount').val()) || 0;
+                const total = cash + check;
+                $('#amount').val(total.toFixed(2));
+                $('#amountShow').val(total.toFixed(2));
+            });
 
             // Calculate EWT deduction
             function calculateEWTDeduction() {

@@ -1,3 +1,4 @@
+using IBS.Models.Books;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models.MMSI;
 using IBS.Models.MMSI.ViewModels;
@@ -18,8 +19,6 @@ namespace IBS.DataAccess.Repository.MMSI.IRepository
         Task<List<MMSIDispatchTicket>?> GetPaidDispatchTicketsAsync(int billingId, CancellationToken cancellationToken = default);
 
         Task<List<SelectListItem>> GetMMSITerminalsByPortId(int portId, CancellationToken cancellationToken = default);
-
-        Task<List<SelectListItem>> GetMMSICustomersById(CancellationToken cancellationToken = default);
 
         Task<List<SelectListItem>?> GetMMSICustomersWithBillablesSelectList(int? currentCustomerId, string type, CancellationToken cancellationToken = default);
 

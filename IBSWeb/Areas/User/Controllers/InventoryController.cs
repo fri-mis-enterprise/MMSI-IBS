@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using IBS.Utility.Constants;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
@@ -159,14 +164,14 @@ namespace IBSWeb.Areas.User.Controllers
 
             var companyClaims = await GetCompanyClaimAsync();
 
-            var endingBalance = await _dbContext.FilprideInventories
+            var endingBalance = await _dbContext.Inventories
                                     .OrderBy(e => e.Date)
                                     .ThenBy(e => e.InventoryId)
                                     .Where(e => e.Company == companyClaims)
                                     .LastOrDefaultAsync(e =>
                                         (viewModel.POId == null || e.POId == viewModel.POId) &&
                                         (e.Date.Month - 1 == viewModel.DateTo.Month), cancellationToken)
-                                ?? await _dbContext.FilprideInventories
+                                ?? await _dbContext.Inventories
                                     .OrderBy(e => e.Date)
                                     .ThenBy(e => e.InventoryId)
                                     .Where(e => e.Company == companyClaims)
@@ -176,7 +181,7 @@ namespace IBSWeb.Areas.User.Controllers
             List<Inventory> inventories = new List<Inventory>();
             if (endingBalance != null)
             {
-                inventories = await _dbContext.FilprideInventories
+                inventories = await _dbContext.Inventories
                     .OrderBy(e => e.Date)
                     .ThenBy(e => e.InventoryId)
                     .Where(i => i.Date >= viewModel.DateTo && i.Date <= viewModel.DateTo.AddMonths(1).AddDays(-1) && i.Company == companyClaims && i.ProductId == viewModel.ProductId && (viewModel.POId == null || i.POId == viewModel.POId) || i.InventoryId == endingBalance.InventoryId)
@@ -184,7 +189,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
             else
             {
-                inventories = await _dbContext.FilprideInventories
+                inventories = await _dbContext.Inventories
                     .OrderBy(e => e.Date)
                     .ThenBy(e => e.InventoryId)
                     .Where(i => i.Date >= viewModel.DateTo && i.Date <= viewModel.DateTo.AddMonths(1).AddDays(-1) && i.Company == companyClaims && i.ProductId == viewModel.ProductId && (viewModel.POId == null || i.POId == viewModel.POId))
@@ -236,7 +241,7 @@ namespace IBSWeb.Areas.User.Controllers
             List<Inventory> inventories = new List<Inventory>();
             if (viewModel.POId == null)
             {
-                inventories = await _dbContext.FilprideInventories
+                inventories = await _dbContext.Inventories
                     .Include(i => i.PurchaseOrder)
                     .Where(i => i.Company == companyClaims && i.Date >= dateFrom && i.Date <= viewModel.DateTo && i.ProductId == viewModel.ProductId)
                     .OrderBy(i => i.Date)
@@ -245,7 +250,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
             else
             {
-                inventories = await _dbContext.FilprideInventories
+                inventories = await _dbContext.Inventories
                     .Include(i => i.PurchaseOrder)
                     .Where(i => i.Company == companyClaims && i.Date >= dateFrom && i.Date <= viewModel.DateTo && i.ProductId == viewModel.ProductId && i.POId == viewModel.POId)
                     .OrderBy(i => i.Date)
@@ -302,7 +307,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             var dateFrom = dateTo.AddDays(-dateTo.Day + 1);
 
-            var getPerBook = _dbContext.FilprideInventories
+            var getPerBook = _dbContext.Inventories
                 .Where(i => i.Date >= dateFrom && i.Date <= dateTo && i.ProductId == id && i.POId == poId)
                 .OrderByDescending(model => model.InventoryId)
                 .FirstOrDefault();

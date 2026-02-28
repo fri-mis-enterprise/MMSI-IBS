@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using IBS.Utility.Constants;
 using System.Linq.Dynamic.Core;
 using System.Security.Claims;
@@ -170,7 +175,18 @@ namespace IBSWeb.Areas.User.Controllers
                 }
 
                 model.Amount = totalAmount;
+                model.Balance = totalAmount;
+                model.IsPaid = false;
+                model.Terms = model.PrincipalId != null
+                    ? (await _unitOfWork.Principal.GetAsync(p => p.PrincipalId == model.PrincipalId, cancellationToken))?.Terms
+                    : model.Customer?.CustomerTerms;
+                model.DueDate = await _unitOfWork.Billing.ComputeDueDateAsync(model.Terms ?? "COD", model.Date, cancellationToken);
+                model.Company = await GetCompanyClaimAsync() ?? "MMSI";
+
                 await _unitOfWork.SaveAsync(cancellationToken);
+
+                var billingForPosting = await _unitOfWork.Billing.GetAsync(b => b.MMSIBillingId == model.MMSIBillingId, cancellationToken);
+                await _unitOfWork.Billing.PostAsync(billingForPosting!, cancellationToken);
 
                 if (model.IsUndocumented)
                 {

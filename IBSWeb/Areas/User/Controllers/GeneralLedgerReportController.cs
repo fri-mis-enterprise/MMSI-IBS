@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using System.Security.Claims;
 using System.Text;
 using IBS.DataAccess.Data;
@@ -686,7 +691,7 @@ namespace IBSWeb.Areas.User.Controllers
                     .ToDictionary(a => a.AccountNumber!, a => a);
 
                 var previousPeriodEndDate = dateFrom.AddDays(-1);
-                var glPeriodBalances = await _dbContext.FilprideGlPeriodBalances
+                var glPeriodBalances = await _dbContext.GlPeriodBalances
                     .Include(g => g.Account)
                     .Where(pb => accountNumbers.Contains(pb.Account.AccountNumber!) &&
                                  pb.PeriodEndDate == previousPeriodEndDate && pb.Company == companyClaims)

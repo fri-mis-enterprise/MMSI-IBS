@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace IBS.Models.MasterFile
 {
-    public class Service
+    public class ServiceMaster
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]

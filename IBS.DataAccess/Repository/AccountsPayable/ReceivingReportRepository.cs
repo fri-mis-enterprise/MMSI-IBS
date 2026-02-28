@@ -1,3 +1,4 @@
+using IBS.Models.Books;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.AccountsPayable.IRepository;
 using IBS.Models.Enums;
@@ -434,7 +435,7 @@ namespace IBS.DataAccess.Repository.AccountsPayable
         {
             var model = await GetAsync(r => r.ReceivingReportId == receivingReportId, cancellationToken);
 
-            var existingInventory = await _db.FilprideInventories
+            var existingInventory = await _db.Inventories
                 .Include(i => i.Product)
                 .FirstOrDefaultAsync(i => i.Reference == model!.ReceivingReportNo && i.Company == model.Company, cancellationToken);
 
