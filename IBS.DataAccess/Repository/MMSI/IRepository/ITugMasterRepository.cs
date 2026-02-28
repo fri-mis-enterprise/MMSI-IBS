@@ -9,5 +9,7 @@ namespace IBS.DataAccess.Repository.MMSI.IRepository
     public interface ITugMasterRepository : IRepository<MMSITugMaster>
     {
         Task SaveAsync(CancellationToken cancellationToken);
+
+        Task<List<SelectListItem>> GetMMSITugMastersById(CancellationToken cancellationToken = default);
     }
 }

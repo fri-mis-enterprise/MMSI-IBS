@@ -32,5 +32,18 @@ namespace IBS.DataAccess.Repository.MMSI
 
             return ports;
         }
+
+        public async Task<List<SelectListItem>> GetMMSIPortsById(CancellationToken cancellationToken = default)
+        {
+            var ports = await _db.MMSIPorts
+                .OrderBy(s => s.PortNumber)
+                .Select(s => new SelectListItem
+                {
+                    Value = s.PortId.ToString(),
+                    Text = s.PortNumber + " " + s.PortName
+                }).ToListAsync(cancellationToken);
+
+            return ports;
+        }
     }
 }

@@ -10,5 +10,9 @@ namespace IBS.DataAccess.Repository.MMSI.IRepository
         Task SaveAsync(CancellationToken cancellationToken);
 
         Task<List<SelectListItem>?> GetMMSITerminalsSelectList(int? portId, CancellationToken cancellationToken = default);
+
+        Task<List<SelectListItem>> GetMMSITerminalsById(MMSIDispatchTicket model, CancellationToken cancellationToken = default);
+
+        Task<List<SelectListItem>> GetMMSIAllTerminalsById(CancellationToken cancellationToken = default);
     }
 }

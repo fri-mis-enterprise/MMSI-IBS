@@ -57,7 +57,19 @@ namespace IBS.DataAccess.Repository.MMSI
             return model;
         }
 
-        public async Task<List<SelectListItem>> GetMMSIActivitiesServicesById(CancellationToken cancellationToken = default)
+        public async Task<MMSIDispatchTicket> GetDispatchTicketLists(MMSIDispatchTicket model, CancellationToken cancellationToken = default)
+        {
+            model.Services = await GetMMSIActivitiesServicesById(cancellationToken);
+            model.Ports = await GetMMSIPortsById(cancellationToken);
+            model.Tugboats = await GetMMSITugboatsById(cancellationToken);
+            model.TugMasters = await GetMMSITugMastersById(cancellationToken);
+            model.Vessels = await GetMMSIVesselsById(cancellationToken);
+            model.Terminals = await GetMMSITerminalsById(model, cancellationToken);
+
+            return model;
+        }
+
+        private async Task<List<SelectListItem>> GetMMSIActivitiesServicesById(CancellationToken cancellationToken = default)
         {
             var activitiesServices = await _db.MMSIServices
                 .OrderBy(s => s.ServiceNumber)
@@ -70,7 +82,7 @@ namespace IBS.DataAccess.Repository.MMSI
             return activitiesServices;
         }
 
-        public async Task<List<SelectListItem>> GetMMSIPortsById(CancellationToken cancellationToken = default)
+        private async Task<List<SelectListItem>> GetMMSIPortsById(CancellationToken cancellationToken = default)
         {
             var ports = await _db.MMSIPorts
                 .OrderBy(s => s.PortNumber)
@@ -112,7 +124,7 @@ namespace IBS.DataAccess.Repository.MMSI
             return terminals;
         }
 
-        public async Task<List<SelectListItem>> GetMMSITugboatsById(CancellationToken cancellationToken = default)
+        private async Task<List<SelectListItem>> GetMMSITugboatsById(CancellationToken cancellationToken = default)
         {
             var tugBoats = await _db.MMSITugboats.OrderBy(s => s.TugboatNumber).Select(s => new SelectListItem
             {
@@ -123,7 +135,7 @@ namespace IBS.DataAccess.Repository.MMSI
             return tugBoats;
         }
 
-        public async Task<List<SelectListItem>> GetMMSITugMastersById(CancellationToken cancellationToken = default)
+        private async Task<List<SelectListItem>> GetMMSITugMastersById(CancellationToken cancellationToken = default)
         {
             var tugMasters = await _db.MMSITugMasters.OrderBy(s => s.TugMasterNumber).Select(s => new SelectListItem
             {
@@ -134,7 +146,7 @@ namespace IBS.DataAccess.Repository.MMSI
             return tugMasters;
         }
 
-        public async Task<List<SelectListItem>> GetMMSIVesselsById(CancellationToken cancellationToken = default)
+        private async Task<List<SelectListItem>> GetMMSIVesselsById(CancellationToken cancellationToken = default)
         {
             var vessels = await _db.MMSIVessels.OrderBy(s => s.VesselNumber).Select(s => new SelectListItem
             {
@@ -145,7 +157,7 @@ namespace IBS.DataAccess.Repository.MMSI
             return vessels;
         }
 
-        public async Task<List<SelectListItem>> GetMMSICustomersById(CancellationToken cancellationToken = default)
+        private async Task<List<SelectListItem>> GetMMSICustomersById(CancellationToken cancellationToken = default)
         {
             return await _db.FilprideCustomers
                 .Where(c => c.IsMMSI == true)
@@ -155,18 +167,6 @@ namespace IBS.DataAccess.Repository.MMSI
                     Value = s.CustomerId.ToString(),
                     Text = s.CustomerName
                 }).ToListAsync(cancellationToken);
-        }
-
-        public async Task<MMSIDispatchTicket> GetDispatchTicketLists(MMSIDispatchTicket model, CancellationToken cancellationToken = default)
-        {
-            model.Services = await GetMMSIActivitiesServicesById(cancellationToken);
-            model.Ports = await GetMMSIPortsById(cancellationToken);
-            model.Tugboats = await GetMMSITugboatsById(cancellationToken);
-            model.TugMasters = await GetMMSITugMastersById(cancellationToken);
-            model.Vessels = await GetMMSIVesselsById(cancellationToken);
-            model.Terminals = await GetMMSITerminalsById(model, cancellationToken);
-
-            return model;
         }
     }
 }

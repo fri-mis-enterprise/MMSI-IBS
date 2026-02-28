@@ -30,5 +30,16 @@ namespace IBS.DataAccess.Repository.MMSI
 
             return vessels;
         }
+
+        public async Task<List<SelectListItem>> GetMMSIVesselsById(CancellationToken cancellationToken = default)
+        {
+            var vessels = await _db.MMSIVessels.OrderBy(s => s.VesselNumber).Select(s => new SelectListItem
+            {
+                Value = s.VesselId.ToString(),
+                Text = s.VesselNumber + " " + s.VesselName + " " + s.VesselType
+            }).ToListAsync(cancellationToken);
+
+            return vessels;
+        }
     }
 }

@@ -11,5 +11,7 @@ namespace IBS.DataAccess.Repository.MMSI.IRepository
         Task SaveAsync(CancellationToken cancellationToken);
 
         Task<List<SelectListItem>> GetMMSIVesselsSelectList(CancellationToken cancellationToken = default);
+
+        Task<List<SelectListItem>> GetMMSIVesselsById(CancellationToken cancellationToken = default);
     }
 }
