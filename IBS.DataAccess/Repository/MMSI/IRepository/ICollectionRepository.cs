@@ -20,5 +20,18 @@ namespace IBS.DataAccess.Repository.MMSI.IRepository
         Task<List<SelectListItem>?> GetMMSIUncollectedBillingsByCustomer(int? customerId, CancellationToken cancellationToken);
 
         Task<string> GenerateCollectionNumber(CancellationToken cancellationToken = default);
+
+        // Accounting Methods
+        Task PostAsync(MMSICollection collection, List<FilprideOffsettings> offsettings, CancellationToken cancellationToken = default);
+
+        Task DepositAsync(MMSICollection collection, CancellationToken cancellationToken = default);
+
+        Task ReturnedCheck(string collectionNo, string company, string userName, CancellationToken cancellationToken = default);
+
+        Task RedepositAsync(MMSICollection collection, CancellationToken cancellationToken = default);
+
+        Task UpdateBillingPayment(int billingId, decimal paidAmount, CancellationToken cancellationToken = default);
+
+        Task RemoveBillingPayment(int billingId, decimal paidAmount, decimal offsetAmount, CancellationToken cancellationToken = default);
     }
 }
