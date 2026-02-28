@@ -8,7 +8,6 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models;
 using IBS.Models.MMSI;
 using IBS.Models.MMSI.ViewModels;
 using IBS.Services;
@@ -232,9 +231,9 @@ namespace IBSWeb.Areas.User.Controllers
                         (c.CheckDate.HasValue && c.CheckDate.Value.ToString("MM/dd/yyyy").Contains(searchValue)) ||
                         (c.DepositDate.HasValue && c.DepositDate.Value.ToString("MM/dd/yyyy").Contains(searchValue)) ||
                         c.Amount.ToString().Contains(searchValue) ||
-                        c.MMSICollectionNumber.ToLower().Contains(searchValue) ||
-                        c.Customer?.CustomerName.ToLower().Contains(searchValue) == true ||
-                        c.Status.ToLower().Contains(searchValue)
+                        c.MMSICollectionNumber?.ToLower().Contains(searchValue) == true ||
+                        c.Customer?.CustomerName?.ToLower().Contains(searchValue) == true ||
+                        c.Status?.ToLower().Contains(searchValue) == true
                         )
                     .ToList();
                 }

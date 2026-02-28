@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 using IBS.Models.AccountsPayable;
 using IBS.Models.Integrated;
 using IBS.Models.MasterFile;
-using IBS.Models.MasterFile;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace IBS.Models.AccountsReceivable

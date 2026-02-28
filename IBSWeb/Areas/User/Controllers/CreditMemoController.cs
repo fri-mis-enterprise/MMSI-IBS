@@ -6,8 +6,6 @@ using IBS.Models.MasterFile;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Models.AccountsReceivable;
-using IBS.Models;
 using IBS.Models.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;

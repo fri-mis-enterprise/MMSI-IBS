@@ -7,14 +7,12 @@ using System.Linq.Dynamic.Core;
 using System.Security.Claims;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
-using IBS.Models.MasterFile;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using OfficeOpenXml;
 using IBS.Models;
 using IBS.Models.Enums;
-using IBS.Models;
 using IBS.Utility.Helpers;
 
 namespace IBSWeb.Areas.User.Controllers

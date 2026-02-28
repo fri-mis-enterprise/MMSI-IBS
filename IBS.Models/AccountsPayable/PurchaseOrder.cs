@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using IBS.Models.Integrated;
 using IBS.Models.MasterFile;
-using IBS.Models.MasterFile;
 
 namespace IBS.Models.AccountsPayable
 {
