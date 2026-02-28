@@ -99,18 +99,6 @@ namespace IBS.DataAccess.Repository.MMSI
             return terminalsList;
         }
 
-        public async Task<List<SelectListItem>> GetMMSICustomersById(CancellationToken cancellationToken = default)
-        {
-            return await _db.FilprideCustomers
-                .Where(c => c.IsMMSI == true)
-                .OrderBy(s => s.CustomerName)
-                .Select(s => new SelectListItem
-                {
-                    Value = s.CustomerId.ToString(),
-                    Text = s.CustomerName
-                }).ToListAsync(cancellationToken);
-        }
-
         public async Task<List<SelectListItem>?> GetMMSICustomersWithBillablesSelectList(int? currentCustomerId, string type, CancellationToken cancellationToken = default)
         {
             var dispatchToBeBilled = await _db.MMSIDispatchTickets

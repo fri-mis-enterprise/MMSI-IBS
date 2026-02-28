@@ -21,7 +21,19 @@ namespace IBS.DataAccess.Repository.MMSI
             await _db.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task<List<SelectListItem>> GetMMSIActivitiesServicesById(CancellationToken cancellationToken = default)
+        public async Task<ServiceRequestViewModel> GetDispatchTicketSelectLists(ServiceRequestViewModel model, CancellationToken cancellationToken = default)
+        {
+            model.Services = await GetMMSIActivitiesServicesById(cancellationToken);
+            model.Ports = await GetMMSIPortsById(cancellationToken);
+            model.Tugboats = await GetMMSITugboatsById(cancellationToken);
+            model.TugMasters = await GetMMSITugMastersById(cancellationToken);
+            model.Vessels = await GetMMSIVesselsById(cancellationToken);
+            model.Terminals = await GetMMSITerminalsById(model, cancellationToken);
+
+            return model;
+        }
+
+        private async Task<List<SelectListItem>> GetMMSIActivitiesServicesById(CancellationToken cancellationToken = default)
         {
             var activitiesServices = await _db.MMSIServices
                 .OrderBy(s => s.ServiceName)
@@ -34,7 +46,7 @@ namespace IBS.DataAccess.Repository.MMSI
             return activitiesServices;
         }
 
-        public async Task<List<SelectListItem>> GetMMSIPortsById(CancellationToken cancellationToken = default)
+        private async Task<List<SelectListItem>> GetMMSIPortsById(CancellationToken cancellationToken = default)
         {
             var ports = await _db.MMSIPorts
                 .OrderBy(s => s.PortName)
@@ -81,7 +93,7 @@ namespace IBS.DataAccess.Repository.MMSI
             return terminals;
         }
 
-        public async Task<List<SelectListItem>> GetMMSITugboatsById(CancellationToken cancellationToken = default)
+        private async Task<List<SelectListItem>> GetMMSITugboatsById(CancellationToken cancellationToken = default)
         {
             var tugBoats = await _db.MMSITugboats
                 .OrderBy(s => s.TugboatName)
@@ -94,7 +106,7 @@ namespace IBS.DataAccess.Repository.MMSI
             return tugBoats;
         }
 
-        public async Task<List<SelectListItem>> GetMMSITugMastersById(CancellationToken cancellationToken = default)
+        private async Task<List<SelectListItem>> GetMMSITugMastersById(CancellationToken cancellationToken = default)
         {
             var tugMasters = await _db.MMSITugMasters
                 .OrderBy(s => s.TugMasterName)
@@ -107,7 +119,7 @@ namespace IBS.DataAccess.Repository.MMSI
             return tugMasters;
         }
 
-        public async Task<List<SelectListItem>> GetMMSIVesselsById(CancellationToken cancellationToken = default)
+        private async Task<List<SelectListItem>> GetMMSIVesselsById(CancellationToken cancellationToken = default)
         {
             var vessels = await _db.MMSIVessels
                 .OrderBy(s => s.VesselName)
@@ -118,18 +130,6 @@ namespace IBS.DataAccess.Repository.MMSI
                 }).ToListAsync(cancellationToken);
 
             return vessels;
-        }
-
-        public async Task<ServiceRequestViewModel> GetDispatchTicketSelectLists(ServiceRequestViewModel model, CancellationToken cancellationToken = default)
-        {
-            model.Services = await GetMMSIActivitiesServicesById(cancellationToken);
-            model.Ports = await GetMMSIPortsById(cancellationToken);
-            model.Tugboats = await GetMMSITugboatsById(cancellationToken);
-            model.TugMasters = await GetMMSITugMastersById(cancellationToken);
-            model.Vessels = await GetMMSIVesselsById(cancellationToken);
-            model.Terminals = await GetMMSITerminalsById(model, cancellationToken);
-
-            return model;
         }
     }
 }
