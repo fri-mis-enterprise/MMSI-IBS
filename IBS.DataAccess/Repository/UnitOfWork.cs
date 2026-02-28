@@ -266,8 +266,8 @@ namespace IBS.DataAccess.Repository
             // Build the appropriate expression based on the company name
             Expression propertyAccess = companyName switch
             {
-                nameof(Filpride) => Expression.Property(param, "IsFilpride"),
-                nameof(MMSI) => Expression.Property(param, "IsMMSI"),
+                SD.Company_Filpride => Expression.Property(param, "IsFilpride"),
+                SD.Company_MMSI => Expression.OrElse(Expression.Property(param, "IsFilpride"), Expression.Property(param, "IsMMSI")),
                 _ => Expression.Constant(false)
             };
 
