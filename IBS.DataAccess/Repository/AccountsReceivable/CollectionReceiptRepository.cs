@@ -4,7 +4,6 @@ using IBS.DataAccess.Repository.AccountsReceivable.IRepository;
 using IBS.Models.Enums;
 using IBS.Models;
 using IBS.Models.AccountsReceivable;
-using IBS.Models;
 using IBS.Models.Integrated;
 using IBS.Utility.Constants;
 using IBS.Utility.Helpers;

@@ -32,9 +32,9 @@ namespace IBS.DataAccess.Repository.MMSI
             {
                 TransactionDate = billing.Date,
                 SerialNo = billing.MMSIBillingNumber!,
-                SoldTo = billing.PrincipalId != null ? billing.Principal.PrincipalName : billing.Customer!.CustomerName,
-                TinNo = billing.PrincipalId != null ? billing.Principal.TIN! : billing.Customer!.CustomerTin,
-                Address = billing.PrincipalId != null ? billing.Principal.Address : billing.Customer!.CustomerAddress,
+                SoldTo = (billing.PrincipalId != null ? billing.Principal?.PrincipalName : billing.Customer?.CustomerName) ?? string.Empty,
+                TinNo = (billing.PrincipalId != null ? billing.Principal?.TIN : billing.Customer?.CustomerTin) ?? string.Empty,
+                Address = (billing.PrincipalId != null ? billing.Principal?.Address : billing.Customer?.CustomerAddress) ?? string.Empty,
                 Description = billing.Vessel?.VesselName ?? "Maritime Services",
                 Amount = billing.Amount - billing.Discount
             };
