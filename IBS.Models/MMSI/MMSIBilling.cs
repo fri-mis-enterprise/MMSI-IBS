@@ -86,6 +86,9 @@ namespace IBS.Models.MMSI
         [Column(TypeName = "date")]
         public DateOnly DueDate { get; set; }
 
+        [StringLength(15)]
+        public string? Terms { get; set; }
+
         [StringLength(20)]
         public string Company { get; set; } = string.Empty;
 

@@ -1,3 +1,4 @@
+using IBS.Models.Books;
 using Google.Apis.Drive.v3.Data;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
@@ -447,7 +448,7 @@ namespace IBS.Services
                 var closedAt = DateTimeHelper.GetCurrentPhilippineTime();
 
                 // Get beginning balances for all accounts
-                var beginningBalancesDict = await _dbContext.FilprideGlPeriodBalances
+                var beginningBalancesDict = await _dbContext.GlPeriodBalances
                     .Where(x => accountIds.Contains(x.AccountId) && x.PeriodEndDate < periodEnd)
                     .GroupBy(x => x.AccountId)
                     .Select(g => new
@@ -498,7 +499,7 @@ namespace IBS.Services
 
                 if (glGroupedBySubAccount.Any())
                 {
-                    var subAccountBeginningBalances = await _dbContext.FilprideGlSubAccountBalances
+                    var subAccountBeginningBalances = await _dbContext.GlSubAccountBalances
                         .Where(x => accountIds.Contains(x.AccountId) && x.PeriodEndDate < periodEnd)
                         .ToListAsync(cancellationToken);
 
@@ -552,12 +553,12 @@ namespace IBS.Services
 
                 if (glBalances.Any())
                 {
-                    await _dbContext.FilprideGlPeriodBalances.AddRangeAsync(glBalances, cancellationToken);
+                    await _dbContext.GlPeriodBalances.AddRangeAsync(glBalances, cancellationToken);
                 }
 
                 if (subAccountBalances.Any())
                 {
-                    await _dbContext.FilprideGlSubAccountBalances.AddRangeAsync(subAccountBalances, cancellationToken);
+                    await _dbContext.GlSubAccountBalances.AddRangeAsync(subAccountBalances, cancellationToken);
                 }
 
                 await _dbContext.SaveChangesAsync(cancellationToken);

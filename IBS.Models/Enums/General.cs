@@ -85,7 +85,7 @@ namespace IBS.Models.Enums
         Customer,
         Product,
         Supplier,
-        Service,
+        ServiceMaster,
         BankAccount,
         ChartOfAccount
     }

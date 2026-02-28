@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using System.Linq.Dynamic.Core;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
@@ -52,9 +57,12 @@ namespace IBSWeb.Areas.User.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            var companyClaims = await GetCompanyClaimAsync();
+
             var model = new CreateCollectionViewModel
             {
-                Customers = await _unitOfWork.Collection.GetMMSICustomersWithCollectiblesSelectList(0, String.Empty, cancellationToken)
+                Customers = await _unitOfWork.Collection.GetMMSICustomersWithCollectiblesSelectList(0, String.Empty, cancellationToken),
+                BankAccounts = await _unitOfWork.GetBankAccountListById(companyClaims!, cancellationToken)
             };
 
             return View(model);
@@ -88,15 +96,10 @@ namespace IBSWeb.Areas.User.Controllers
                 }
 
                 await _unitOfWork.Collection.AddAsync(model, cancellationToken);
+                await _unitOfWork.SaveAsync(cancellationToken);
 
-                // save first then refetch again so it has auto generates id
-                var refetchModel = await _unitOfWork.Collection
-                    .GetAsync(c => c.CreatedDate == dateNow, cancellationToken);
-
-                if (refetchModel == null)
-                {
-                    return BadRequest();
-                }
+                // refetch to get the ID and other properties
+                var refetchModel = await _unitOfWork.Collection.GetAsync(c => c.MMSICollectionId == model.MMSICollectionId, cancellationToken);
 
                 #region -- Audit Trail
 
@@ -116,12 +119,19 @@ namespace IBSWeb.Areas.User.Controllers
 
                 foreach (var collectBills in viewModel.ToCollectBillings!)
                 {
-                    // find the billings that was collected and mark them as collected
-                    var billingChosen = await _unitOfWork.Billing.GetAsync(b => b.MMSIBillingId == int.Parse(collectBills), cancellationToken);
+                    var billingId = int.Parse(collectBills);
+                    var billingChosen = await _unitOfWork.Billing.GetAsync(b => b.MMSIBillingId == billingId, cancellationToken);
                     billingChosen!.Status = "Collected";
-                    billingChosen.CollectionId = refetchModel.MMSICollectionId;
+                    billingChosen.CollectionId = refetchModel!.MMSICollectionId;
+                    
+                    // Simple allocation: full amount of billing is paid. 
+                    // In a real scenario, we might need more complex allocation if the collection doesn't match the sum of billings.
+                    await _unitOfWork.Collection.UpdateBillingPayment(billingId, billingChosen.Amount, cancellationToken);
                 }
-                await _unitOfWork.Billing.SaveAsync(cancellationToken);
+
+                // Post to accounting books
+                refetchModel = await _unitOfWork.Collection.GetAsync(c => c.MMSICollectionId == model.MMSICollectionId, cancellationToken);
+                await _unitOfWork.Collection.PostAsync(refetchModel!, new List<Offsettings>(), cancellationToken);
 
                 if (model.IsUndocumented)
                 {
@@ -152,8 +162,17 @@ namespace IBSWeb.Areas.User.Controllers
                 CustomerId = viewModel.CustomerId,
                 Amount = viewModel.Amount,
                 EWT = viewModel.EWT,
+                WVAT = viewModel.WVAT,
+                Total = viewModel.Amount + viewModel.EWT + viewModel.WVAT,
+                CashAmount = viewModel.CashAmount,
+                CheckAmount = viewModel.CheckAmount,
                 CheckNumber = viewModel.CheckNumber,
                 CheckDate = viewModel.CheckDate,
+                CheckBank = viewModel.CheckBank,
+                CheckBranch = viewModel.CheckBranch,
+                BankId = viewModel.BankId,
+                ReferenceNo = viewModel.ReferenceNo,
+                Remarks = viewModel.Remarks,
                 DepositDate = viewModel.DepositDate,
                 Customer = await _unitOfWork.Customer
                     .GetAsync(c => c.CustomerId == viewModel.CustomerId, cancellationToken)
@@ -178,8 +197,16 @@ namespace IBSWeb.Areas.User.Controllers
                 CustomerId = model.CustomerId,
                 Amount = model.Amount,
                 EWT = model.EWT,
+                WVAT = model.WVAT,
+                CashAmount = model.CashAmount,
+                CheckAmount = model.CheckAmount,
                 CheckNumber = model.CheckNumber,
                 CheckDate = model.CheckDate,
+                CheckBank = model.CheckBank,
+                CheckBranch = model.CheckBranch,
+                BankId = model.BankId,
+                ReferenceNo = model.ReferenceNo,
+                Remarks = model.Remarks,
                 DepositDate = model.DepositDate,
             };
 
@@ -201,18 +228,9 @@ namespace IBSWeb.Areas.User.Controllers
                     var searchValue = parameters.Search.Value.ToLower();
                     queried = queried
                     .Where(c =>
-                        c.Date.Day.ToString().Contains(searchValue) ||
-                        c.Date.Month.ToString().Contains(searchValue) ||
-                        c.Date.Year.ToString().Contains(searchValue) ||
-
-                        c.CheckDate.Day.ToString().Contains(searchValue) ||
-                        c.CheckDate.Month.ToString().Contains(searchValue) ||
-                        c.CheckDate.Year.ToString().Contains(searchValue) ||
-
-                        c.DepositDate.Day.ToString().Contains(searchValue) ||
-                        c.DepositDate.Month.ToString().Contains(searchValue) ||
-                        c.DepositDate.Year.ToString().Contains(searchValue) ||
-
+                        c.Date.ToString("MM/dd/yyyy").Contains(searchValue) ||
+                        (c.CheckDate.HasValue && c.CheckDate.Value.ToString("MM/dd/yyyy").Contains(searchValue)) ||
+                        (c.DepositDate.HasValue && c.DepositDate.Value.ToString("MM/dd/yyyy").Contains(searchValue)) ||
                         c.Amount.ToString().Contains(searchValue) ||
                         c.MMSICollectionNumber.ToLower().Contains(searchValue) ||
                         c.Customer?.CustomerName.ToLower().Contains(searchValue) == true ||
@@ -308,6 +326,8 @@ namespace IBSWeb.Areas.User.Controllers
                         if (billing == null) throw new NullReferenceException("Billing not found.");
                         billing.Status = "For Collection";
                         billing.CollectionId = 0;
+
+                        await _unitOfWork.Collection.RemoveBillingPayment(billing.MMSIBillingId, billing.Amount, 0, cancellationToken);
                     }
                     await _unitOfWork.Billing.SaveAsync(cancellationToken);
 
@@ -321,6 +341,8 @@ namespace IBSWeb.Areas.User.Controllers
                         if (billing == null) throw new NullReferenceException("Billing not found.");
                         billing.Status = "Collected";
                         billing.CollectionId = model.MMSICollectionId;
+
+                        await _unitOfWork.Collection.UpdateBillingPayment(billing.MMSIBillingId, billing.Amount, cancellationToken);
                     }
                     await _unitOfWork.Billing.SaveAsync(cancellationToken);
 

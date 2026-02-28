@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IBS.DataAccess.Repository.MasterFile
 {
-    public class ServiceRepository : Repository<Service>, IServiceRepository
+    public class ServiceMasterRepository : Repository<ServiceMaster>, IServiceMasterRepository
     {
         private readonly ApplicationDbContext _db;
 
-        public ServiceRepository(ApplicationDbContext db) : base(db)
+        public ServiceMasterRepository(ApplicationDbContext db) : base(db)
         {
             _db = db;
         }

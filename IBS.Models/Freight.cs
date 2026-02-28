@@ -21,6 +21,6 @@ namespace IBS.Models
 
         [Column(TypeName = "numeric(18,4)")]
         [DisplayFormat(DataFormatString = "{0:#,##0.0000;(#,##0.0000)}", ApplyFormatInEditMode = true)]
-        public decimal Freight { get; set; }
+        public decimal Amount { get; set; }
     }
 }

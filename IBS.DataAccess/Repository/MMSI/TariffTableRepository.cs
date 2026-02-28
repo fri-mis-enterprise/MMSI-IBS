@@ -1,3 +1,4 @@
+using IBS.Models.Books;
 using System.Linq.Expressions;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.MMSI.IRepository;
@@ -46,7 +47,5 @@ namespace IBS.DataAccess.Repository.MMSI
         {
             await _db.SaveChangesAsync(cancellationToken);
         }
-    }
-}
     }
 }

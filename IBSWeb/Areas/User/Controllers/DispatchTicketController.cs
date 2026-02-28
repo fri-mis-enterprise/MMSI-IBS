@@ -1,3 +1,8 @@
+using IBS.Models.Books;
+using IBS.Models.AccountsReceivable;
+using IBS.Models.AccountsPayable;
+using IBS.Models.Integrated;
+using IBS.Models.MasterFile;
 using IBS.Utility.Constants;
 using System.Linq.Dynamic.Core;
 using System.Security.Claims;
@@ -221,7 +226,8 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             var viewModel = DispatchTicketModelToTariffVm(model);
-            viewModel.Customers = await _unitOfWork.DispatchTicket.GetMMSICustomersById(cancellationToken);
+            var companyClaims = await GetCompanyClaimAsync();
+            viewModel.Customers = await _unitOfWork.GetCustomerListAsyncById(companyClaims!, cancellationToken);
             ViewBag.FilterType = await GetCurrentFilterType();
             return View(viewModel);
         }
@@ -319,7 +325,8 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             var viewModel = DispatchTicketModelToTariffVm(model);
-            viewModel.Customers = await _unitOfWork.DispatchTicket.GetMMSICustomersById(cancellationToken);
+            var companyClaims = await GetCompanyClaimAsync();
+            viewModel.Customers = await _unitOfWork.GetCustomerListAsyncById(companyClaims!, cancellationToken);
             ViewBag.FilterType = await GetCurrentFilterType();
             return View(viewModel);
         }

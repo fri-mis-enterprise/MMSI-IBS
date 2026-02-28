@@ -3,7 +3,7 @@ using IBS.Models.MasterFile;
 
 namespace IBS.DataAccess.Repository.MasterFile.IRepository
 {
-    public interface IServiceRepository : IRepository<Service>
+    public interface IServiceMasterRepository : IRepository<ServiceMaster>
     {
         Task<string> GetLastNumber(CancellationToken cancellationToken = default);
 

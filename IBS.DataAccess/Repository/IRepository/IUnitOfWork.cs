@@ -1,3 +1,4 @@
+using IBS.Models.Books;
 using IBS.DataAccess.Repository.AccountsPayable.IRepository;
 using IBS.DataAccess.Repository.AccountsReceivable.IRepository;
 using IBS.DataAccess.Repository.Books.IRepository;
@@ -129,7 +130,7 @@ namespace IBS.DataAccess.Repository.IRepository
 
         IBankAccountRepository BankAccount { get; }
 
-        IServiceRepository ServiceMaster { get; }
+        IServiceMasterRepository ServiceMaster { get; }
 
         IPickUpPointRepository PickUpPoint { get; }
 

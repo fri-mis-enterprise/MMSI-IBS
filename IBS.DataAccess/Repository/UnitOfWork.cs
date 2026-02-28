@@ -1,3 +1,4 @@
+using IBS.Models.Books;
 using System.ComponentModel;
 using System.Linq.Expressions;
 using IBS.DataAccess.Data;
@@ -146,7 +147,7 @@ namespace IBS.DataAccess.Repository
 
         public IBankAccountRepository BankAccount { get; private set; }
 
-        public IServiceRepository ServiceMaster { get; private set; }
+        public IServiceMasterRepository ServiceMaster { get; private set; }
 
         public IPickUpPointRepository PickUpPoint { get; private set; }
 
@@ -229,7 +230,7 @@ namespace IBS.DataAccess.Repository
             #region Master File
 
             BankAccount = new BankAccountRepository(_db);
-            ServiceMaster = new ServiceRepository(_db);
+            ServiceMaster = new ServiceMasterRepository(_db);
 
             #endregion
 
@@ -410,7 +411,7 @@ namespace IBS.DataAccess.Repository
         {
             return await _db.Services
                 .OrderBy(s => s.ServiceId)
-                .Where(GetCompanyFilter<Service>(companyClaims))
+                .Where(GetCompanyFilter<ServiceMaster>(companyClaims))
                 .Select(s => new SelectListItem
                 {
                     Value = s.ServiceId.ToString(),

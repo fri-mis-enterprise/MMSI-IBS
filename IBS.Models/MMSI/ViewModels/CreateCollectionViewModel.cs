@@ -1,5 +1,5 @@
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Runtime.InteropServices.JavaScript;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace IBS.Models.MMSI.ViewModels
@@ -12,19 +12,37 @@ namespace IBS.Models.MMSI.ViewModels
 
         public bool IsUndocumented { get; set; }
 
+        [Required]
         public DateOnly Date { get; set; }
 
+        [Required]
         public int CustomerId { get; set; }
 
-        public decimal Amount { get; set; }
+        public string? ReferenceNo { get; set; }
+
+        public string? Remarks { get; set; }
+
+        public decimal CashAmount { get; set; }
+
+        public DateOnly? CheckDate { get; set; }
+
+        public string? CheckNumber { get; set; }
+
+        public string? CheckBank { get; set; }
+
+        public string? CheckBranch { get; set; }
+
+        public decimal CheckAmount { get; set; }
+
+        public int? BankId { get; set; }
+
+        public decimal Amount { get; set; } // Total amount
 
         public decimal EWT { get; set; }
 
-        public string CheckNumber { get; set; }
+        public decimal WVAT { get; set; }
 
-        public DateOnly CheckDate { get; set; }
-
-        public DateOnly DepositDate { get; set; }
+        public DateOnly? DepositDate { get; set; }
 
         [NotMapped]
         public List<string>? ToCollectBillings { get; set; }
@@ -34,5 +52,8 @@ namespace IBS.Models.MMSI.ViewModels
 
         [NotMapped]
         public List<SelectListItem>? Billings { get; set; }
+
+        [NotMapped]
+        public List<SelectListItem>? BankAccounts { get; set; }
     }
 }
