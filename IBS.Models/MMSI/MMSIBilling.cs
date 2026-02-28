@@ -15,10 +15,9 @@ namespace IBS.Models.MMSI
         public string MMSIBillingNumber
         {
             get => _billingNumber;
-            set => _collectionNumber = value.Trim();
+            set => _billingNumber = value.Trim();
         }
 
-        private string _collectionNumber;
         private string _billingNumber;
 
         public DateOnly Date { get; set; }
@@ -80,6 +79,15 @@ namespace IBS.Models.MMSI
         public bool IsVatable { get; set; }
 
         public bool IsPrinted { get; set; }
+
+        [Column(TypeName = "numeric(18,4)")]
+        public decimal Discount { get; set; }
+
+        [Column(TypeName = "date")]
+        public DateOnly DueDate { get; set; }
+
+        [StringLength(20)]
+        public string Company { get; set; } = string.Empty;
 
         #region ---Address Lines---
 
