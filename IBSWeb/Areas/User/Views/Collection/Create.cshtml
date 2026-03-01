@@ -9,12 +9,30 @@
         max-width: 100% !important;
         width: 100% !important;
     }
+
+    .section-header {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+    }
+
     table {
         table-layout: auto !important;
+        font-size: 0.85rem !important;
     }
+
     .card-body {
         margin: 5px !important;
         padding: 5px !important;
+    }
+
+    .totals-box {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        border: 1px solid #dee2e6;
     }
 </style>
 
@@ -28,157 +46,160 @@
         </div>
     </div>
 
-    <div class="card-body table-responsive">
+    <div class="card-body">
         <div class="border-2 px-3">
             <form method="post" class="row">
                 <div class="border-2 px-3">
                     <div asp-validation-summary="ModelOnly"></div>
+                    
+                    <!-- I. Collection Information -->
+                    <h5 class="section-header text-secondary border-bottom"><i class="bi bi-wallet2 me-2"></i>I. Collection Information</h5>
                     <div class="row">
-                        <div class="col-9">
-                            <div class="row py-2">
-                                <div class="col-2"><h3 class="m-0 p-0">Collection</h3></div>
-                            </div>
-                            <div class="row my-3">
-                                <div class="form-group col-4">
-                                    <label class="control-label ps-1 pb-1">Customer<span class="required text-danger">*</span></label>
-                                    <input id="customerIsVatable" type="hidden">
-                                    <select asp-for="CustomerId" id="customerId" asp-items="@Model.Customers" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
-                                        <option value="">Select Customer</option>
-                                    </select>
-                                    <span asp-validation-for="CustomerId" class="text-danger"></span>
-                                </div>
-                                <div class="form-floating col-4">
-                                    <input asp-for="MMSICollectionNumber" type="text" class="form-control border-0 shadow" id="MMSICollectionNumber" placeholder="#" readonly>
-                                    <label asp-for="MMSICollectionNumber" for="MMSICollectionNumber" class="ms-2" id="status">Collection Receipt #<span class="required text-danger">*</span></label>
-                                    <span asp-validation-for="MMSICollectionNumber" class="text-danger"></span>
-                                </div>
-                                <div class="form-check col-4 ps-2 text-start d-flex align-items-center justify-content-start">
-                                    <input type="hidden" asp-for="IsUndocumented" />
-                                    <input class="form-check-input m-0 ms-2" type="checkbox" id="isUndocumentedCheckbox" disabled>
-                                    <label class="text-decoration-underline form-check-label ps-1 h4 m-0" for="isUndocumentedCheckbox">
-                                        Undocumented
-                                    </label>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="form-floating col-4">
-                                    <input asp-for="Date" type="date" id="Date" value="@DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd")" class="form-control border-0 shadow">
-                                    <label asp-for="Date" for="Date" class="ms-2">Date</label>
-                                    <span asp-validation-for="Date" class="text-danger"></span>
-                                </div>
-                                <div class="form-floating col-4">
-                                    <input asp-for="ReferenceNo" type="text" class="form-control border-0 shadow" placeholder="Reference No">
-                                    <label asp-for="ReferenceNo" class="ms-2">Reference No</label>
-                                    <span asp-validation-for="ReferenceNo" class="text-danger"></span>
-                                </div>
-                                <div class="form-floating col-4">
-                                    <input asp-for="Remarks" type="text" class="form-control border-0 shadow" placeholder="Remarks">
-                                    <label asp-for="Remarks" class="ms-2">Remarks</label>
-                                    <span asp-validation-for="Remarks" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="form-floating col-4">
-                                    <input asp-for="CashAmount" type="number" step="0.01" class="form-control border-0 shadow" id="cashAmount" value="0.00">
-                                    <label asp-for="CashAmount" class="ms-2">Cash Amount</label>
-                                </div>
-                                <div class="form-floating col-4">
-                                    <input asp-for="CheckAmount" type="number" step="0.01" class="form-control border-0 shadow" id="checkAmount" value="0.00">
-                                    <label asp-for="CheckAmount" class="ms-2">Check Amount</label>
-                                </div>
-                                <div class="form-floating col-4">
-                                    <select asp-for="BankId" asp-items="@Model.BankAccounts" class="form-select border-0 shadow">
-                                        <option value="">--Select Bank--</option>
-                                    </select>
-                                    <label asp-for="BankId" class="ms-2">Deposit To Bank</label>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <input type="hidden" id="undeductedAmount">
-                                <input type="hidden" asp-for="Amount" value="@Model.Amount" id="amount">
-                                <div class="form-floating col-4">
-                                    <input type="number" class="form-control border-0 shadow" step="0.01" id="amountShow" value="0.00"  placeholder=" " readonly>
-                                    <label class="ms-2">Total Collected (Net)</label>
-                                </div>
-                                <input type="hidden" asp-for="EWT" value="@Model.EWT" id="ewt">
-                                <div class="form-floating col-4">
-                                    <input type="number" class="form-control border-0 shadow" step="0.01" id="ewtShow" value="0.00" placeholder=" " readonly>
-                                    <label class="ms-2">EWT</label>
-                                </div>
-                                <div class="form-floating col-4">
-                                    <input asp-for="WVAT" type="number" step="0.01" class="form-control border-0 shadow" id="wvat" value="0.00">
-                                    <label asp-for="WVAT" class="ms-2">WVAT</label>
-                                </div>
-                            </div>
-                            <div class="row py-2">
-                                <div class="col-2"><h3 class="m-0 p-0">Check Details</h3></div>
-                            </div>
-                            <div class="row my-3">
-                                <div class="form-floating col-4">
-                                    <input asp-for="CheckNumber" id="CheckNumber" type="text" class="form-control border-0 shadow" placeholder="#">
-                                    <label asp-for="CheckNumber" for="CheckNumber" class="ms-2">Check Number</label>
-                                    <span asp-validation-for="CheckNumber" class="text-danger"></span>
-                                </div>
-                                <div class="form-floating col-4">
-                                    <input asp-for="CheckDate" id="CheckDate" type="date" value="@DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd")" class="form-control border-0 shadow">
-                                    <label asp-for="CheckDate" for="CheckDate" class="ms-2">Check Date</label>
-                                    <span asp-validation-for="CheckDate" class="text-danger"></span>
-                                </div>
-                                <div class="form-floating col-4">
-                                    <input asp-for="DepositDate" id="DepositDate" type="date" value="@DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd")" class="form-control border-0 shadow">
-                                    <label asp-for="DepositDate" for="DepositDate" class="ms-2">Date Deposited</label>
-                                    <span asp-validation-for="DepositDate" class="text-danger"></span>
-                                </div>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="form-floating col-6">
-                                    <input asp-for="CheckBank" type="text" class="form-control border-0 shadow" placeholder="Check Issuing Bank">
-                                    <label asp-for="CheckBank" class="ms-2">Check Issuing Bank</label>
-                                </div>
-                                <div class="form-floating col-6">
-                                    <input asp-for="CheckBranch" type="text" class="form-control border-0 shadow" placeholder="Check Issuing Branch">
-                                    <label asp-for="CheckBranch" class="ms-2">Check Issuing Branch</label>
-                                </div>
-                            </div>
-                            <div class="row my-2">
-                                <div class="form-group col-12">
-                                    <label class="control-label mb-2">Bills Paid</label>
-                                    <select asp-for="ToCollectBillings" class="form-control js-example-basic-multiple col-12" name="ToCollectBillings" id="BillingsSelect" multiple="multiple" disabled>
-                                    </select>
-                                </div>
-                            </div>
+                        <div class="form-group col-md-4 col-12 my-2">
+                            <label class="control-label ps-1 pb-1">Customer<span class="required text-danger">*</span></label>
+                            <input id="customerIsVatable" type="hidden">
+                            <select asp-for="CustomerId" id="customerId" asp-items="@Model.Customers" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
+                                <option value="">Select Customer</option>
+                            </select>
+                            <span asp-validation-for="CustomerId" class="text-danger"></span>
                         </div>
+                        <div class="form-floating col-md-4 col-6 my-2">
+                            <input asp-for="MMSICollectionNumber" type="text" class="form-control border-0 shadow bg-light" id="MMSICollectionNumber" placeholder=" " readonly>
+                            <label asp-for="MMSICollectionNumber" for="MMSICollectionNumber" class="ms-2" id="status">Collection Receipt #<span class="required text-danger">*</span></label>
+                            <span asp-validation-for="MMSICollectionNumber" class="text-danger"></span>
+                        </div>
+                        <div class="form-check col-md-4 col-6 ps-2 my-2 text-start d-flex align-items-center justify-content-start">
+                            <input type="hidden" asp-for="IsUndocumented" />
+                            <input class="form-check-input m-0 ms-2" type="checkbox" id="isUndocumentedCheckbox" disabled>
+                            <label class="text-decoration-underline form-check-label ps-1 h4 m-0" for="isUndocumentedCheckbox" style="font-size: 20px;">
+                                Undocumented
+                            </label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-floating col-md-4 col-6 my-2">
+                            <input asp-for="Date" type="date" id="Date" value="@DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd")" class="form-control border-0 shadow">
+                            <label asp-for="Date" for="Date" class="ms-2">Collection Date</label>
+                            <span asp-validation-for="Date" class="text-danger"></span>
+                        </div>
+                        <div class="form-floating col-md-4 col-6 my-2">
+                            <input asp-for="ReferenceNo" type="text" class="form-control border-0 shadow" placeholder="Reference No">
+                            <label asp-for="ReferenceNo" class="ms-2">Reference No</label>
+                            <span asp-validation-for="ReferenceNo" class="text-danger"></span>
+                        </div>
+                        <div class="form-floating col-md-4 col-12 my-2">
+                            <input asp-for="Remarks" type="text" class="form-control border-0 shadow" placeholder="Remarks">
+                            <label asp-for="Remarks" class="ms-2">Remarks</label>
+                            <span asp-validation-for="Remarks" class="text-danger"></span>
+                        </div>
+                    </div>
 
-                        <div class="col-3 ps-5">
-                            <div class="row py-2">
-                                <h3 class="m-0 p-0">Bill Paid</h3>
+                    <!-- II. Payment Details -->
+                    <h5 class="section-header text-secondary border-bottom"><i class="bi bi-cash-stack me-2"></i>II. Payment Details</h5>
+                    <div class="row">
+                        <div class="form-floating col-md-4 col-6 my-2">
+                            <input asp-for="CashAmount" type="number" step="0.01" class="form-control border-0 shadow" id="cashAmount" value="0.00">
+                            <label asp-for="CashAmount" class="ms-2">Cash Amount</label>
+                        </div>
+                        <div class="form-floating col-md-4 col-6 my-2">
+                            <input asp-for="CheckAmount" type="number" step="0.01" class="form-control border-0 shadow" id="checkAmount" value="0.00">
+                            <label asp-for="CheckAmount" class="ms-2">Check Amount</label>
+                        </div>
+                        <div class="form-floating col-md-4 col-12 my-2">
+                            <select asp-for="BankId" asp-items="@Model.BankAccounts" class="form-select border-0 shadow">
+                                <option value="">--Select Bank--</option>
+                            </select>
+                            <label asp-for="BankId" class="ms-2">Deposit To Bank</label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <input type="hidden" id="undeductedAmount">
+                        <input type="hidden" asp-for="Amount" value="@Model.Amount" id="amount">
+                        <div class="form-floating col-md-4 col-6 my-2">
+                            <input type="number" class="form-control border-0 shadow bg-light" step="0.01" id="amountShow" value="0.00"  placeholder=" " readonly>
+                            <label class="ms-2">Total Collected (Net)</label>
+                        </div>
+                        <input type="hidden" asp-for="EWT" value="@Model.EWT" id="ewt">
+                        <div class="form-floating col-md-4 col-6 my-2">
+                            <input type="number" class="form-control border-0 shadow bg-light" step="0.01" id="ewtShow" value="0.00" placeholder=" " readonly>
+                            <label class="ms-2">EWT</label>
+                        </div>
+                        <div class="form-floating col-md-4 col-6 my-2">
+                            <input asp-for="WVAT" type="number" step="0.01" class="form-control border-0 shadow" id="wvat" value="0.00">
+                            <label asp-for="WVAT" class="ms-2">WVAT</label>
+                        </div>
+                    </div>
+
+                    <!-- III. Check Details -->
+                    <h5 class="section-header text-secondary border-bottom"><i class="bi bi-bank me-2"></i>III. Check Details</h5>
+                    <div class="row">
+                        <div class="form-floating col-md-4 col-6 my-2">
+                            <input asp-for="CheckNumber" id="CheckNumber" type="text" class="form-control border-0 shadow" placeholder=" ">
+                            <label asp-for="CheckNumber" for="CheckNumber" class="ms-2">Check Number</label>
+                            <span asp-validation-for="CheckNumber" class="text-danger"></span>
+                        </div>
+                        <div class="form-floating col-md-4 col-6 my-2">
+                            <input asp-for="CheckDate" id="CheckDate" type="date" value="@DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd")" class="form-control border-0 shadow">
+                            <label asp-for="CheckDate" for="CheckDate" class="ms-2">Check Date</label>
+                            <span asp-validation-for="CheckDate" class="text-danger"></span>
+                        </div>
+                        <div class="form-floating col-md-4 col-12 my-2">
+                            <input asp-for="DepositDate" id="DepositDate" type="date" value="@DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd")" class="form-control border-0 shadow">
+                            <label asp-for="DepositDate" for="DepositDate" class="ms-2">Date Deposited</label>
+                            <span asp-validation-for="DepositDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="form-floating col-md-6 col-12 my-2">
+                            <input asp-for="CheckBank" type="text" class="form-control border-0 shadow" placeholder=" ">
+                            <label asp-for="CheckBank" class="ms-2">Check Issuing Bank</label>
+                        </div>
+                        <div class="form-floating col-md-6 col-12 my-2">
+                            <input asp-for="CheckBranch" type="text" class="form-control border-0 shadow" placeholder=" ">
+                            <label asp-for="CheckBranch" class="ms-2">Check Issuing Branch</label>
+                        </div>
+                    </div>
+
+                    <!-- IV. Billing Settlement -->
+                    <h5 class="section-header text-secondary border-bottom"><i class="bi bi-list-check me-2"></i>IV. Billing Settlement</h5>
+                    <div class="row">
+                        <div class="form-group col-12 my-2">
+                            <label class="control-label mb-2">Bills Paid</label>
+                            <select asp-for="ToCollectBillings" class="form-control js-example-basic-multiple col-12" name="ToCollectBillings" id="BillingsSelect" multiple="multiple" disabled>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12 mt-3">
+                            <div class="table-responsive">
+                                <table id="dataTable" class="table table-striped table-bordered" style="width: 100%">
+                                    <thead>
+                                    <tr>
+                                        <th class="text-center align-middle">BILLING NUMBER</th>
+                                        <th class="text-center align-middle">BILLING AMOUNT</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    </tbody>
+                                </table>
                             </div>
-                            <table id="dataTable" class="table table-striped table-bordered" style="width: 100%">
-                                <thead>
-                                <tr>
-                                    <th class="text-center align-middle">BILLING NUMBER</th>
-                                    <th class="text-center align-middle">BILLING AMOUNT</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-
-                                </tbody>
-                            </table>
                             <div class="row pt-2 justify-content-end d-flex">
-                                <div class="col-6 justify-content-center d-flex">
-                                    <label id="billingsTotal">Total: ₱ 0.00</label>
+                                <div class="col-md-3 col-6 totals-box shadow-sm text-center">
+                                    <label class="fw-bold">Total Selected:</label><br/>
+                                    <span id="billingsTotal" class="text-primary fw-bold" style="font-size: 1.1rem;">₱ 0.00</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="row justify-content-end mt-4 mb-3">
-                    <div class="text-center" style="width: 250px;">
-                        <button class="btn btn-primary custom-btn col-12" type="submit" id="submitButton"><i class="bi bi-pencil-square"></i> Submit</button>
+                <div class="row justify-content-end mt-4 mb-3 gap-2">
+                    <div class="text-center" style="width: 200px;">
+                        <button class="btn btn-primary custom-btn w-100 shadow" type="submit" id="submitButton"><i class="bi bi-pencil-square"></i> Submit</button>
                     </div>
-                    <div class="text-center" style="width: 250px;">
-                        <a class="btn btn-outline-primary col-12" asp-controller="Collection" asp-action="Index">
+                    <div class="text-center" style="width: 200px;">
+                        <a class="btn btn-outline-primary w-100 shadow" asp-controller="Collection" asp-action="Index">
                             <i class="bi bi-arrow-90deg-left"></i> Go Back
                         </a>
                     </div>
@@ -362,17 +383,15 @@
                                 table.row.add([
                                     value.mmsiBillingNumber,
                                     `₱ ${formatNumber(value.amount)}`
-                                ]);
+                                ]).draw();
                                 undeductedTotalAmount += value.amount;
                                 totalAmount += tempAmount;
                                 totalEwt += tempEwt;
                             });
                         }
 
-                        table.draw();
-
                         // Update totals and form fields
-                        $('#billingsTotal').html(`<u>Total: ₱ ${undeductedTotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</u>`);
+                        $('#billingsTotal').text(`₱ ${undeductedTotalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
                         $('#amount').val(totalAmount.toFixed(2));
                         $('#checkAmount').val(totalAmount.toFixed(2));
                         $('#ewt').val(totalEwt.toFixed(2));
@@ -397,43 +416,6 @@
                 $('#amount').val(total.toFixed(2));
                 $('#amountShow').val(total.toFixed(2));
             });
-
-            // Calculate EWT deduction
-            function calculateEWTDeduction() {
-                if (isProcessing) return;
-                isProcessing = true;
-
-                const originalAmount = $('#undeductedAmount').val() || 0;
-                const customerId = $('#customerId').val();
-
-                $.ajax({
-                    url: '@Url.Action("IsCustomerVatable", "Collection", new { area = "User" })',
-                    type: 'GET',
-                    data: { customerId: customerId },
-                    success: function (result) {
-                        if (result) {
-                            const deductedAmount = originalAmount / 1.12;
-                            const ewt = originalAmount - deductedAmount;
-
-                            $('#amountShow').val(deductedAmount.toFixed(2));
-                            $('#amount').val(deductedAmount.toFixed(2));
-                            $('#ewtShow').val(ewt.toFixed(2));
-                            $('#ewt').val(ewt.toFixed(2));
-                        } else {
-                            $('#amountShow').val(originalAmount.toFixed(2));
-                            $('#amount').val(originalAmount.toFixed(2));
-                            $('#ewtShow').val('0.00');
-                            $('#ewt').val('0.00');
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        console.error('Error checking VAT status:', error);
-                    },
-                    complete: function () {
-                        isProcessing = false;
-                    }
-                });
-            }
         });
     </script>
 }
