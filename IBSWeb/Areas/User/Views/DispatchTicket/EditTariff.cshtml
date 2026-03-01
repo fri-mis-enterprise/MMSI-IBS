@@ -374,8 +374,9 @@
                 let dispatchTicketId = $("#DispatchTicketId").val();
 
                 $.ajax({
-                    url: '/MMSI/DispatchTicket/CheckForTariffRate/',
-                    type: 'POST',
+                    url: '@Url.Action("CheckForTariffRate", "DispatchTicket", new { area = "User" })',
+                    method: "GET",
+
                     data: { customerId : customerId, dispatchTicketId : dispatchTicketId },
                     success: function(result) {
                         if (result.exists){

@@ -251,7 +251,7 @@
                     confirmButtonText: "Yes",
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = `/MMSI/DispatchTicket/Approve/${imageId}`;
+                        window.location.href = `@Url.Action("Approve", "DispatchTicket", new { area = "User" })}/${imageId}`;
                     }
                 });
             });
@@ -267,7 +267,7 @@
                     confirmButtonText: "Yes",
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = `/MMSI/DispatchTicket/RevokeApproval/${imageId}`;
+                        window.location.href = `@Url.Action("RevokeApproval", "DispatchTicket", new { area = "User" })}/${imageId}`;
                     }
                 });
             });
@@ -283,7 +283,7 @@
                     confirmButtonText: "Yes",
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = `/MMSI/DispatchTicket/Disapprove/${imageId}`;
+                        window.location.href = `@Url.Action("Disapprove", "DispatchTicket", new { area = "User" })}/${imageId}`;
                     }
                 });
             });
@@ -299,7 +299,7 @@
                     confirmButtonText: "Yes",
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = `/MMSI/DispatchTicket/Delete/${id}`;
+                        window.location.href = `@Url.Action("Delete", "DispatchTicket", new { area = "User" })}/${id}`;
                     }
                 });
             });

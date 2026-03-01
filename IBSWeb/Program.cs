@@ -139,6 +139,11 @@ app.UseAuthorization();
 
 app.MapRazorPages();
 app.MapControllerRoute(
+    name: "mmsi",
+    pattern: "MMSI/{controller}/{action}/{id?}",
+    defaults: new { area = "User" });
+
+app.MapControllerRoute(
     name: "default",
     pattern: "{area=User}/{controller=Home}/{action=Index}/{id?}");
 

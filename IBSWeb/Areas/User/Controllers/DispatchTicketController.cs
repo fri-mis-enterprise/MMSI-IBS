@@ -679,6 +679,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
         }
 
+        [HttpGet]
         public async Task<IActionResult> Approve(int id, CancellationToken cancellationToken)
         {
             if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.ApproveTariff, cancellationToken))
@@ -730,6 +731,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
         }
 
+        [HttpGet]
         public async Task<IActionResult> RevokeApproval(int id, CancellationToken cancellationToken)
         {
             if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.ApproveTariff, cancellationToken))
@@ -781,6 +783,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
         }
 
+        [HttpGet]
         public async Task<IActionResult> Disapprove(int id, CancellationToken cancellationToken)
         {
             if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.ApproveTariff, cancellationToken))

@@ -317,9 +317,10 @@
             }
 
             function fetchBillingsList(customerId, selectedIds = null) {
-                return $.ajax({
-                    url: '/MMSI/Collection/GetEditBillings',
+                $.ajax({
+                    url: '@Url.Action("GetEditBillings", "Collection", new { area = "User" })',
                     type: 'GET',
+
                     data: { customerId: customerId },
                     success: function (data) {
                         const $billingsSelect = $('#BillingsSelect');

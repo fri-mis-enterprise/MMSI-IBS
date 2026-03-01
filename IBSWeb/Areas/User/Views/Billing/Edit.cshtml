@@ -443,7 +443,7 @@
             function handleDispatchTicketsChange() {
                 const selectedTickets = multiSelectVar.val();
                 $.ajax({
-                    url: '/MMSI/Billing/GetDispatchTickets',
+                    url: '@Url.Action("GetDispatchTickets", "Billing", new { area = "User" })',
                     type: 'POST',
                     data: { dispatchTicketIds: selectedTickets },
                     success: function (result) {
