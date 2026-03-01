@@ -516,6 +516,7 @@ namespace IBSWeb.Areas.User.Controllers
                     .Include(dt => dt.Tugboat)
                     .Include(dt => dt.TugMaster)
                     .Include(dt => dt.Vessel)
+                    .Include(dt => dt.Customer)
                     .Where(dt => dt.Status == "For Posting" || dt.Status == "Cancelled" || dt.Status == "Incomplete")
                     .ToListAsync(cancellationToken);
 

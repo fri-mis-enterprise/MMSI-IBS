@@ -5,6 +5,82 @@
     var filterType = ViewBag.FilterType as string;
 }
 
+<style>
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
+
+    .section-header {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .duration-badge {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+
+    @@media (max-width: 768px) {
+        .btn{
+            width: 100px !important;
+        }
+        
+        label {
+            font-size: .8em !important
+        }
+        input {
+            font-size: .9em !important;
+        }
+        html {
+            font-size: 16px;
+        }
+
+        table td {
+            font-size: 10px;
+            padding: 5px !important;
+            margin: 0 !important;
+        }
+
+        table th {
+            font-size: 12px;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        span {
+            font-size: 10px !important;
+        }
+
+        .btn {
+            font-size: 12px !important;
+        }
+
+        ul li {
+            font-size: 12px !important;
+        }
+
+        .form-select {
+            font-size: 10px;
+            min-width: 120px; /* Adjust as needed */
+            width: auto; /* Adjust or set a fixed width if necessary */
+            max-width: 120px; /* Prevent it from being too wide */
+        }
+
+        label[for="dt-length-0"] {
+            font-size: 10px;
+            margin-left: 2px;
+        }
+
+        label[for="dt-search-0"] {
+            font-size: .8em;
+        }
+    }
+</style>
+
 <link rel="stylesheet" href="~/css/form-style.css">
 
 <div class="card shadow mt-4">
@@ -17,35 +93,68 @@
     
     <div class="card-body">
         
-        <form method="post" class="row" enctype="multipart/form-data">
-            <input asp-for="DispatchTicketId" value="@Model.DispatchTicketId" type="text" class="form-control border-0 shadow" id="DispatchTicketId" style="display:none">
+        <form id="myForm" method="post" class="row" enctype="multipart/form-data">
+            <input asp-for="DispatchTicketId" type="hidden">
             <div class="border-2 px-3">
                 <div asp-validation-summary="ModelOnly"></div>
 
+                <!-- I. Reference Information -->
+                <h5 class="section-header text-secondary border-bottom"><i class="bi bi-info-circle me-2"></i>I. Reference Information</h5>
                 <div class="row">
-                    <div class="form-floating col-6 my-2">
-                        <input asp-for="Date" type="date" value="@(Model.Date == null ? null : Model.Date!.Value.ToString("yyyy-MM-dd"))" class="form-control border-0 shadow" id="CreateDate" placeholder=" ">
-                        <label asp-for="Date" for="CreateDate" class="ms-2">Date Today<span class="required text-danger">*</span></label>
+                    <div class="form-floating col-md-3 col-6 my-2">
+                        <input asp-for="Date" type="date" value="@(Model.Date?.ToString("yyyy-MM-dd"))" class="form-control border-0 shadow" id="Date" placeholder=" ">
+                        <label asp-for="Date" for="Date" class="ms-2">Date Today<span class="required text-danger">*</span></label>
                         <span asp-validation-for="Date" class="text-danger"></span>
                     </div>
-                    <div class="form-floating col-6 my-2">
-                        <input asp-for="COSNumber" type="text" class="form-control border-0 shadow" id="COSNumber" placeholder="" maxlength="10" title="COS Number must not exceed 10 characters">
-                        <label asp-for="COSNumber" for="COSNumber" class="ms-2">COS#(Optional)</label>
-                        <span asp-validation-for="COSNumber" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="form-floating col-6 my-2">
+                    <div class="form-floating col-md-3 col-6 my-2">
                         <input asp-for="DispatchNumber" type="text" class="form-control border-0 shadow" id="DispatchNumber" placeholder=" " maxlength="20" title="Dispatch Number must not exceed 20 characters" required>
                         <label asp-for="DispatchNumber" for="DispatchNumber" class="ms-2">Dispatch/Mooring #<span class="required text-danger">*</span></label>
                         <span asp-validation-for="DispatchNumber" class="text-danger"></span>
                     </div>
-                    <div class="form-floating col-6 my-2">
+                    <div class="form-floating col-md-3 col-6 my-2">
+                        <input asp-for="COSNumber" type="text" class="form-control border-0 shadow" id="COSNumber" placeholder="" maxlength="10" title="COS Number must not exceed 10 characters">
+                        <label asp-for="COSNumber" for="COSNumber" class="ms-2">COS#(Optional)</label>
+                        <span asp-validation-for="COSNumber" class="text-danger"></span>
+                    </div>
+                    <div class="form-floating col-md-3 col-6 my-2">
                         <input asp-for="VoyageNumber" type="text" class="form-control border-0 shadow" id="VoyageNumber" placeholder=" " maxlength="20">
                         <label asp-for="VoyageNumber" for="VoyageNumber" class="ms-2">Voyage#(Optional)</label>
                         <span asp-validation-for="VoyageNumber" class="text-danger"></span>
                     </div>
                 </div>
+
+                <!-- II. Timeline & Duration -->
+                <div class="d-flex justify-content-between align-items-center border-bottom mt-4 mb-2">
+                    <h5 class="section-header text-secondary mb-0 border-0"><i class="bi bi-clock-history me-2"></i>II. Timeline & Duration</h5>
+                    <div id="durationDisplay" class="badge bg-secondary duration-badge shadow-sm" style="display: none;">
+                        Duration: <span id="totalHours">0</span> hours
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-floating col-md-3 col-6 my-2">
+                        <input type="date" asp-for="DateLeft" value="@(Model.DateLeft?.ToString("yyyy-MM-dd"))" class="form-control border-0 shadow timeline-input" id="DateLeft" placeholder=" " required>
+                        <label asp-for="DateLeft" for="DateLeft" class="ms-2">Date Start<span class="required text-danger">*</span></label>
+                        <span asp-validation-for="DateLeft" class="text-danger"></span>
+                    </div>
+                    <div class="form-floating col-md-3 col-6 my-2">
+                        <input type="time" asp-for="TimeLeft" value="@(Model.TimeLeft?.ToString("HH\\:mm"))" class="form-control border-0 shadow timeline-input" id="TimeLeft" placeholder=" " required>
+                        <label asp-for="TimeLeft" for="TimeLeft" class="ms-2">Time Start<span class="required text-danger">*</span></label>
+                        <span asp-validation-for="TimeLeft" class="text-danger"></span>
+                    </div>
+                    <div class="form-floating col-md-3 col-6 my-2">
+                        <input type="date" asp-for="DateArrived" value="@(Model.DateArrived?.ToString("yyyy-MM-dd"))" class="form-control border-0 shadow timeline-input" id="DateArrived" placeholder=" " required>
+                        <label asp-for="DateArrived" for="DateArrived" class="ms-2">Date End<span class="required text-danger">*</span></label>
+                        <span asp-validation-for="DateArrived" class="text-danger"></span>
+                    </div>
+                    <div class="form-floating col-md-3 col-6 my-2">
+                        <input type="time" asp-for="TimeArrived" value="@(Model.TimeArrived?.ToString("HH\\:mm"))" class="form-control border-0 shadow timeline-input" id="TimeArrived" placeholder=" " required>
+                        <label asp-for="TimeArrived" for="TimeArrived" class="ms-2">Time End<span class="required text-danger">*</span></label>
+                        <span asp-validation-for="TimeArrived" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <!-- III. Service Details -->
+                <h5 class="section-header text-secondary border-bottom"><i class="bi bi-geo-alt me-2"></i>III. Service Details</h5>
                 <div class="row">
                     <div class="form-group col-12 my-2">
                         <label class="control-label ps-1 pb-1">Customer<span class="required text-danger">*</span></label>
@@ -56,77 +165,58 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="form-floating col-6 my-2">
-                        <input type="date" asp-for="DateLeft" value="@(Model.DateLeft == null ? null : Model.DateLeft.Value.ToString("yyyy-MM-dd"))" class="form-control border-0 shadow" id="DateLeft" placeholder=" " required>
-                        <label asp-for="DateLeft" for="DateLeft" class="ms-2">Date Start<span class="required text-danger">*</span></label>
-                        <span asp-validation-for="DateLeft" class="text-danger"></span>
-                    </div>
-                    <div class="form-floating col-6 my-2">
-                        <input type="time" asp-for="TimeLeft" value="@(Model.TimeLeft == null ? null : Model.TimeLeft.Value.ToString("HH\\:mm"))" class="form-control border-0 shadow" id="TimeLeft" placeholder=" " required>
-                        <label asp-for="TimeLeft" for="TimeLeft" class="ms-2">Time Start<span class="required text-danger">*</span></label>
-                        <span asp-validation-for="TimeLeft" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="form-floating col-6 my-2">
-                        <input type="date" asp-for="DateArrived" value="@(Model.DateArrived == null ? null : Model.DateArrived.Value.ToString("yyyy-MM-dd"))" class="form-control border-0 shadow" id="DateArrived" placeholder=" " required>
-                        <label asp-for="DateArrived" for="DateArrived" class="ms-2">Date End<span class="required text-danger">*</span></label>
-                        <span asp-validation-for="DateArrived" class="text-danger"></span>
-                    </div>
-                    <div class="form-floating col-6 my-2">
-                        <input type="time" asp-for="TimeArrived" value="@(Model.TimeArrived == null ? null : Model.TimeArrived.Value.ToString("HH\\:mm"))" class="form-control border-0 shadow" id="TimeArrived" placeholder=" " required>
-                        <label asp-for="TimeArrived" for="TimeArrived" class="ms-2">Time End<span class="required text-danger">*</span></label>
-                        <span asp-validation-for="TimeArrived" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="form-group col-6 my-2">
-                        <label class="control-label ps-1 pb-1">Port<span class="required text-danger">*</span></label>
-                        <select asp-for="@Model.Terminal!.Port!.PortId" id="PortSelect" asp-items="@Model.Ports" class="port-select form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
-                            <option value="">Select Port</option>
-                        </select>
-                        <span class="text-danger"></span>
-                    </div>
-                    <div class="form-group col-6 my-2">
-                        <label class="control-label ps-1 pb-1">Terminal<span class="required text-danger">*</span></label>
-                        <select id="TerminalSelect" asp-items="@Model.Terminals" asp-for="TerminalId" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
-                            <option value="">Select Terminal</option>
-                        </select>
-                        <span asp-validation-for="TerminalId" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="form-group col-6 my-2">
-                        <label class="control-label ps-1 pb-1">Activity/Service Type<span class="required text-danger">*</span></label>
-                        <select asp-for="ServiceId" asp-items="@Model.Services" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
-                            <option value="">Select Activity Service</option>
-                        </select>
-                        <span asp-validation-for="ServiceId" class="text-danger"></span>
-                    </div>
-                    <div class="form-group col-6 my-2">
-                        <label class="control-label ps-1 pb-1">Tugboat/Service provider<span class="required text-danger">*</span></label>
-                        <select asp-for="TugBoatId" asp-items="@Model.Tugboats" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
-                            <option value="">Select Tugboat</option>
-                        </select>
-                        <span asp-validation-for="TugBoatId" class="text-danger"></span>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="form-group col-6 my-2">
-                        <label class="control-label pb-1">Master on Duty<span class="required text-danger">*</span></label>
-                        <select asp-for="TugMasterId" asp-items="@Model.TugMasters" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
-                            <option value="">Select Tug Master</option>
-                        </select>
-                        <span asp-validation-for="TugMasterId" class="text-danger"></span>
-                    </div>
-                    <div class="form-group col-6 my-2">
+                    <div class="form-group col-md-6 col-12 my-2">
                         <label class="control-label ps-1 pb-1">Vessel<span class="required text-danger">*</span></label>
                         <select asp-for="VesselId" asp-items="@Model.Vessels" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
                             <option value="">Select Vessel</option>
                         </select>
                         <span asp-validation-for="VesselId" class="text-danger"></span>
                     </div>
+                    <div class="form-group col-md-3 col-6 my-2">
+                        <label class="control-label ps-1 pb-1">Port<span class="required text-danger">*</span></label>
+                        <select asp-for="@Model.Terminal!.Port!.PortId" id="PortSelect" asp-items="@Model.Ports" class="port-select form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
+                            <option value="">Select Port</option>
+                        </select>
+                        <span class="text-danger"></span>
+                    </div>
+                    <div class="form-group col-md-3 col-6 my-2">
+                        <label class="control-label ps-1 pb-1">Terminal<span class="required text-danger">*</span> <span id="terminalLoading" class="spinner-border spinner-border-sm text-secondary ms-1" style="display:none;" role="status"></span></label>
+                        <select id="TerminalSelect" asp-items="@Model.Terminals" asp-for="TerminalId" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
+                            <option value="">Select Terminal</option>
+                        </select>
+                        <span asp-validation-for="TerminalId" class="text-danger"></span>
+                    </div>
                 </div>
+
+                <!-- IV. Provider Details -->
+                <h5 class="section-header text-secondary border-bottom"><i class="bi bi-person-badge me-2"></i>IV. Provider Details</h5>
+                <div class="row">
+                    <div class="form-group col-md-4 col-12 my-2">
+                        <label class="control-label ps-1 pb-1">Activity/Service Type<span class="required text-danger">*</span></label>
+                        <select asp-for="ServiceId" asp-items="@Model.Services" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
+                            <option value="">Select Service</option>
+                        </select>
+                        <span asp-validation-for="ServiceId" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group col-md-4 col-6 my-2">
+                        <label class="control-label ps-1 pb-1">Tugboat/Service provider<span class="required text-danger">*</span></label>
+                        <select asp-for="TugBoatId" asp-items="@Model.Tugboats" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
+                            <option value="">Select Tugboat</option>
+                        </select>
+                        <span asp-validation-for="TugBoatId" class="text-danger"></span>
+                    </div>
+                    <div class="form-group col-md-4 col-6 my-2">
+                        <label class="control-label pb-1">Master on Duty<span class="required text-danger">*</span></label>
+                        <select asp-for="TugMasterId" asp-items="@Model.TugMasters" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
+                            <option value="">Select Tug Master</option>
+                        </select>
+                        <span asp-validation-for="TugMasterId" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <!-- V. Remarks & Media -->
+                <h5 class="section-header text-secondary border-bottom"><i class="bi bi-chat-left-text me-2"></i>V. Media & Remarks</h5>
                 <div class="row">
                     <div class="form-floating col-12 my-2">
                         <input asp-for="Remarks" value="@Model.Remarks" type="text" class="form-control border-0 shadow" id="Remarks" placeholder=" ">
@@ -135,44 +225,45 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="form-group col-6 my-2">
+                    <div class="form-group col-md-6 col-12 my-2">
                         <label for="imageUpload" class="form-label">Upload image of Dispatch Ticket</label>
-                        <input class="form-control form-control-sm" id="imageUpload" name="imageFile" type='file' accept="image/png, image/jpg, image/jpeg"/>
+                        <input class="form-control form-control-sm border-0 shadow" id="imageUpload" name="imageFile" type='file' accept="image/png, image/jpg, image/jpeg"/>
                     </div>
-                    <div class="form-group col-6 my-2">
-                        <label for="videoUpload" class="form-label">Upload video of Service Operation</label>
-                        <input class="form-control form-control-sm" id="videoUpload" name="videoFile" type='file' accept="video/mp4, video/ogg" />
+                    <div class="form-group col-md-6 col-12 my-2">
+                        <label for="videoUpload" class="form-label">Upload video of service operation</label>
+                        <input class="form-control form-control-sm border-0 shadow" id="videoUpload" name="videoFile" type='file' accept="video/mp4, video/ogg"/>
                     </div>
                 </div>
             </div>
-            <div class="row col-12 justify-content-end my-2">
+            
+            <div class="row col-12 justify-content-end my-4">
                 @if (!string.IsNullOrEmpty(Model.ImageName))
                 {
-                    <div class="text-center" style="width: 200px">
-                        <button class="btn btn-primary custom-btn col-12 align-content-center my-1" type="button" id="viewImage"><i class="bi bi-eye"></i> View Image</button>
+                    <div class="text-center" style="width: 180px">
+                        <button class="btn btn-primary custom-btn col-12 align-content-center my-1 shadow" type="button" id="viewImage"><i class="bi bi-eye"></i> View Image</button>
                     </div>
-                    <div class="text-center" style="width: 200px">
-                        <a class="btn btn-outline-primary col-12 align-content-center selected-options my-1" type="button" id="deleteImage" data-image-id="@Model.DispatchTicketId">
+                    <div class="text-center" style="width: 180px">
+                        <button class="btn btn-outline-danger col-12 align-content-center selected-options my-1 shadow" type="button" id="deleteImage" data-image-id="@Model.DispatchTicketId">
                             <i class="bi bi-trash-fill"></i> Delete Image
-                        </a>
+                        </button>
                     </div>
                 }
                 @if (!string.IsNullOrEmpty(Model.VideoName))
                 {
-                    <div class="text-center" style="width: 200px">
-                        <button class="btn btn-primary custom-btn col-12 align-content-center my-1 view-video" data-videolink="@Model.VideoSignedUrl" type="button"><i class="bi bi-eye"></i> Play Video</button>
+                    <div class="text-center" style="width: 180px">
+                        <button class="btn btn-primary custom-btn col-12 align-content-center my-1 view-video shadow" data-videolink="@Model.VideoSignedUrl" type="button"><i class="bi bi-play-circle"></i> Play Video</button>
                     </div>
-                    <div class="text-center" style="width: 200px">
-                        <a class="btn btn-outline-primary col-12 align-content-center selected-options my-1" type="button" id="deleteVideo" data-video-id="@Model.DispatchTicketId">
+                    <div class="text-center" style="width: 180px">
+                        <button class="btn btn-outline-danger col-12 align-content-center selected-options my-1 shadow" type="button" id="deleteVideo" data-video-id="@Model.DispatchTicketId">
                             <i class="bi bi-trash-fill"></i> Delete Video
-                        </a>
+                        </button>
                     </div>
                 }
                 <div class="text-center" style="width: 150px">
-                    <button class="btn btn-primary custom-btn col-12 align-content-center selected-options" type="submit" id="submitButton"><i class="bi bi-pencil-square"></i> Save</button>
+                    <button class="btn btn-primary custom-btn col-12 align-content-center selected-options shadow" type="submit" id="submitButton"><i class="bi bi-check-circle"></i> Save</button>
                 </div>
                 <div class="text-center" style="width: 150px">
-                    <a class="btn btn-outline-primary col-12 align-content-center selected-options" type="button" asp-controller="DispatchTicket" asp-action="Index" asp-area="User" asp-route-filterType="@filterType">
+                    <a class="btn btn-outline-primary col-12 align-content-center selected-options shadow" asp-controller="DispatchTicket" asp-action="Index" asp-route-filterType="@filterType">
                         <i class="bi bi-arrow-90deg-left"></i> Go Back
                     </a>
                 </div>
@@ -184,164 +275,114 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
+            // Image Preview
             document.getElementById('viewImage')?.addEventListener('click', function () {
                 let maxHeight = window.innerHeight * 0.8;
-
                 Swal.fire({
                     imageUrl: '@Html.Raw(Model.ImageSignedUrl)',
-                    imageAlt: "Custom image",
+                    imageAlt: "Dispatch Ticket Image",
                     showConfirmButton: false,
                     background: 'transparent',
-                    customClass: {
-                        popup: 'custom-image-popup' // Unique class for this modal
-                    },
                     padding: 0,
                     width: 'auto',
                     heightAuto: true,
                     didOpen: () => {
-                        let swal2ImageVar = $('.swal2-image');
-                        swal2ImageVar.css('max-height', maxHeight + 'px');
-                        swal2ImageVar.css('height', 'auto');
+                        $('.swal2-image').css({'max-height': maxHeight + 'px', 'height': 'auto'});
                     }
                 });
             });
-        });
-    </script>
 
-    <script>
-        let currentPort = "";
-        const select = document.getElementById("TerminalSelect");
+            // Video Preview
+            $(document).on("click", ".view-video", function () {
+                const videoLink = this.getAttribute("data-videolink");
+                if (!videoLink) return;
+                Swal.fire({
+                    html: `<video width="100%" height="auto" controls autofocus><source src="${videoLink}" type="video/mp4">Your browser does not support the video tag.</video>`,
+                    showConfirmButton: false,
+                    background: 'transparent',
+                    width: '80%',
+                });
+            });
 
-        $(document).ready(function () {
-
-            // function for terminal choices change when port is selected
-            let portSelectVar = $("#PortSelect");
+            // Port/Terminal Logic
+            const port = $("#PortSelect");
+            const terminalSelectVar = $("#TerminalSelect");
+            const terminalLoading = $("#terminalLoading");
+            
             function HandlePortChange() {
-                let portId = portSelectVar.val();
-
+                let portId = port.val();
+                if (!portId) return;
+                terminalLoading.show();
                 $.ajax({
-                    url: '@Url.Action("ChangeTerminal", "ServiceRequest")',
+                    url: '@Url.Action("ChangeTerminal", "DispatchTicket")',
                     type: "GET",
                     data: { portId: portId },
                     success: function (data) {
-                        let terminalSelectVar = $("#TerminalSelect");
                         terminalSelectVar.empty();
-                        if (Array.isArray(data) && data.length > 0) {
-                            terminalSelectVar.append('<option>');
+                        terminalSelectVar.append('<option value="">Select Terminal</option>');
+                        if (Array.isArray(data)) {
                             $.each(data, function (index, item) {
-                                terminalSelectVar.append($('<option>', {
-                                    value: item.value,
-                                    text: item.text
-                                }));
+                                terminalSelectVar.append($('<option>', { value: item.value, text: item.text }));
                             });
                         }
-                    }
+                    },
+                    complete: function() { terminalLoading.hide(); }
                 });
-
             }
+            port.change(HandlePortChange);
 
-            // swal asking if sure to delete image
-            document.getElementById('deleteImage')?.addEventListener('click', function () {
-                let imageId = this.getAttribute('data-image-id');
+            // Duration Logic
+            const dateLeft = $("#DateLeft");
+            const timeLeft = $("#TimeLeft");
+            const dateArrived = $("#DateArrived");
+            const timeArrived = $("#TimeArrived");
+            const durationDisplay = $("#durationDisplay");
+            const totalHoursSpan = $("#totalHours");
 
-                Swal.fire({
-                    title: "Do you want to delete the image?",
-                    showCancelButton: true,
-                    confirmButtonText: "Yes",
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = `/MMSI/ServiceRequest/DeleteImage/${imageId}`;
-                    }
-                });
-
-            });
-
-            // swal asking if sure to delete image
-            document.getElementById('deleteVideo')?.addEventListener('click', function () {
-                let videoId = this.getAttribute('data-video-id');
-
-                Swal.fire({
-                    title: "Do you want to delete the video?",
-                    showCancelButton: true,
-                    confirmButtonText: "Yes",
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        window.location.href = `/MMSI/ServiceRequest/DeleteVideo/${videoId}`;
-                    }
-                });
-
-            });
-
-            // will ask if you want to replace existing image
-            document.getElementById('submitButton')?.addEventListener('click', function (event) {
-
-                event.preventDefault();
-                let existingImageName = '@Model.ImageName';
-                let existingVideoName = '@Model.VideoName';
-                let newImage = document.getElementById('imageUpload').files.length > 0;
-                let newVideo = document.getElementById('videoUpload').files.length > 0;
-                let form = document.getElementById('submitButton').form;
-
-                function trySubmit() {
-                    // Check if the form is valid using HTML5 validation
-                    if (form.checkValidity()) {
-                        form.submit(); // Submit if valid
-                    } else {
-                        // Trigger validation UI (show error messages)
-                        form.reportValidity();
-                    }
-                }
-
-                if ((existingImageName && existingImageName !== "" && newImage) || (existingVideoName && existingVideoName !== "" && newVideo)) {
-                    Swal.fire({
-                        title: "Do you want to replace existing file(s)?",
-                        text: "Current file(s) will be replaced with new one(s).",
-                        showCancelButton: true,
-                        confirmButtonText: "Confirm",
-                        cancelButtonText: "Cancel"
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            trySubmit();
+            function calculateDuration() {
+                if (dateLeft.val() && timeLeft.val() && dateArrived.val() && timeArrived.val()) {
+                    const start = new Date(`${dateLeft.val()}T${timeLeft.val()}`);
+                    const end = new Date(`${dateArrived.val()}T${timeArrived.val()}`);
+                    if (!isNaN(start) && !isNaN(end)) {
+                        const diffMs = end - start;
+                        if (diffMs < 0) {
+                            durationDisplay.removeClass("bg-secondary").addClass("bg-danger").show();
+                            totalHoursSpan.text("Invalid (End before Start)");
+                        } else {
+                            durationDisplay.removeClass("bg-danger").addClass("bg-secondary").show();
+                            totalHoursSpan.text((diffMs / 3600000).toFixed(2));
                         }
+                    }
+                } else {
+                    durationDisplay.hide();
+                }
+            }
+            $(".timeline-input").on("input change", calculateDuration);
+            calculateDuration();
+
+            // Deletion Logic
+            $("#deleteImage").click(function () {
+                Swal.fire({ title: "Delete image?", showCancelButton: true }).then((r) => {
+                    if (r.isConfirmed) window.location.href = '@Url.Action("DeleteImage", "DispatchTicket", new { id = Model.DispatchTicketId })';
+                });
+            });
+            $("#deleteVideo").click(function () {
+                Swal.fire({ title: "Delete video?", showCancelButton: true }).then((r) => {
+                    if (r.isConfirmed) window.location.href = '@Url.Action("DeleteVideo", "DispatchTicket", new { id = Model.DispatchTicketId })';
+                });
+            });
+
+            // Submit Confirmation
+            $("#submitButton").click(function (e) {
+                const hasExisting = '@Model.ImageName' || '@Model.VideoName';
+                const hasNew = $("#imageUpload")[0].files.length || $("#videoUpload")[0].files.length;
+                if (hasExisting && hasNew) {
+                    e.preventDefault();
+                    Swal.fire({ title: "Replace files?", showCancelButton: true }).then((r) => {
+                        if (r.isConfirmed) $("#myForm").submit();
                     });
                 }
-                else {
-                    trySubmit();
-                }
             });
-
-            // if port changes, proc terminal choice change function
-            portSelectVar.change(HandlePortChange);
-
-            $(document).on("click", ".view-video", function () {
-                const videoLink = this.getAttribute("data-videolink");
-                if (!videoLink) {
-                    console.error("No video found.");
-                    return;
-                }
-
-                const maxHeight = window.innerHeight * 0.8;
-                Swal.fire({
-                    html: `
-                            <video width="1280" height="720" controls>
-                                <source src="${videoLink}" type="video/mp4">
-                                Your browser does not support the video tag.
-                            </video>
-                            `,
-                    showConfirmButton: false,
-                    padding: 0,
-                    width: "auto",
-                    heightAuto: true,
-                    background: "transparent",
-                    didOpen: () => {
-                        $(".swal2-image").css({
-                            "max-height": `${maxHeight}px`,
-                            "height": "auto"
-                        });
-                    }
-                });
-            });
-
         });
     </script>
 }
