@@ -1,3 +1,4 @@
+@using IBS.Utility.Constants
 @model CreateBillingViewModel
 
 @{
@@ -8,6 +9,14 @@
     .container {
         max-width: 100% !important;
         width: 100% !important;
+    }
+
+    .section-header {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
     }
 
     /* Custom styles for professional look */
@@ -27,28 +36,6 @@
         background-color: rgba(59, 130, 246, 0.05);
     }
 
-    .table-loading {
-        position: relative;
-        opacity: 0.6;
-    }
-
-    .badge {
-        font-weight: 500;
-        padding: 0.35em 0.8em;
-        font-size: 0.75rem;
-    }
-
-    .actions-dropdown .dropdown-item {
-        padding: 0.5rem 1rem;
-        font-size: 0.8rem;
-    }
-
-    .actions-dropdown .dropdown-item:hover {
-        background-color: #f3f4f6;
-    }
-
-
-
     table {
         font-size: 10px !important;
         table-layout: auto !important;
@@ -63,15 +50,16 @@
         margin: 5px !important;
         padding: 5px !important;
     }
+
+    .totals-box {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+    }
 </style>
 
 <link rel="stylesheet" href="~/css/form-style.css">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiple Select with Bootstrap</title>
-</head>
 
 <div class="card shadow mt-4">
 
@@ -86,20 +74,19 @@
             <div class="border-2 px-3">
                 <div asp-validation-summary="ModelOnly"></div>
                 <input asp-for="MMSIBillingId" id="billingId" value="@Model.MMSIBillingId" type="hidden">
-                <div class="row pt-3">
-                </div>
                 
-                <div class="row pt-2">
-                    <div class="form-group col-3 my-2" title="Customer can no longer be changed" >
+                <!-- I. Customer & Settlement -->
+                <h5 class="section-header text-secondary border-bottom"><i class="bi bi-person-check me-2"></i>I. Customer & Settlement</h5>
+                <div class="row">
+                    <div class="form-group col-md-3 col-12 my-2" title="Customer can no longer be changed" >
                         <label class="control-label ps-1 pb-1">Customer<span class="required text-danger">*</span></label>
                         <select asp-for="CustomerId" id="CustomerId" asp-items="@Model.Customers" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%">
                             <option value="">Select Customer</option>
                         </select>
                         <span asp-validation-for="CustomerId" class="text-danger"></span>
                     </div>
-                    <div class="col-6">
+                    <div class="col-md-6 col-12">
                         <div id="PrincipalDiv" class="row @(ViewData["HasPrincipal"] as bool? == true ? "" : "d-none")">
-
                             <div class="col-6" style="height: 72px;">
                                 <div class="row">
                                     <div id="SelectDiv" class="form-group col-12 my-2 @(Model.PrincipalId.HasValue ? "" : "d-none")">
@@ -118,160 +105,159 @@
                                     Use Principal
                                 </label>
                             </div>
-
                         </div>
                     </div>
-                    <div class="col-3 ps-2 my-2">
+                    <div class="col-md-3 col-12 ps-2 my-2">
                         <div class="row">
-                            <div class="col">
+                            <div class="col text-start">
                                 <input asp-for="BilledTo" value="LOCAL" type="radio">
-                                <label style="font-size: 20px;">
-                                    Billed To Local
-                                </label>
+                                <label style="font-size: 20px;" class="ms-1">Billed To Local</label>
                             </div>
                         </div>
-
                         <div class="row">
-                            <div class="col">
+                            <div class="col text-start">
                                 <input asp-for="BilledTo" value="PRINCIPAL" type="radio">
-                                <label style="font-size: 20px;">
-                                    Billed To Principal
-                                </label>
+                                <label style="font-size: 20px;" class="ms-1">Billed To Principal</label>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="row pt-2">
-                    <div class="form-floating col-3 my-2">
-                        <input class="form-control border-0 shadow" id="Address" placeholder="" readonly>
+                <!-- II. Reference Information -->
+                <h5 class="section-header text-secondary border-bottom"><i class="bi bi-info-circle me-2"></i>II. Reference Information</h5>
+                <div class="row">
+                    <div class="form-floating col-md-3 col-12 my-2">
+                        <input class="form-control border-0 shadow bg-light" id="Address" placeholder=" " readonly>
                         <label class="ms-2">Address</label>
-                        <span class="text-danger"></span>
                     </div>
-                    <div class="form-floating col-3 my-2">
-                        <input class="form-control border-0 shadow" id="TIN" placeholder="" readonly>
+                    <div class="form-floating col-md-3 col-6 my-2">
+                        <input class="form-control border-0 shadow bg-light" id="TIN" placeholder=" " readonly>
                         <label class="ms-2">TIN</label>
-                        <span class="text-danger"></span>
                     </div>
-                    <div class="form-floating col-3 my-2">
-                        <input class="form-control border-0 shadow" id="BusinessStyle" placeholder="" readonly>
+                    <div class="form-floating col-md-3 col-6 my-2">
+                        <input class="form-control border-0 shadow bg-light" id="BusinessStyle" placeholder=" " readonly>
                         <label class="ms-2">Business Style</label>
-                        <span class="text-danger"></span>
                     </div>
-                    <div class="form-floating col-3 my-2">
-                        <input class="form-control border-0 shadow" id="Terms" placeholder="" readonly>
+                    <div class="form-floating col-md-3 col-6 my-2">
+                        <input class="form-control border-0 shadow bg-light" id="Terms" placeholder=" " readonly>
                         <label class="ms-2">Terms</label>
-                        <span class="text-danger"></span>
                     </div>
                 </div>
                 
+                <!-- III. Billing Details -->
+                <h5 class="section-header text-secondary border-bottom"><i class="bi bi-receipt me-2"></i>III. Billing Details</h5>
                 <div class="row">
-                    <div class="form-floating col-3 my-3">
-                        <input asp-for="MMSIBillingNumber" type="text" class="form-control border-0 shadow" id="billingNumber" placeholder="" readonly>
+                    <div class="form-floating col-md-3 col-6 my-3">
+                        <input asp-for="MMSIBillingNumber" type="text" class="form-control border-0 shadow bg-light" id="billingNumber" placeholder=" " readonly>
                         <label asp-for="MMSIBillingNumber" for="billingNumber" id="status" class="ms-2">Billing Number<span class="required text-danger">*</span></label>
                         <span asp-validation-for="MMSIBillingNumber" class="text-danger"></span>
                     </div>
-                    <div class="form-check col-3 ps-2 my-3 text-center d-flex align-items-center justify-content-start">
+                    <div class="form-check col-md-3 col-6 ps-2 my-3 text-center d-flex align-items-center justify-content-start">
                         <input type="hidden" asp-for="IsUndocumented" value="@Model.IsUndocumented"></input>
                         <input class="form-check-input m-0 ms-2" type="checkbox" id="isUndocumentedCheckbox" checked="@Model.IsUndocumented" disabled>
                         <label class="text-decoration-underline form-check-label ps-1 h4 m-0" for="isUndocumentedCheckbox" style="font-size: 20px;">
                             Undocumented
                         </label>
                     </div>
-                    <div class="col-3">
-
-                    </div>
-                    <div class="form-floating col-3 my-3">
-                        <input asp-for="VoyageNumber" type="text" class="form-control border-0 shadow" id="VoyageNumber" placeholder="" required>
+                    <div class="form-floating col-md-3 col-6 my-3">
+                        <input asp-for="VoyageNumber" type="text" class="form-control border-0 shadow" id="VoyageNumber" placeholder=" " required>
                         <label asp-for="VoyageNumber" for="VoyageNumber" class="ms-2">Voyage Number<span class="required text-danger">*</span></label>
                         <span asp-validation-for="VoyageNumber" class="text-danger"></span>
                     </div>
-                </div>
-                <div class="row">
-                    <div class="form-floating col-3 my-2">
+                    <div class="form-floating col-md-3 col-6 my-3">
                         <input asp-for="Date" type="date" id="Date" class="form-control border-0 shadow">
                         <label asp-for="Date" for="Date" class="ms-2">Date Created</label>
                         <span asp-validation-for="Date" class="text-danger"></span>
                     </div>
-                    <div class="form-group col-3 my-2">
+                </div>
+
+                <!-- IV. Operation Details -->
+                <h5 class="section-header text-secondary border-bottom"><i class="bi bi-geo-alt me-2"></i>IV. Operation Details</h5>
+                <div class="row">
+                    <div class="form-group col-md-3 col-6 my-2">
                         <label class="control-label ps-1 pb-1">Port<span class="required text-danger">*</span></label>
                         <select asp-for="PortId" asp-items="@Model.Ports" id="PortSelect" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
                             <option value="">Select Port</option>
                         </select>
                         <span asp-validation-for="PortId" class="text-danger"></span>
                     </div>
-                    <div class="form-group col-3 my-2">
+                    <div class="form-group col-md-3 col-6 my-2">
                         <label class="control-label ps-1 pb-1">Terminal<span class="required text-danger">*</span></label>
                         <select asp-for="TerminalId" asp-items="@Model.Terminals" id="TerminalSelect" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
                             <option value="">Select Terminal</option>
                         </select>
                         <span asp-validation-for="TerminalId" class="text-danger"></span>
                     </div>
-                    <div class="form-group col-3 my-2">
+                    <div class="form-group col-md-3 col-6 my-2">
                         <label class="control-label ps-1 pb-1">Vessel<span class="required text-danger">*</span></label>
                         <select asp-for="VesselId" asp-items="@Model.Vessels" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
                             <option value="">Select Vessel</option>
                         </select>
                         <span asp-validation-for="VesselId" class="text-danger"></span>
                     </div>
-                </div>
-
-                <div class="row">
-                    <div class="form-floating col-3 my-2">
+                    <div class="form-floating col-md-3 col-6 my-2">
                         <input asp-for="ApOtherTug" step="0.01" type="number" class="form-control border-0 shadow" placeholder=" " min="0">
                         <label asp-for="ApOtherTug" class="ms-2">AP Other Tug</label>
                         <span asp-validation-for="ApOtherTug" class="text-danger"></span>
                     </div>
                 </div>
 
-                <div class="row pt-2 mt-4">
-
+                <!-- V. Itemized Dispatch Tickets -->
+                <h5 class="section-header text-secondary border-bottom"><i class="bi bi-list-check me-2"></i>V. Itemized Dispatch Tickets</h5>
+                <div class="row pt-2">
                     <div class="form-group col-12">
                         <label class="control-label mb-2">Choose dispatch tickets to bill:</label>
-                        <select asp-for="ToBillDispatchTickets" id="DispatchTicketSelect"  asp-items="@Model.UnbilledDispatchTickets" class="form-control js-example-basic-multiple col-12" name="ToBillDispatchTickets" multiple="multiple" required>
+                        <select asp-for="ToBillDispatchTickets" id="DispatchTicketSelect" asp-items="@Model.UnbilledDispatchTickets" class="form-control js-example-basic-multiple col-12" name="ToBillDispatchTickets" multiple="multiple" required>
                         </select>
                     </div>
-
                 </div>
 
-                <table id="dataTable" class="table table-striped table-bordered mt-3" style="width:100%">
-                    <thead>
-                    <tr>
-                        <th class="text-center align-content-center ps-4">DISPATCH#</th>
-                        <th class="text-center align-content-center ps-4">TUGBOAT</th>
-                        <th class="text-center align-content-center ps-4">SERVICE</th>
-                        <th class="text-center align-content-center ps-4">TIME START</th>
-                        <th class="text-center align-content-center ps-4">TIME END</th>
-                        <th class="text-center align-content-center ps-4">HOUR</th>
-                        <th class="text-center align-content-center ps-4">DISPATCH RATE</th>
-                        <th class="text-center align-content-center ps-4">DISPATCH AMOUNT</th>
-                        <th class="text-center align-content-center ps-4">BAF RATE</th>
-                        <th class="text-center align-content-center ps-4">BAF AMOUNT</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table id="dataTable" class="table table-striped table-bordered mt-3" style="width:100%">
+                        <thead>
+                        <tr>
+                            <th class="text-center align-content-center">DISPATCH#</th>
+                            <th class="text-center align-content-center">TUGBOAT</th>
+                            <th class="text-center align-content-center">SERVICE</th>
+                            <th class="text-center align-content-center">TIME START</th>
+                            <th class="text-center align-content-center">TIME END</th>
+                            <th class="text-center align-content-center">HOUR</th>
+                            <th class="text-center align-content-center">DISPATCH RATE</th>
+                            <th class="text-center align-content-center">DISPATCH AMOUNT</th>
+                            <th class="text-center align-content-center">BAF RATE</th>
+                            <th class="text-center align-content-center">BAF AMOUNT</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
 
                 <div class="row py-3 justify-content-end d-flex">
-                    <div class="col-2">
-                        <label>Total Dispatch: ₱<label id="DispatchAmountTotal"></label></label>
-                    </div>
-                    <div class="col-2">
-                        <label>Total BAF: ₱<label id="BAFAmountTotal"></label></label>
-                    </div>
-                    <div class="col-2">
-                        <label>Total Amount: ₱<label id="OverallTotal"></label></label>
+                    <div class="col-md-6 col-12 totals-box shadow-sm">
+                        <div class="row">
+                            <div class="col-4 text-start">
+                                <label class="fw-bold">Total Dispatch:</label><br/>
+                                ₱ <span id="DispatchAmountTotal" class="text-primary fw-bold">0.00</span>
+                            </div>
+                            <div class="col-4 text-start border-start">
+                                <label class="fw-bold">Total BAF:</label><br/>
+                                ₱ <span id="BAFAmountTotal" class="text-primary fw-bold">0.00</span>
+                            </div>
+                            <div class="col-4 text-start border-start">
+                                <label class="fw-bold">Total Amount:</label><br/>
+                                ₱ <span id="OverallTotal" class="text-success fw-bold" style="font-size: 1.1rem;">0.00</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="row col-12 justify-content-end mb-2">
-                    <div class="text-center" style="width: 250px">
-                        <button class="btn btn-primary custom-btn col-12 align-content-center selected-options" type="submit" id="submitButton"><i class="bi bi-pencil-square"></i> Submit</button>
+                <div class="row col-12 justify-content-end my-4 gap-2">
+                    <div class="text-center" style="width: 200px">
+                        <button class="btn btn-primary custom-btn w-100 shadow" type="submit" id="submitButton"><i class="bi bi-pencil-square"></i> Submit</button>
                     </div>
-                    <div class="text-center" style="width: 250px">
-                        <a class="btn btn-outline-primary border col-12 align-content-center selected-options" asp-controller="Billing" asp-action="Index">
+                    <div class="text-center" style="width: 200px">
+                        <a class="btn btn-outline-primary w-100 shadow" asp-controller="Billing" asp-action="Index">
                             <i class="bi bi-arrow-90deg-left"></i> Go Back
                         </a>
                     </div>
@@ -311,17 +297,14 @@
             }
 
             function setupEventListeners() {
-                
-                $("#UsePrincipalCheckbox").on("change", handleUsePrincipalChange); // Use principal? checkbox: empty val, enable requirement
-                $("#PrincipalSelect").on("change.select2", handlePrincipalChange); // Principal select: replace details with principal's
-                $("#CustomerId").on("change", handleCustomerChange); // Customer select: replace details, change ticket select list, empty principal val, principal select disable requirement
-                $("#PortSelect").on("change", handlePortChange); // Port select: update terminal select list
+                $("#UsePrincipalCheckbox").on("change", handleUsePrincipalChange);
+                $("#PrincipalSelect").on("change.select2", handlePrincipalChange);
+                $("#CustomerId").on("change", handleCustomerChange);
+                $("#PortSelect").on("change", handlePortChange);
                 $("#submitButton").on("click", areYouSureToBill);
-                multiSelectVar.on('change', handleDispatchTicketsChange); // Tickets select: update ticket table contents, update total amount and ewt
+                multiSelectVar.on('change', handleDispatchTicketsChange);
             }
 
-            // Principal checkbox: checked - empty value, update select list, make it appear, enable requirement
-            // Principal checkbox: if unchecked, empty value, disappear, disable requirement
             function handleUsePrincipalChange() {
                 const $checkbox = $("#UsePrincipalCheckbox");
                 const $selectDiv = $("#SelectDiv");
@@ -341,7 +324,6 @@
                 }
             }
 
-            // Principal select: get principal list
             function fetchPrincipals(customerId) {
                 $.ajax({
                     url: '@Url.Action("GetPrincipalsJSON", "Billing", new { area = "User" })',
@@ -362,7 +344,6 @@
                 });
             }
 
-            // Customer details: what do if changed
             function handlePrincipalChange() {
                 const principalId = $("#PrincipalSelect").val();
                 $.ajax({
@@ -375,7 +356,6 @@
                 });
             }
 
-            // 1 Customer select: what do if changed
             function handleCustomerChange() {
                 const customerId = $(this).val();
                 const billingId = $("#billingId").val();
@@ -383,17 +363,15 @@
                 const $principalSelect = $("#PrincipalSelect");
                 const $selectDiv = $("#SelectDiv");
                 const $dispatchSelect = $("#DispatchTicketSelect");
-                //const $vatableCheckBox = $("#IsVatableCheckBox");
                 
-                $("#UsePrincipalCheckbox").prop("checked", false); // Principal checkbox: unchecks
-                $principalDiv.removeClass("d-none"); // Principal div: checkbox appears, 
-                $principalSelect.prop("required", false); // Principal select: disable requirement  
-                $selectDiv.addClass("d-none"); // but select is still hidden
+                $("#UsePrincipalCheckbox").prop("checked", false);
+                $principalDiv.removeClass("d-none");
+                $principalSelect.prop("required", false);
+                $selectDiv.addClass("d-none");
 
-                // If customer != null
                 if (customerId) {
-                    $dispatchSelect.prop("disabled", false); // Tickets select: enable
-                    $dispatchSelect.prop("required", true); // Tickets select: enable
+                    $dispatchSelect.prop("disabled", false);
+                    $dispatchSelect.prop("required", true);
                     
                     $.ajax({
                         url: '@Url.Action("GetCustomerDetails", "Billing", new { area = "User" })',
@@ -402,14 +380,11 @@
                         success: function (data) {
                             updateFields(data);
                             $principalDiv.toggleClass("d-none", !data.hasPrincipal);
-                            //$vatableCheckBox.prop("checked", data.vatType === "Vatable");
 
-                            // Ticket select: update choices
                             $.ajax({
                                 url: '@Url.Action("GetEditTickets", "Billing", new { area = "User" })',
                                 method: "POST",
-                                data: { customerId: customerId,
-                                    billingId: billingId },
+                                data: { customerId: customerId, billingId: billingId },
                                 success: function (data) {
                                     $dispatchSelect.empty();
                                     if (Array.isArray(data) && data.length > 0) {
@@ -424,31 +399,26 @@
                             });
                         }
                     });
-                    // Customer select val == null
                 } else {
-                    $dispatchSelect.val("0").trigger("change"); // Ticket select: empties
-                    $dispatchSelect.prop("disabled", true); // Ticket select: disabled
-                    $selectDiv.addClass("d-none"); // Principal select: disappears
-                    $principalDiv.addClass("d-none"); // Principal dix: disappears
+                    $dispatchSelect.val("0").trigger("change");
+                    $dispatchSelect.prop("disabled", true);
+                    $selectDiv.addClass("d-none");
+                    $principalDiv.addClass("d-none");
                 }
             }
             
-            // 2 Customer details: updates based on passed data
             function updateFields(data) {
-                // Creates an array of array containing the id of the field and the value to put
                 const fields = {
                     "#Terms": data?.terms || '',
                     "#Address": data?.address || '',
                     "#TIN": data?.tinNo || '',
                     "#BusinessStyle": data?.businessStyle || ''
                 };
-                // Loops through the array and input the values
                 for (const [selector, value] of Object.entries(fields)) {
                     $(selector).val(value);
                 }
             }
 
-            // Port select: changes, updates terminal list
             function handlePortChange() {
                 const portId = $("#PortSelect").val();
                 $.ajax({
@@ -457,8 +427,7 @@
                     data: { portId: portId },
                     success: function (data) {
                         const $terminalSelect = $("#TerminalSelect");
-                        $terminalSelect.empty().append('<option value="">Select Terminal</option>'); // Terminal select: empties
-                        // Terminal select: loops the array to input the choices
+                        $terminalSelect.empty().append('<option value="">Select Terminal</option>');
                         if (Array.isArray(data) && data.length > 0) {
                             $.each(data, function (index, item) {
                                 $terminalSelect.append($('<option>', {
@@ -471,7 +440,6 @@
                 });
             }
 
-            // Ticket select: changes, get the tickets
             function handleDispatchTicketsChange() {
                 const selectedTickets = multiSelectVar.val();
                 $.ajax({
@@ -479,7 +447,7 @@
                     type: 'POST',
                     data: { dispatchTicketIds: selectedTickets },
                     success: function (result) {
-                        updateDispatchTable(result.data); // Tickets table: pass the fetched data to update the table
+                        updateDispatchTable(result.data);
                     },
                     error: function (xhr, status, error) {
                         console.error('Error:', error);
@@ -487,50 +455,40 @@
                 });
             }
 
-            // Tickets table: updates, amount updates
             function updateDispatchTable(data) {
                 let totalDispatchAmount = 0;
                 let totalBAFAmount = 0;
 
-                // Tickets table: reset
                 table.destroy();
                 const $tbody = $('#dataTable tbody').empty();
 
-                // Loops the fetched tickets
                 $.each(data, function (index, value) {
-                    
-                    // Dispatch and BAF totals added
                     totalDispatchAmount += value.dispatchNetRevenue;
                     totalBAFAmount += value.bafNetRevenue;
-                    
-                    // Tickets table: updates
                     $tbody.append(`
                         <tr>
-                            <td class="text-center align-middle ps-4">${value.dispatchNumber}</td>
-                            <td class="text-center align-middle ps-4">${value.tugboat.tugboatName}</td>
-                            <td class="text-center align-middle ps-4">${value.service.serviceName}</td>
-                            <td class="text-center align-middle ps-4">${value.dateLeft} - ${value.timeLeft}</td>
-                            <td class="text-center align-middle ps-4">${value.dateArrived} - ${value.timeArrived}</td>
-                            <td class="text-center align-middle ps-4">${value.totalHours.toFixed(2)}</td>
-                            <td class="text-center align-middle ps-4">₱ ${formatNumber(value.dispatchRate)} ${value.dispatchChargeType}</td>
-                            <td class="text-center align-middle ps-4">₱ ${formatNumber(value.dispatchNetRevenue)} </td>
-                            <td class="text-center align-middle ps-4">₱ ${formatNumber(value.bafRate)} ${value.bafChargeType}</td>
-                            <td class="text-center align-middle ps-4">₱ ${formatNumber(value.bafNetRevenue)}</td>
+                            <td class="text-center align-middle">${value.dispatchNumber}</td>
+                            <td class="text-center align-middle">${value.tugboat.tugboatName}</td>
+                            <td class="text-center align-middle">${value.service.serviceName}</td>
+                            <td class="text-center align-middle">${value.dateLeft} - ${value.timeLeft}</td>
+                            <td class="text-center align-middle">${value.dateArrived} - ${value.timeArrived}</td>
+                            <td class="text-center align-middle">${value.totalHours.toFixed(2)}</td>
+                            <td class="text-center align-middle">₱ ${formatNumber(value.dispatchRate)} ${value.dispatchChargeType}</td>
+                            <td class="text-center align-middle">₱ ${formatNumber(value.dispatchNetRevenue)} </td>
+                            <td class="text-center align-middle">₱ ${formatNumber(value.bafRate)} ${value.bafChargeType}</td>
+                            <td class="text-center align-middle">₱ ${formatNumber(value.bafNetRevenue)}</td>
                         </tr>
                     `);
                 });
 
-                // Dispatch and BAF totals: show
                 let overallAmount = totalDispatchAmount + totalBAFAmount;
                 $("#DispatchAmountTotal").text(formatNumber(totalDispatchAmount));
                 $("#BAFAmountTotal").text(formatNumber(totalBAFAmount));
                 $("#OverallTotal").text(formatNumber(overallAmount));
 
-                // Reinitialize new table
                 table = initializeDataTable('#dataTable');
             }
             
-            // Fills the customer details field based on the received customer or principal
             function fillDataOnStartup () {
                 let $principalId = $("#PrincipalSelect").val();
                 let $customerId = $("#CustomerId").val();
@@ -558,13 +516,10 @@
             }
             
             function areYouSureToBill (event) {
-
-                event.preventDefault(); // stop the default form submission
-
+                event.preventDefault();
                 const form = document.getElementById("myForm");
 
                 if (!form.checkValidity()) {
-                    // If form is not valid, trigger built-in validation UI
                     form.reportValidity();
                     return;
                 }
@@ -582,9 +537,7 @@
                 })
             }
 
-            // Fill the customer details
             fillDataOnStartup();
-            // Fill the table with ticket details
             handleDispatchTicketsChange();
         });
     </script>
