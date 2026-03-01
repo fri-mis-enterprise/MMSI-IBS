@@ -20,7 +20,7 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 Log.Logger = new LoggerConfiguration()
-    .MinimumLevel.Information()
+    .ReadFrom.Configuration(builder.Configuration)
     .WriteTo.Console()
     .CreateLogger();
 
