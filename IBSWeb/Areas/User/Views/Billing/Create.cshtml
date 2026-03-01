@@ -165,7 +165,7 @@
                         <span asp-validation-for="VoyageNumber" class="text-danger"></span>
                     </div>
                     <div class="form-floating col-md-3 col-6 my-3">
-                        <input asp-for="Date" type="date" value="@(Model.Date.HasValue ? Model.Date.Value.ToString("yyyy-MM-dd") : DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd"))" class="form-control border-0 shadow">
+                        <input asp-for="Date" type="date" value="@(Model.Date != default ? Model.Date.ToString("yyyy-MM-dd") : DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd"))" class="form-control border-0 shadow">
                         <label asp-for="Date" class="ms-2">Date Created</label>
                         <span asp-validation-for="Date" class="text-danger"></span>
                     </div>
