@@ -99,7 +99,7 @@
                             </div>
 
                             <div class="form-check col-6 ps-2 my-2 text-center d-flex align-items-center justify-content-start">
-                                <input class="form-check-input m-0 ms-2" type="checkbox" id="UsePrincipalCheckbox">
+                                <input class="form-check-input m-0 ms-2" type="checkbox" id="UsePrincipalCheckbox" @(Model.PrincipalId.HasValue ? "checked" : "")>
                                 <label class="text-decoration-underline form-check-label ps-1 h4 m-0" for="UsePrincipalCheckbox" style="font-size: 20px;">
                                     Use Principal
                                 </label>
@@ -108,20 +108,16 @@
                     </div>
                     <div class="col-md-3 col-12 ps-2 my-2 d-none hiddenDiv">
                         <div class="row">
-                            <div class="col">
-                                <input asp-for="BilledTo" class="isVatable" value="LOCAL" type="radio" checked>
-                                <label style="font-size: 20px;" asp-for="BilledTo">
-                                    Billed To Local
-                                </label>
+                            <div class="col text-start">
+                                <input asp-for="BilledTo" class="isVatable" value="LOCAL" type="radio">
+                                <label style="font-size: 20px;" class="ms-1" asp-for="BilledTo">Billed To Local</label>
                             </div>
                         </div>
 
                         <div class="row">
-                            <div class="col">
+                            <div class="col text-start">
                                 <input asp-for="BilledTo" class="isExempt" value="PRINCIPAL" type="radio">
-                                <label style="font-size: 20px;" asp-for="BilledTo">
-                                    Billed To Principal
-                                </label>
+                                <label style="font-size: 20px;" class="ms-1" asp-for="BilledTo">Billed To Principal</label>
                             </div>
                         </div>
                     </div>
@@ -152,13 +148,13 @@
                 <h5 class="section-header text-secondary border-bottom"><i class="bi bi-receipt me-2"></i>III. Billing Details</h5>
                 <div class="row">
                     <div class="form-floating col-md-3 col-6 my-3">
-                        <input asp-for="MMSIBillingNumber" type="text" class="form-control border-0 shadow" id="billingNumber" placeholder=" " disabled>
+                        <input asp-for="MMSIBillingNumber" type="text" class="form-control border-0 shadow" id="billingNumber" placeholder=" ">
                         <label asp-for="MMSIBillingNumber" for="billingNumber" id="status" class="ms-2">Billing Number<span class="required text-danger">*</span></label>
                         <span asp-validation-for="MMSIBillingNumber" class="text-danger"></span>
                     </div>
                     <div class="form-check col-md-3 col-6 ps-2 my-3 text-center d-flex align-items-center justify-content-start">
                         <input type="hidden" asp-for="IsUndocumented" />
-                        <input class="form-check-input m-0 ms-2" type="checkbox" id="isUndocumentedCheckbox" disabled>
+                        <input class="form-check-input m-0 ms-2" type="checkbox" id="isUndocumentedCheckbox" @(Model.IsUndocumented ? "checked" : "")>
                         <label class="text-decoration-underline form-check-label ps-1 h4 m-0" for="isUndocumentedCheckbox" style="font-size: 20px;">
                             Undocumented
                         </label>
@@ -169,7 +165,7 @@
                         <span asp-validation-for="VoyageNumber" class="text-danger"></span>
                     </div>
                     <div class="form-floating col-md-3 col-6 my-3">
-                        <input asp-for="Date" type="date" value="@DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd")" class="form-control border-0 shadow">
+                        <input asp-for="Date" type="date" value="@(Model.Date.HasValue ? Model.Date.Value.ToString("yyyy-MM-dd") : DateTimeHelper.GetCurrentPhilippineTime().ToString("yyyy-MM-dd"))" class="form-control border-0 shadow">
                         <label asp-for="Date" class="ms-2">Date Created</label>
                         <span asp-validation-for="Date" class="text-danger"></span>
                     </div>
@@ -221,15 +217,15 @@
                         <thead>
                         <tr>
                             <th class="text-center align-content-center">DISPATCH#</th>
-                            <th class="text-center align-content-center">TUGBOAT</th>
-                            <th class="text-center align-content-center">SERVICE</th>
-                            <th class="text-center align-content-center">TIME START</th>
-                            <th class="text-center align-content-center">TIME END</th>
-                            <th class="text-center align-content-center">HOUR</th>
-                            <th class="text-center align-content-center">DISPATCH RATE</th>
-                            <th class="text-center align-content-center">DISPATCH AMOUNT</th>
-                            <th class="text-center align-content-center">BAF RATE</th>
-                            <th class="text-center align-content-center">BAF AMOUNT</th>
+                            <th class="text-center align-middle">TUGBOAT</th>
+                            <th class="text-center align-middle">SERVICE</th>
+                            <th class="text-center align-middle">TIME START</th>
+                            <th class="text-center align-middle">TIME END</th>
+                            <th class="text-center align-middle">HOUR</th>
+                            <th class="text-center align-middle">DISPATCH RATE</th>
+                            <th class="text-center align-middle">DISPATCH AMOUNT</th>
+                            <th class="text-center align-middle">BAF RATE</th>
+                            <th class="text-center align-middle">BAF AMOUNT</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -239,18 +235,18 @@
                 
                 <div class="row py-3 justify-content-end d-flex">
                     <div class="col-md-6 col-12 totals-box shadow-sm">
-                        <div class="row">
-                            <div class="col-4 text-start">
-                                <label class="fw-bold">Total Dispatch:</label><br/>
-                                ₱ <span id="DispatchAmountTotal" class="text-primary fw-bold">0.00</span>
+                        <div class="row text-center">
+                            <div class="col-4">
+                                <label class="fw-bold small text-muted text-uppercase">Total Dispatch</label><br/>
+                                <span class="fw-bold">₱ <span id="DispatchAmountTotal">0.00</span></span>
                             </div>
-                            <div class="col-4 text-start border-start">
-                                <label class="fw-bold">Total BAF:</label><br/>
-                                ₱ <span id="BAFAmountTotal" class="text-primary fw-bold">0.00</span>
+                            <div class="col-4 border-start">
+                                <label class="fw-bold small text-muted text-uppercase">Total BAF</label><br/>
+                                <span class="fw-bold">₱ <span id="BAFAmountTotal">0.00</span></span>
                             </div>
-                            <div class="col-4 text-start border-start">
-                                <label class="fw-bold">Total Amount:</label><br/>
-                                ₱ <span id="OverallTotal" class="text-success fw-bold" style="font-size: 1.1rem;">0.00</span>
+                            <div class="col-4 border-start">
+                                <label class="fw-bold small text-muted text-uppercase text-success">Total Amount</label><br/>
+                                <span class="fw-bold text-success" style="font-size: 1.1rem;">₱ <span id="OverallTotal">0.00</span></span>
                             </div>
                         </div>
                     </div>
@@ -273,19 +269,20 @@
 
 @section Scripts {
     <script>
-        // Initialize when DOM is ready
         $(document).ready(function () {
-            // Initialize Select2 for all elements with this class
             let multiSelectVariable = $('.js-example-basic-multiple');
             multiSelectVariable.select2();
 
-            // DataTable initialization
             let table = initializeDataTable('#dataTable');
 
-            // Event Handlers
             setupEventListeners();
+            
+            // Startup logic
+            handleCheckboxChange();
+            if ($("#CustomerId").val()) {
+                handleCustomerStartup();
+            }
 
-            // Functions
             function initializeDataTable(selector) {
                 if ($.fn.DataTable.isDataTable(selector)) {
                     $(selector).DataTable().destroy();
@@ -338,12 +335,12 @@
                     $selectDiv.removeClass("d-none");
                 } else {
                     $selectDiv.addClass("d-none");
-                    customerIdVariable.trigger("change");
+                    handleCustomerChange(); // Re-trigger normal customer data fetch
                 }
             }
 
-            function fetchPrincipals(customerId) {
-                $.ajax({
+            function fetchPrincipals(customerId, selectedPrincipalId = null) {
+                return $.ajax({
                     url: '@Url.Action("GetPrincipalsJSON", "Billing", new { area = "User" })',
                     type: "GET",
                     data: { customerId: customerId },
@@ -354,7 +351,8 @@
                             $.each(data, function (index, item) {
                                 $principalSelect.append($('<option>', {
                                     value: item.value,
-                                    text: item.text
+                                    text: item.text,
+                                    selected: item.value == selectedPrincipalId
                                 }));
                             });
                         }
@@ -364,6 +362,7 @@
 
             function handlePrincipalChange() {
                 const principalId = $("#PrincipalSelect").val();
+                if (!principalId) return;
                 $.ajax({
                     url: '@Url.Action("GetPrincipalDetails", "Billing", new { area = "User" })',
                     method: "GET",
@@ -375,23 +374,22 @@
             }
 
             function handleCustomerChange() {
-                $("#UsePrincipalCheckbox").prop("checked", false);
-                const customerId = $(this).val();
+                const customerId = $("#CustomerId").val();
                 const $principalDiv = $("#PrincipalDiv");
                 const $selectDiv = $("#SelectDiv");
                 const $dispatchSelect = $("#DispatchTicketSelect");
                 const $hiddenDiv = $(".hiddenDiv");
-                const $vatableRadioButton = $(".isVatable");
-                const $exemptRadioButton = $(".isExempt");
                 const $isUndocCheckbox = $("#isUndocumentedCheckbox");
-                $principalDiv.removeClass("d-none");
+                
+                $principalDiv.addClass("d-none");
                 $selectDiv.addClass("d-none");
+                $("#UsePrincipalCheckbox").prop("checked", false);
 
                 if (customerId) {
                     $dispatchSelect.prop("disabled", false);
-                    $dispatchSelect.prop("required", true);
-                    $dispatchSelect.val("0").trigger("change");
+                    $dispatchSelect.val(null).trigger("change");
                     $hiddenDiv.removeClass("d-none");
+                    
                     $.ajax({
                         url: '@Url.Action("GetCustomerDetails", "Billing", new { area = "User" })',
                         method: "POST",
@@ -399,53 +397,85 @@
                         success: function (data) {
                             updateFields(data);
                             $principalDiv.toggleClass("d-none", !data.hasPrincipal);
-                            $vatableRadioButton.prop("checked", data.vatType === "@SD.VatType_Vatable");
-                            $exemptRadioButton.prop("checked", data.vatType === "@SD.VatType_Exempt");
-                            if (data.isUndoc === "Undocumented"){
-                                $isUndocCheckbox.prop("checked", true);
-                                handleCheckboxChange();
-                            }
-                            else{
-                                $isUndocCheckbox.prop("checked", false);
-                                handleCheckboxChange();
-                            }
+                            $(".isVatable").prop("checked", data.vatType === "@SD.VatType_Vatable");
+                            $(".isExempt").prop("checked", data.vatType === "@SD.VatType_Exempt");
+                            $isUndocCheckbox.prop("checked", data.isUndoc === "Undocumented");
+                            handleCheckboxChange();
                         }
                     });
                     
-                    $.ajax({
-                        url: '@Url.Action("GetDispatchTicketsByCustomer", "Billing", new { area = "User" })',
-                        method: "GET",
-                        data: { customerId: customerId },
-                        success: function (data) {
-                            $dispatchSelect.empty();
-                            if (Array.isArray(data) && data.length > 0) {
-                                $.each(data, function (index, item) {
-                                    $dispatchSelect.append($('<option>', {
-                                        value: item.value,
-                                        text: item.text
-                                    }));
-                                });
-                            }
-                        }
-                    });
+                    fetchDispatchTickets(customerId);
                 } else {
                     $hiddenDiv.addClass("d-none");
-                    $dispatchSelect.val("0").trigger("change");
-                    $dispatchSelect.prop("disabled", true);
-                    $principalDiv.addClass("d-none");
+                    $dispatchSelect.val(null).trigger("change").prop("disabled", true);
                 }
             }
 
-            function updateFields(data) {
-                const fields = {
-                    "#Terms": data?.terms || '',
-                    "#Address": data?.address || '',
-                    "#TIN": data?.tinNo || '',
-                    "#BusinessStyle": data?.businessStyle || ''
-                };
-                for (const [selector, value] of Object.entries(fields)) {
-                    $(selector).val(value);
+            async function handleCustomerStartup() {
+                const customerId = $("#CustomerId").val();
+                const $principalDiv = $("#PrincipalDiv");
+                const $selectDiv = $("#SelectDiv");
+                const $dispatchSelect = $("#DispatchTicketSelect");
+                const $hiddenDiv = $(".hiddenDiv");
+                
+                if (customerId) {
+                    $dispatchSelect.prop("disabled", false);
+                    $hiddenDiv.removeClass("d-none");
+                    
+                    // 1. Fetch Basic Customer Details
+                    await $.ajax({
+                        url: '@Url.Action("GetCustomerDetails", "Billing", new { area = "User" })',
+                        method: "POST",
+                        data: { customerId: customerId },
+                        success: function (data) {
+                            $principalDiv.toggleClass("d-none", !data.hasPrincipal);
+                            if (!$("#UsePrincipalCheckbox").is(":checked")) {
+                                updateFields(data);
+                            }
+                        }
+                    });
+
+                    // 2. If using principal, fetch its details
+                    const principalId = '@Model.PrincipalId';
+                    if ($("#UsePrincipalCheckbox").is(":checked") && principalId) {
+                        $selectDiv.removeClass("d-none");
+                        await fetchPrincipals(customerId, principalId);
+                        handlePrincipalChange();
+                    }
+
+                    // 3. Fetch tickets list and then update the table for already selected ones
+                    await fetchDispatchTickets(customerId, @Html.Raw(Json.Serialize(Model.ToBillDispatchTickets)));
                 }
+            }
+
+            function fetchDispatchTickets(customerId, selectedIds = null) {
+                return $.ajax({
+                    url: '@Url.Action("GetDispatchTicketsByCustomer", "Billing", new { area = "User" })',
+                    method: "GET",
+                    data: { customerId: customerId },
+                    success: function (data) {
+                        const $dispatchSelect = $("#DispatchTicketSelect");
+                        $dispatchSelect.empty();
+                        if (Array.isArray(data) && data.length > 0) {
+                            $.each(data, function (index, item) {
+                                let selected = selectedIds && selectedIds.includes(parseInt(item.value));
+                                $dispatchSelect.append($('<option>', {
+                                    value: item.value,
+                                    text: item.text,
+                                    selected: selected
+                                }));
+                            });
+                        }
+                        $dispatchSelect.trigger("change");
+                    }
+                });
+            }
+
+            function updateFields(data) {
+                $("#Terms").val(data?.terms || '');
+                $("#Address").val(data?.address || '');
+                $("#TIN").val(data?.tinNo || '');
+                $("#BusinessStyle").val(data?.businessStyle || '');
             }
 
             function handlePortChange() {
@@ -457,12 +487,9 @@
                     success: function (data) {
                         const $terminalSelect = $("#TerminalSelect");
                         $terminalSelect.empty().append('<option value="">Select Terminal</option>');
-                        if (Array.isArray(data) && data.length > 0) {
+                        if (Array.isArray(data)) {
                             $.each(data, function (index, item) {
-                                $terminalSelect.append($('<option>', {
-                                    value: item.value,
-                                    text: item.text
-                                }));
+                                $terminalSelect.append($('<option>', { value: item.value, text: item.text }));
                             });
                         }
                     }
@@ -470,16 +497,17 @@
             }
 
             function handleDispatchTicketsChange() {
-                const selectedTickets = $(this).val();
+                const selectedTickets = $("#DispatchTicketSelect").val();
+                if (!selectedTickets || selectedTickets.length === 0) {
+                    updateDispatchTable([]);
+                    return;
+                }
                 $.ajax({
                     url: '/MMSI/Billing/GetDispatchTickets',
                     type: 'POST',
                     data: { dispatchTicketIds: selectedTickets },
                     success: function (result) {
                         updateDispatchTable(result.data);
-                    },
-                    error: function (xhr, status, error) {
-                        console.error('Error:', error);
                     }
                 });
             }
@@ -491,51 +519,49 @@
                 table.destroy();
                 const $tbody = $('#dataTable tbody').empty();
 
-                $.each(data, function (index, value) {
+                $.each(data || [], function (index, value) {
                     totalDispatchAmount += value.dispatchNetRevenue;
                     totalBAFAmount += value.bafNetRevenue;
                     $tbody.append(`
                         <tr>
                             <td class="text-center align-middle">${value.dispatchNumber}</td>
-                            <td class="text-center align-middle">${value.tugboat.tugboatName}</td>
-                            <td class="text-center align-middle">${value.service.serviceName}</td>
-                            <td class="text-center align-middle">${value.dateLeft} - ${value.timeLeft}</td>
-                            <td class="text-center align-middle">${value.dateArrived} - ${value.timeArrived}</td>
-                            <td class="text-center align-middle">${value.totalHours.toFixed(2)}</td>
-                            <td class="text-center align-middle">₱ ${formatNumber(value.dispatchRate)} ${value.dispatchChargeType}</td>
+                            <td class="text-center align-middle">${value.tugboat?.tugboatName || '-'}</td>
+                            <td class="text-center align-middle">${value.service?.serviceName || '-'}</td>
+                            <td class="text-center align-middle">${value.dateLeft} ${value.timeLeft}</td>
+                            <td class="text-center align-middle">${value.dateArrived} ${value.timeArrived}</td>
+                            <td class="text-center align-middle">${(value.totalHours || 0).toFixed(2)}</td>
+                            <td class="text-center align-middle">₱ ${formatNumber(value.dispatchRate)}</td>
                             <td class="text-center align-middle">₱ ${formatNumber(value.dispatchNetRevenue)}</td>
-                            <td class="text-center align-middle">₱ ${formatNumber(value.bafRate)} ${value.bafChargeType}</td>
+                            <td class="text-center align-middle">₱ ${formatNumber(value.bafRate)}</td>
                             <td class="text-center align-middle">₱ ${formatNumber(value.bafNetRevenue)}</td>
                         </tr>
                     `);
                 });
 
-                let overallAmount = totalDispatchAmount + totalBAFAmount;
                 $("#DispatchAmountTotal").text(formatNumber(totalDispatchAmount));
                 $("#BAFAmountTotal").text(formatNumber(totalBAFAmount));
-                $("#OverallTotal").text(formatNumber(overallAmount));
+                $("#OverallTotal").text(formatNumber(totalDispatchAmount + totalBAFAmount));
 
                 table = initializeDataTable('#dataTable');
             }
 
             function areYouSureToBill (event) {
-                event.preventDefault(); // stop the default form submission
+                event.preventDefault();
                 const form = document.getElementById("myForm");
-
                 if (!form.checkValidity()) {
                     form.reportValidity();
                     return;
                 }
                 
                 Swal.fire({
-                    title: "Are you sure with this billing?",
-                    text: "You can't change the billing no. after submission.",
+                    title: "Submit Billing?",
+                    text: "Review all details before proceeding.",
+                    icon: "question",
                     showCancelButton: true,
-                    confirmButtonText: "Yes",
-                    cancelButtonText: "No"
+                    confirmButtonText: "Yes, submit"
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        document.getElementById('myForm').requestSubmit();
+                        form.submit();
                     }
                 })
             }
