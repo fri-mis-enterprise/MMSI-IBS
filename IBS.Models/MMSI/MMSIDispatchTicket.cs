@@ -41,7 +41,7 @@ namespace IBS.Models.MMSI
         [Display(Name = "Time Left")]
         public TimeOnly? TimeLeft { get; set; }
 
-        [Display(Name = "Date Arrived")]
+        [Display(Name = "Time Arrived")]
         public TimeOnly? TimeArrived { get; set; }
 
         [Column(TypeName = "varchar(100)")]
