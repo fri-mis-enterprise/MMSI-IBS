@@ -35,5 +35,29 @@ namespace IBS.DataAccess.Repository.MasterFile
             return await _db.Services
                 .AnyAsync(c => c.Company == company && c.Name == serviceName, cancellationToken);
         }
+
+        public async Task UpdateAsync(ServiceMaster model, CancellationToken cancellationToken = default)
+        {
+            var existingService = await _db.Services
+                .FirstOrDefaultAsync(x => x.ServiceId == model.ServiceId, cancellationToken)
+                ?? throw new InvalidOperationException($"Service with id '{model.ServiceId}' not found.");
+
+            existingService.Name = model.Name;
+            existingService.Percent = model.Percent;
+            existingService.Company = model.Company;
+            existingService.CurrentAndPreviousNo = model.CurrentAndPreviousNo;
+            existingService.CurrentAndPreviousTitle = model.CurrentAndPreviousTitle;
+            existingService.UnearnedNo = model.UnearnedNo;
+            existingService.UnearnedTitle = model.UnearnedTitle;
+
+            if (_db.ChangeTracker.HasChanges())
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                throw new InvalidOperationException("No data changes!");
+            }
+        }
     }
 }

@@ -8,5 +8,7 @@ namespace IBS.DataAccess.Repository.MasterFile.IRepository
         Task<string> GetLastNumber(CancellationToken cancellationToken = default);
 
         Task<bool> IsServicesExist(string serviceName, string company, CancellationToken cancellationToken = default);
+
+        Task UpdateAsync(ServiceMaster model, CancellationToken cancellationToken = default);
     }
 }

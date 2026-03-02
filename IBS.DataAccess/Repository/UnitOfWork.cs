@@ -276,9 +276,8 @@ namespace IBS.DataAccess.Repository
             // Build the appropriate expression based on the company name
             Expression propertyAccess = companyName switch
             {
-                SD.Company_Filpride => Expression.Property(param, "IsFilpride"),
-                SD.Company_MMSI => Expression.OrElse(Expression.Property(param, "IsFilpride"), Expression.Property(param, "IsMMSI")),
-                _ => Expression.Constant(false)
+                SD.Company_MMSI => Expression.Property(param, "IsMMSI"),
+                _ => Expression.Constant(false) // Default to false if no matching company or properties
             };
 
             return Expression.Lambda<Func<T, bool>>(propertyAccess, param);
@@ -444,32 +443,6 @@ namespace IBS.DataAccess.Repository
                 {
                     Value = p.ProductId.ToString(),
                     Text = p.ProductCode + " " + p.ProductName
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<SelectListItem>> GetCashierListAsyncByUsernameAsync(CancellationToken cancellationToken = default)
-        {
-            return await _db.ApplicationUsers
-                .OrderBy(p => p.Id)
-                .Where(p => p.Department == SD.Department_StationCashier)
-                .Select(p => new SelectListItem
-                {
-                    Value = p.UserName!.ToString(),
-                    Text = p.UserName.ToString()
-                })
-                .ToListAsync(cancellationToken);
-        }
-
-        public async Task<List<SelectListItem>> GetCashierListAsyncByStationAsync(CancellationToken cancellationToken = default)
-        {
-            return await _db.ApplicationUsers
-                .OrderBy(p => p.Id)
-                .Where(p => p.Department == SD.Department_StationCashier)
-                .Select(p => new SelectListItem
-                {
-                    Value = p.StationAccess!.ToString(),
-                    Text = p.UserName!.ToString()
                 })
                 .ToListAsync(cancellationToken);
         }

@@ -41,5 +41,25 @@ namespace IBS.DataAccess.Repository.MasterFile
                 })
                 .ToListAsync(cancellationToken);
         }
+
+        public async Task UpdateAsync(PickUpPoint model, CancellationToken cancellationToken = default)
+        {
+            var existingPickUpPoint = await _db.PickUpPoints
+                .FirstOrDefaultAsync(x => x.PickUpPointId == model.PickUpPointId, cancellationToken)
+                ?? throw new InvalidOperationException($"PickUpPoint with id '{model.PickUpPointId}' not found.");
+
+            existingPickUpPoint.Depot = model.Depot;
+            existingPickUpPoint.Company = model.Company;
+            existingPickUpPoint.SupplierId = model.SupplierId;
+
+            if (_db.ChangeTracker.HasChanges())
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+            }
+            else
+            {
+                throw new InvalidOperationException("No data changes!");
+            }
+        }
     }
 }

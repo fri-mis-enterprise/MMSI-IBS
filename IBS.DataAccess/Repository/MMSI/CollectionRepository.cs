@@ -548,7 +548,7 @@ namespace IBS.DataAccess.Repository.MMSI
         public async Task RedepositAsync(MMSICollection collection, CancellationToken cancellationToken = default)
         {
             // Similar logic to PostAsync but focused on redepositing a previously returned check
-            // For now, let's mirror Filpride's RedepositAsync logic
+
             var ledgers = new List<GeneralLedgerBook>();
             var accountTitlesDto = await GetListOfAccountTitleDto(cancellationToken);
             var cashInBankTitle = accountTitlesDto.Find(c => c.AccountNumber == "101010100") ?? throw new ArgumentException("Account title '101010100' not found.");
