@@ -22,11 +22,11 @@ namespace IBS.Models.ViewModels
         [Display(Name = "PO No.")]
         public string PurchaseOrderNo { get; set; }
 
-        [Display(Name = "Filpride RR")]
-        public string FilprideRR { get; set; }
+        [Display(Name = "RR")]
+        public string RR { get; set; }
 
-        [Display(Name = "Filpride DR")]
-        public string FilprideDR { get; set; }
+        [Display(Name = "DR")]
+        public string DR { get; set; }
 
         [Display(Name = "ATL No")]
         public string ATLNo { get; set; }
