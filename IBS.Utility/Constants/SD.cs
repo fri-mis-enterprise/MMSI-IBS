@@ -2,7 +2,6 @@ namespace IBS.Utility.Constants
 {
     public static class SD
     {
-        public const string Company_Filpride = "Filpride";
         public const string Company_MMSI = "MMSI";
 
         #region Terms
@@ -53,8 +52,9 @@ namespace IBS.Utility.Constants
 
         #endregion Delivery Option
 
-        #region Filpride Department
 
+
+        #region Departments
         public const string Department_Accounting = "Accounting";
         public const string Department_CreditAndCollection = "Credit and Collection";
         public const string Department_Engineering = "Engineering";
@@ -69,20 +69,15 @@ namespace IBS.Utility.Constants
         public const string Department_RetailAdmin = "Retail Admin";
         public const string Department_RetailAudit = "Retail Audit";
         public const string Department_SiteDevAndSiteAcquisition = "Site Dev and Acquisition";
-        public const string Department_StationCashier = "Station Cashier";
         public const string Department_TradeAndSupply = "Trade and Supply";
         public const string Department_TrainingAndCompliance = "Training and Compliance";
-
         public const string CustomerType_PO = "PO";
+        #endregion Departments
 
-        #endregion Filpride Department
-
-        #region Filpride Position
-
+        #region Positions
         public const string Position_OperationManager = "Operation Manager";
         public const string Position_FinanceManager = "Finance Manager";
-
-        #endregion Filpride Position
+        #endregion Positions
 
         #region Format string
 

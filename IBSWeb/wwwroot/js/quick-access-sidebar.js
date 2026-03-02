@@ -127,7 +127,7 @@
 
     function getCompanyFromUrl(url) {
         const lower = (url || '').toLowerCase();
-        if (lower.includes('/filpride/')) return 'Filpride';
+        if (lower.includes('/user/')) return 'MMSI';
         if (lower.includes('/mmsi/'))     return 'MMSI';
         return '';
     }

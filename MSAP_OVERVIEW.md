@@ -64,7 +64,7 @@ This document provides a high-level overview of the MSAP workflow within the Int
 
 *   **Controller:** `CollectionController`
 *   **Model:** `MMSICollection`
-*   **Key Actors:** Cashiers / Accounting Staff
+*   **Key Actors:** Accounting Staff
 *   **Process:**
     1.  **Payment Entry:** The user records the payment (Cash, Check, or Bank Deposit).
     2.  **Allocation:** The user selects outstanding Billing records (status `For Collection`) to be cleared by this collection.

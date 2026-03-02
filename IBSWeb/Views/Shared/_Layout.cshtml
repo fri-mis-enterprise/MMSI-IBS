@@ -66,7 +66,7 @@
                             
                             @if(!string.IsNullOrEmpty(selectedCompany))
                             {
-                                if (selectedCompany == "MMSI" || selectedCompany == "Filpride")
+                                if (selectedCompany == "MMSI")
                                 {
                                     @if (!User.IsInRole("PortCoordinator"))
                                     {
@@ -104,7 +104,7 @@
                                     }
                                 }
 
-                                if (selectedCompany == "MMSI" || selectedCompany == "Filpride")
+                                if (selectedCompany == "MMSI")
                                 {
                                     <li class="nav-item dropdown">
                                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">A. Receivable</a>
@@ -484,7 +484,7 @@
                                     </li>
                                 }
                                 <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Filpride Master File</a>
+                                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Master File</a>
                                     <ul class="dropdown-menu">
                                         <li class="nav-item">
                                             <a class="dropdown-item text-dark" asp-area="User" asp-controller="Customer" asp-action="Index">Customer</a>
@@ -525,7 +525,7 @@
                                 </li>
                             }
                             
-                            @if ((userDepartment == SD.Department_RCD || User.IsInRole("Admin")) && (selectedCompany == "MMSI" || selectedCompany == "Filpride"))
+                            @if ((userDepartment == SD.Department_RCD || User.IsInRole("Admin")) && (selectedCompany == "MMSI"))
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Export to AAS</a>
@@ -563,7 +563,7 @@
                                 </li>
                             }
                             
-                            @if (User.IsInRole("Admin") && (selectedCompany == "MMSI" || selectedCompany == "Filpride"))
+                            @if (User.IsInRole("Admin") && (selectedCompany == "MMSI"))
                             {
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">General Master File</a>
