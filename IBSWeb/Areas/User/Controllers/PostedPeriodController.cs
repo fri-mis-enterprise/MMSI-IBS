@@ -111,7 +111,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                     var postedPeriod = new PostedPeriod
                     {
-                        Company = request.Company ?? "Filpride", // Default company
+                        Company = request.Company ?? "MMSI", // Default company
                         Module = module,
                         Month = request.Month,
                         Year = request.Year,

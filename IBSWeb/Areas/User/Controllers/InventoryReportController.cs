@@ -137,7 +137,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                        var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                        var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                         page.Header().Height(76).Row(row =>
                         {
@@ -162,7 +162,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                             row.ConstantItem(size: 100)
                                 .Height(50)
-                                .Image(Image.FromFile(imgFilprideLogoPath)).FitWidth();
+                                .Image(Image.FromFile(imgMmsiLogoPath)).FitWidth();
 
                         });
 

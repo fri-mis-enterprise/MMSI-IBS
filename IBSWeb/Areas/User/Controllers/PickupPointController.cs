@@ -257,7 +257,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 selected.Depot = model.Depot;
                 selected.SupplierId = model.SupplierId;
-                selected.IsFilpride = model.IsFilpride;
+
                 await _unitOfWork.SaveAsync(cancellationToken);
 
                 await transaction.CommitAsync(cancellationToken);

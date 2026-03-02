@@ -222,7 +222,7 @@ namespace IBSWeb.Areas.User.Controllers
                     DateBooked = viewModel.Date,
                     ValidUntil = viewModel.Date.AddDays(4),
                     UppiAtlNo = viewModel.UPPIAtlNo,
-                    Remarks = "Please secure delivery documents. FILPRIDE DR / SUPPLIER DR / WITHDRAWAL CERTIFICATE",
+                    Remarks = "Please secure delivery documents. DR / SUPPLIER DR / WITHDRAWAL CERTIFICATE",
                     CreatedBy = GetUserFullName(),
                     CreatedDate = DateTimeHelper.GetCurrentPhilippineTime(),
                     SupplierId = viewModel.SupplierId,

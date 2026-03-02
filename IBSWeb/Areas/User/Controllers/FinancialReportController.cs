@@ -145,17 +145,17 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                            var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                            var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                             page.Header().Height(140).Column(column =>
                             {
-                                column.Item().Text("FILPRIDE RESOURCES INC.").FontSize(16).SemiBold().AlignCenter();
+                                column.Item().Text("MALAYAN MARITIME SERVICES INC.").FontSize(16).SemiBold().AlignCenter();
 
                                 column.Item().AlignCenter().Row(row =>
                                 {
                                     row.Spacing(10);
                                     row.ConstantItem(150).Height(45)
-                                        .Image(QuestPDF.Infrastructure.Image.FromFile(imgFilprideLogoPath)).FitHeight().FitWidth();
+                                        .Image(QuestPDF.Infrastructure.Image.FromFile(imgMmsiLogoPath)).FitHeight().FitWidth();
                                     row.Spacing(10);
                                 });
 
@@ -383,14 +383,14 @@ namespace IBSWeb.Areas.User.Controllers
                 using (var range = worksheet.Cells[row, 1, row, 8])
                 {
                     range.Merge = true;
-                    range.Value = "FILPRIDE RESOURCES INC.";
+                    range.Value = "MALAYAN MARITIME SERVICES INC.";
                     range.Style.Font.Bold = true;
                     range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 }
                 row++;
 
 
-                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride.jpg");
+                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
                 var imageFile = new FileInfo(imagePath);
 
                 if (imageFile.Exists)
@@ -624,17 +624,17 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                            var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                            var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                             page.Header().Height(140).Column(column =>
                             {
-                                column.Item().Text("FILPRIDE RESOURCES INC.").FontSize(16).SemiBold().AlignCenter();
+                                column.Item().Text("MALAYAN MARITIME SERVICES INC.").FontSize(16).SemiBold().AlignCenter();
 
                                 column.Item().AlignCenter().Row(row =>
                                 {
                                     row.Spacing(10);
                                     row.ConstantItem(150).Height(45)
-                                        .Image(QuestPDF.Infrastructure.Image.FromFile(imgFilprideLogoPath)).FitHeight().FitWidth();
+                                        .Image(QuestPDF.Infrastructure.Image.FromFile(imgMmsiLogoPath)).FitHeight().FitWidth();
                                     row.Spacing(10);
                                 });
 
@@ -822,12 +822,12 @@ namespace IBSWeb.Areas.User.Controllers
                 using (var range = worksheet.Cells[row, 1, row, 4])
                 {
                     range.Merge = true;
-                    range.Value = "FILPRIDE RESOURCES INC.";
+                    range.Value = "MALAYAN MARITIME SERVICES INC.";
                     range.Style.Font.Bold = true;
                 }
                 row++;
 
-                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride.jpg");
+                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
                 var imageFile = new FileInfo(imagePath);
 
                 if (imageFile.Exists)
@@ -1021,17 +1021,17 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                            var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                            var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                             page.Header().Height(140).Column(column =>
                             {
-                                column.Item().Text("FILPRIDE RESOURCES INC.").FontSize(16).SemiBold().AlignCenter();
+                                column.Item().Text("MALAYAN MARITIME SERVICES INC.").FontSize(16).SemiBold().AlignCenter();
 
                                 column.Item().AlignCenter().Row(row =>
                                 {
                                     row.Spacing(10);
                                     row.ConstantItem(150).Height(45)
-                                        .Image(QuestPDF.Infrastructure.Image.FromFile(imgFilprideLogoPath)).FitHeight().FitWidth();
+                                        .Image(QuestPDF.Infrastructure.Image.FromFile(imgMmsiLogoPath)).FitHeight().FitWidth();
                                     row.Spacing(10);
                                 });
 
@@ -1226,10 +1226,10 @@ namespace IBSWeb.Areas.User.Controllers
 
 
                 // Set the column headers
-                worksheet.Cells["B1"].Value = "FILPRIDE RESOURCES INC.";
+                worksheet.Cells["B1"].Value = "MALAYAN MARITIME SERVICES INC.";
                 worksheet.Cells["B1"].Style.HorizontalAlignment = alignmentCenter;
 
-                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride.jpg");
+                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
                 var imageFile = new FileInfo(imagePath);
 
                 if (imageFile.Exists)
@@ -1424,17 +1424,17 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                            var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                            var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                             page.Header().Height(140).Column(column =>
                             {
-                                column.Item().Text("FILPRIDE RESOURCES INC.").FontSize(16).SemiBold().AlignCenter();
+                                column.Item().Text("MALAYAN MARITIME SERVICES INC.").FontSize(16).SemiBold().AlignCenter();
 
                                 column.Item().AlignCenter().Row(row =>
                                 {
                                     row.Spacing(10);
                                     row.ConstantItem(150).Height(45)
-                                        .Image(QuestPDF.Infrastructure.Image.FromFile(imgFilprideLogoPath)).FitHeight().FitWidth();
+                                        .Image(QuestPDF.Infrastructure.Image.FromFile(imgMmsiLogoPath)).FitHeight().FitWidth();
                                     row.Spacing(10);
                                 });
 
@@ -1696,14 +1696,14 @@ namespace IBSWeb.Areas.User.Controllers
                 using (var range = worksheet.Cells[row, 1, row, 6])
                 {
                     range.Merge = true;
-                    range.Value = "FILPRIDE RESOURCES INC.";
+                    range.Value = "MALAYAN MARITIME SERVICES INC.";
                     range.Style.Font.Bold = true;
                     range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 }
                 row++;
 
 
-                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride.jpg");
+                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
                 var imageFile = new FileInfo(imagePath);
 
                 if (imageFile.Exists)
@@ -1971,17 +1971,17 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                            var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                            var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                             page.Header().Height(140).Column(column =>
                             {
-                                column.Item().Text("FILPRIDE RESOURCES INC.").FontSize(16).SemiBold().AlignCenter();
+                                column.Item().Text("MALAYAN MARITIME SERVICES INC.").FontSize(16).SemiBold().AlignCenter();
 
                                 column.Item().AlignCenter().Row(row =>
                                 {
                                     row.Spacing(10);
                                     row.ConstantItem(150).Height(45)
-                                        .Image(QuestPDF.Infrastructure.Image.FromFile(imgFilprideLogoPath)).FitHeight().FitWidth();
+                                        .Image(QuestPDF.Infrastructure.Image.FromFile(imgMmsiLogoPath)).FitHeight().FitWidth();
                                     row.Spacing(10);
                                 });
 
@@ -2136,14 +2136,14 @@ namespace IBSWeb.Areas.User.Controllers
                 using (var range = worksheet.Cells[row, 1, row, 6])
                 {
                     range.Merge = true;
-                    range.Value = "FILPRIDE RESOURCES INC.";
+                    range.Value = "MALAYAN MARITIME SERVICES INC.";
                     range.Style.Font.Bold = true;
                     range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
                 }
                 row++;
 
 
-                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride.jpg");
+                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
                 var imageFile = new FileInfo(imagePath);
 
                 if (imageFile.Exists)

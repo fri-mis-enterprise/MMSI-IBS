@@ -42,7 +42,7 @@ namespace IBS.DTOs
         public string COMPANY_NAME { get; set; }
     }
 
-    public class FilprideCollectionDetailsCsvForDcrDto
+    public class MMSICollectionDetailsCsvForDcrDto
     {
         public string ACCTCD { get; set; }
         public string ACCTNAME { get; set; }

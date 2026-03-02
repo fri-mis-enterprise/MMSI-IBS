@@ -1359,7 +1359,7 @@ namespace IBSWeb.Areas.User.Controllers
             var companyClaims = await GetCompanyClaimAsync();
 
             var supplier = await _unitOfWork.Supplier
-                .GetAsync(s => s.SupplierId == supplierId && s.IsFilpride);
+                .GetAsync(s => s.SupplierId == supplierId && s.IsMMSI);
 
             if (supplier == null)
             {
@@ -1386,7 +1386,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             var companyClaims = await GetCompanyClaimAsync();
             // Replace this with your actual repository/service call
-            var bankAccounts = await _unitOfWork.BankAccount.GetAllAsync(b => b.IsFilpride);
+            var bankAccounts = await _unitOfWork.BankAccount.GetAllAsync(b => b.IsMMSI);
 
             return Json(bankAccounts.Select(b => new
             {
@@ -1400,7 +1400,7 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> GetBankAccountById(int bankId)
         {
             var companyClaims = await GetCompanyClaimAsync();
-            var bankAccount = await _unitOfWork.BankAccount.GetAsync(b => b.BankAccountId == bankId && b.IsFilpride);
+            var bankAccount = await _unitOfWork.BankAccount.GetAsync(b => b.BankAccountId == bankId && b.IsMMSI);
 
             if (bankAccount == null)
             {
@@ -1482,7 +1482,7 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> GetCustomers()
         {
             var companyClaims = await GetCompanyClaimAsync();
-            var employees = await _unitOfWork.Customer.GetAllAsync(c => c.IsFilpride);
+            var employees = await _unitOfWork.Customer.GetAllAsync(c => c.IsMMSI);
 
             return Json(employees.OrderBy(c => c.CustomerCode).Select(c => new
             {
@@ -1515,7 +1515,7 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> GetSuppliers()
         {
             var companyClaims = await GetCompanyClaimAsync();
-            var suppliers = await _unitOfWork.Supplier.GetAllAsync(s => s.IsFilpride);
+            var suppliers = await _unitOfWork.Supplier.GetAllAsync(s => s.IsMMSI);
 
             return Json(suppliers.OrderBy(c => c.SupplierCode).Select(c => new
             {

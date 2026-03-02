@@ -277,7 +277,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 existingModel.Name = services.Name;
                 existingModel.Percent = services.Percent;
-                existingModel.IsFilpride = services.IsFilpride;
+
                 await _unitOfWork.SaveAsync(cancellationToken);
 
                 #region --Audit Trail Recording

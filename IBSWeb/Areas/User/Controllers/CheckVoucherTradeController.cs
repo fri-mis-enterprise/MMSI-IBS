@@ -241,7 +241,7 @@ namespace IBSWeb.Areas.User.Controllers
                             .ToList();
 
                         viewModel.Suppliers = (await _unitOfWork.Supplier
-                                .GetAllAsync(supp => supp.IsFilpride && supp.Category == "Trade", cancellationToken))
+                                .GetAllAsync(supp => supp.IsMMSI && supp.Category == "Trade", cancellationToken))
                             .Select(sup => new SelectListItem
                             {
                                 Value = sup.SupplierId.ToString(),
@@ -259,7 +259,7 @@ namespace IBSWeb.Areas.User.Controllers
                             .ToList();
 
                         viewModel.BankAccounts = (await _unitOfWork.BankAccount
-                                .GetAllAsync(b => b.IsFilpride, cancellationToken))
+                                .GetAllAsync(b => b.IsMMSI, cancellationToken))
                             .Select(ba => new SelectListItem
                             {
                                 Value = ba.BankAccountId.ToString(),
@@ -655,7 +655,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             var supplier = await _unitOfWork.Supplier
-                .GetAsync(s => s.SupplierId == supplierId && s.IsFilpride);
+                .GetAsync(s => s.SupplierId == supplierId && s.IsMMSI);
 
             if (supplier == null)
             {
@@ -1134,7 +1134,7 @@ namespace IBSWeb.Areas.User.Controllers
                 .ToListAsync(cancellationToken);
 
             var getSupplier = await _unitOfWork.Supplier
-                .GetAsync(s => s.SupplierId == supplierId && s.IsFilpride, cancellationToken);
+                .GetAsync(s => s.SupplierId == supplierId && s.IsMMSI, cancellationToken);
 
             if (header.CvType == "Supplier")
             {
@@ -2217,7 +2217,7 @@ namespace IBSWeb.Areas.User.Controllers
                             .ToList();
 
                         viewModel.Suppliers = (await _unitOfWork.Supplier
-                                .GetAllAsync(supp => supp.IsFilpride && supp.Category == "Trade", cancellationToken))
+                                .GetAllAsync(supp => supp.IsMMSI && supp.Category == "Trade", cancellationToken))
                             .Select(sup => new SelectListItem
                             {
                                 Value = sup.SupplierId.ToString(),
@@ -2226,7 +2226,7 @@ namespace IBSWeb.Areas.User.Controllers
                             .ToList();
 
                         viewModel.BankAccounts = (await _unitOfWork.BankAccount
-                                .GetAllAsync(b => b.IsFilpride, cancellationToken))
+                                .GetAllAsync(b => b.IsMMSI, cancellationToken))
                             .Select(ba => new SelectListItem
                             {
                                 Value = ba.BankAccountId.ToString(),
@@ -2588,7 +2588,7 @@ namespace IBSWeb.Areas.User.Controllers
                             .ToList();
 
                         viewModel.Suppliers = (await _unitOfWork.Supplier
-                                .GetAllAsync(supp => supp.IsFilpride && supp.Category == "Trade", cancellationToken))
+                                .GetAllAsync(supp => supp.IsMMSI && supp.Category == "Trade", cancellationToken))
                             .Select(sup => new SelectListItem
                             {
                                 Value = sup.SupplierId.ToString(),
@@ -2597,7 +2597,7 @@ namespace IBSWeb.Areas.User.Controllers
                             .ToList();
 
                         viewModel.BankAccounts = (await _unitOfWork.BankAccount
-                                .GetAllAsync(b => b.IsFilpride, cancellationToken))
+                                .GetAllAsync(b => b.IsMMSI, cancellationToken))
                             .Select(ba => new SelectListItem
                             {
                                 Value = ba.BankAccountId.ToString(),
@@ -2920,8 +2920,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             var deliverReceipt = await query
                 .Include(dr => dr.CustomerOrderSlip)
-                .Include(filprideDeliveryReceipt => filprideDeliveryReceipt.Commissionee)
-                .OrderBy(dr => dr.DeliveryReceiptNo)
+                .Include(dr => dr.Commissionee)                .OrderBy(dr => dr.DeliveryReceiptNo)
                 .ToListAsync(cancellationToken);
 
             if (query.Any())

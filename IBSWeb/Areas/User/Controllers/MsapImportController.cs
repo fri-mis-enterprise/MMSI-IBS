@@ -334,6 +334,7 @@ namespace IBSWeb.Areas.User.Controllers
                 newCustomer.Company = await GetCompanyClaimAsync() ?? "MMSI";
                 newCustomer.ZipCode = "0000";
                 newCustomer.IsMMSI = true;
+
                 newCustomer.Type = "Documented";
 
                 customerList.Add(newCustomer);

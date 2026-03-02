@@ -115,7 +115,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                            var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                            var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                             page.Header().Height(50).Row(row =>
                             {
@@ -140,7 +140,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                                 row.ConstantItem(size: 100)
                                     .Height(50)
-                                    .Image(Image.FromFile(imgFilprideLogoPath)).FitWidth();
+                                    .Image(Image.FromFile(imgMmsiLogoPath)).FitWidth();
 
                             });
 
@@ -476,7 +476,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                        var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                        var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                         page.Header().Height(60).Row(row =>
                         {
@@ -500,7 +500,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                             row.ConstantItem(size: 100)
                                 .Height(50)
-                                .Image(Image.FromFile(imgFilprideLogoPath)).FitWidth();
+                                .Image(Image.FromFile(imgMmsiLogoPath)).FitWidth();
 
                         });
 
@@ -1085,7 +1085,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var worksheet = package.Workbook.Worksheets.Add("Dispatch Report");
 
                 // Insert image from root directory
-                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride.jpg"); // Update this to your image file name
+                var imagePath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg"); // Update this to your image file name
                 var picture = await worksheet.Drawings.AddPictureAsync("CompanyLogo", new FileInfo(imagePath));
                 picture.SetPosition(0, 0, 0, 0); // Adjust position as needed
                 picture.SetSize(200, 60); // Adjust size as needed
@@ -1573,7 +1573,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                        var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                        var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                         page.Header().Height(50).Row(row =>
                         {
@@ -1598,7 +1598,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                             row.ConstantItem(size: 100)
                                 .Height(50)
-                                .Image(Image.FromFile(imgFilprideLogoPath)).FitWidth();
+                                .Image(Image.FromFile(imgMmsiLogoPath)).FitWidth();
 
                         });
 
@@ -3023,7 +3023,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                            var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                            var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                             page.Header().Height(50).Row(row =>
                             {
@@ -3048,7 +3048,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                                 row.ConstantItem(size: 100)
                                     .Height(50)
-                                    .Image(Image.FromFile(imgFilprideLogoPath)).FitWidth();
+                                    .Image(Image.FromFile(imgMmsiLogoPath)).FitWidth();
 
                             });
 
@@ -3454,7 +3454,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                            var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                            var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                             page.Header().Height(50).Row(row =>
                             {
@@ -3479,7 +3479,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                                 row.ConstantItem(size: 100)
                                     .Height(50)
-                                    .Image(Image.FromFile(imgFilprideLogoPath)).FitWidth();
+                                    .Image(Image.FromFile(imgMmsiLogoPath)).FitWidth();
 
                             });
 
@@ -4012,7 +4012,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                            var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                            var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                             page.Header().Height(50).Row(row =>
                             {
@@ -4037,7 +4037,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                                 row.ConstantItem(size: 100)
                                     .Height(50)
-                                    .Image(Image.FromFile(imgFilprideLogoPath)).FitWidth();
+                                    .Image(Image.FromFile(imgMmsiLogoPath)).FitWidth();
 
                             });
 
@@ -4654,7 +4654,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                            var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                            var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                             page.Header().Height(50).Row(row =>
                             {
@@ -4679,7 +4679,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                                 row.ConstantItem(size: 100)
                                     .Height(50)
-                                    .Image(Image.FromFile(imgFilprideLogoPath)).FitWidth();
+                                    .Image(Image.FromFile(imgMmsiLogoPath)).FitWidth();
 
                             });
 

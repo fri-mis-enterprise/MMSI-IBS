@@ -53,7 +53,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             var dashboardCounts = new DashboardCountViewModel
             {
-                #region -- Filpride
+                #region -- MMSI
 
                 SupplierAppointmentCount = await _dbContext.CustomerOrderSlips
                         .Where(cos =>
@@ -135,7 +135,7 @@ namespace IBSWeb.Areas.User.Controllers
                                  && rr.Company == companyClaims)
                     .CountAsync(),
 
-                #endregion -- Filpride
+                #endregion -- MMSI
 
                 #region -- MMSI
 

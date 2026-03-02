@@ -1169,7 +1169,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             // 3. Add document properties for identification
             package.Workbook.Properties.Author = "Integrated Business System";
-            package.Workbook.Properties.Company = "Filpride";
+            package.Workbook.Properties.Company = "MALAYAN MARITIME SERVICES INC.";
             package.Workbook.Properties.Comments = $"Official DR - Generated: {DateTimeHelper.GetCurrentPhilippineTime():yyyy-MM-dd HH:mm:ss}";
 
             // 4. Mark as final (shows read-only warning in Excel)

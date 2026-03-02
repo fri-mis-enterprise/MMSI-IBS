@@ -237,7 +237,7 @@ namespace IBSWeb.Areas.User.Controllers
                 existingModel.AccountName = model.AccountName;
                 existingModel.Bank = model.Bank;
                 existingModel.Branch = model.Branch;
-                existingModel.IsFilpride = model.IsFilpride;
+
 
                 await _unitOfWork.SaveAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);

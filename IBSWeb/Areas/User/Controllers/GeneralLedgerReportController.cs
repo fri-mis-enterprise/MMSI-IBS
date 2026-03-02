@@ -116,7 +116,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                            var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                            var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                             page.Header().Height(50).Row(row =>
                             {
@@ -141,7 +141,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                                 row.ConstantItem(size: 100)
                                     .Height(50)
-                                    .Image(Image.FromFile(imgFilprideLogoPath)).FitWidth();
+                                    .Image(Image.FromFile(imgMmsiLogoPath)).FitWidth();
 
                             });
 
@@ -459,7 +459,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                         #region -- Header
 
-                        var imgFilprideLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "Filpride-logo.png");
+                        var imgMmsiLogoPath = Path.Combine(_webHostEnvironment.WebRootPath, "img", "mmsi-logo.jpg");
 
                         page.Header().Height(50).Row(row =>
                         {
@@ -484,7 +484,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                             row.ConstantItem(size: 100)
                                 .Height(50)
-                                .Image(Image.FromFile(imgFilprideLogoPath)).FitWidth();
+                                .Image(Image.FromFile(imgMmsiLogoPath)).FitWidth();
 
                         });
 
@@ -919,7 +919,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 var fileContent = new StringBuilder();
 
-                fileContent.AppendLine($"TAXPAYER'S NAME: Filpride Resources Inc.");
+                fileContent.AppendLine($"TAXPAYER'S NAME: MALAYAN MARITIME SERVICES INC.");
                 fileContent.AppendLine($"TIN: 000-216-589-00000");
                 fileContent.AppendLine($"ADDRESS: 57 Westgate Office, Sampson Road, CBD, Subic Bay Freeport Zone, Kalaklan, Olongapo City, 2200 Zambales, Philippines");
                 fileContent.AppendLine();
