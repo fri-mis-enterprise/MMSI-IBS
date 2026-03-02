@@ -111,9 +111,7 @@ namespace IBS.Models.MasterFile
 
         public bool HasMultipleTerms { get; set; }
 
-        public bool IsFilpride { get; set; }
-
-        public bool IsMMSI { get; set; }
+        public bool IsMMSI { get; set; } = true;
 
         [StringLength(13)]
         public string Type { get; set; } = string.Empty;

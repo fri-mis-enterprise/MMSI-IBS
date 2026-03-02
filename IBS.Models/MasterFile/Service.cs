@@ -59,6 +59,6 @@ namespace IBS.Models.MasterFile
         [StringLength(20)]
         public string Company { get; set; } = string.Empty;
 
-        public bool IsFilpride { get; set; }
+        public bool IsMMSI { get; set; } = true;
     }
 }
