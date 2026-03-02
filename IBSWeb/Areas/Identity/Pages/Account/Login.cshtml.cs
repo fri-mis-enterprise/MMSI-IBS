@@ -58,12 +58,7 @@ namespace IBSWeb.Areas.Identity.Pages.Account
         [TempData]
         public string ErrorMessage { get; set; }
 
-        public List<SelectListItem> Stations { get; set; }
-
         public List<SelectListItem> Companies { get; set; }
-
-        public List<SelectListItem> Users { get; set; }
-        public List<SelectListItem> StationAccess { get; set; }
 
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
@@ -96,9 +91,6 @@ namespace IBSWeb.Areas.Identity.Pages.Account
             [Required]
             [Display(Name = "Company")]
             public string Company { get; set; }
-
-            [Display(Name = "Station")]
-            public string StationCode { get; set; }
         }
 
         public async Task OnGetAsync(string returnUrl = null)
@@ -161,11 +153,6 @@ namespace IBSWeb.Areas.Identity.Pages.Account
                         new Claim("Company", Input.Company)
                     };
 
-                    if (!string.IsNullOrEmpty(Input.StationCode))
-                    {
-                        newClaims.Add(new Claim("StationCode", Input.StationCode));
-                    }
-
                     await _signInManager.UserManager.AddClaimsAsync(user, newClaims);
 
                     // Fetch updated claims and roles
@@ -221,8 +208,6 @@ namespace IBSWeb.Areas.Identity.Pages.Account
         {
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
             Companies = await _unitOfWork.GetCompanyListAsyncByName();
-            Users = await _unitOfWork.GetCashierListAsyncByUsernameAsync();
-            StationAccess = await _unitOfWork.GetCashierListAsyncByStationAsync();
             ReturnUrl = returnUrl;
         }
 
