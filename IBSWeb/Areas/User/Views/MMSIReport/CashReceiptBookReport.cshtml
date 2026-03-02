@@ -1,11 +1,10 @@
-﻿@model IEnumerable<GeneralLedgerBook>
+﻿@model IEnumerable<CashReceiptBook>
 @using IBS.Models
 @using IBS.Utility.Constants
-@using IBS.Utility.Helpers
 @using Microsoft.AspNetCore.Identity
 @inject UserManager<ApplicationUser> UserManager
 @{
-    ViewData["Title"] = "General Ledger Book";
+    ViewData["Title"] = "Cash Receipt Book";
     var dateFrom = ViewBag.DateFrom;
     var dateTo = ViewBag.DateTo;
     var lastRecord = ViewBag.LastRecord;
@@ -43,7 +42,7 @@
 <br class="br-top" />
 <div class="mx-5">
 <pre>
-TAXPAYER'S NAME: Filpride Resources Inc.
+TAXPAYER'S NAME: MALAYAN MARITIME SERVICES INC.
 TIN: 000-216-589-00000
 ADDRESS: 57 Westgate Office, Sampson Road, CBD, Subic Bay Freeport Zone, Kalaklan, Olongapo City, 2200 Zambales, Philippines
 
@@ -54,7 +53,7 @@ Date Issued: @* @CS.DateIssued *@
 
 <pre id="resultPre">
 Accounting Books File Attributes/Layout Definition
-File Name: General Ledger Book Report
+File Name: Cash Receipt Book Report
 File Type: Text File
 Number of Records:                  @numberOfRecords
 Amount Field Control Total:         @amountFieldControlTotal
@@ -63,21 +62,30 @@ Transaction cut-off Date & Time:    @lastRecord
 Extracted By:                       @UserManager.GetUserName(User)!.ToUpper()
 </pre>
 
-    <h3><b>GENERAL LEDGER BOOK</b></h3>
+    <h3><b>CASH RECEIPT BOOK</b></h3>
     <table class="table-hover w-100" style="margin-top:20px;">
         <thead>
             <tr class="table-bordered">
                 <th style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.Date)
+                    Date
                 </th>
                 <th style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.Reference)
+                    @Html.DisplayNameFor(model => model.RefNo)
                 </th>
                 <th style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.Description)
+                    @Html.DisplayNameFor(model => model.CustomerName)
                 </th>
                 <th style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.AccountTitle)
+                    @Html.DisplayNameFor(model => model.Bank)
+                </th>
+                <th style="padding: 10px 30px 10px 30px;">
+                    @Html.DisplayNameFor(model => model.CheckNo)
+                </th>
+                <th style="padding: 10px 30px 10px 30px;">
+                    @Html.DisplayNameFor(model => model.COA)
+                </th>
+                <th style="padding: 10px 30px 10px 30px;">
+                    @Html.DisplayNameFor(model => model.Particulars)
                 </th>
                 <th class="text-end" style="padding: 10px 30px 10px 30px;">
                     @Html.DisplayNameFor(model => model.Debit)
@@ -89,42 +97,51 @@ Extracted By:                       @UserManager.GetUserName(User)!.ToUpper()
         </thead>
         <tbody>
 
-            @foreach (var ledger in Model)
+            @foreach (var cashReceipt in Model)
             {
                 <tr class="align-text-bottom">
                     <td style="padding: 10px 30px 10px 30px;">
-                        @ledger.Date.ToString("MM/dd/yyyy")
+                        @cashReceipt.Date.ToString("MM/dd/yyyy")
                     </td>
                     <td style="padding: 10px 30px 10px 30px;">
-                        @Html.DisplayFor(model => ledger.Reference)
+                        @Html.DisplayFor(model => cashReceipt.RefNo)
                     </td>
                     <td style="padding: 10px 30px 10px 30px;">
-                        @Html.DisplayFor(model => ledger.Description)
+                        @Html.DisplayFor(model => cashReceipt.CustomerName)
                     </td>
                     <td style="padding: 10px 30px 10px 30px;">
-                        @{
-                            var accountTitleConcat = $"{ledger.AccountNo + " " + ledger.AccountTitle}";
-                        }
-                        @accountTitleConcat
+                        @Html.DisplayFor(model => cashReceipt.Bank)
+                    </td>
+                    <td style="padding: 10px 30px 10px 30px;">
+                        @Html.DisplayFor(model => cashReceipt.CheckNo)
+                    </td>
+                    <td style="padding: 10px 30px 10px 30px;">
+                        @Html.DisplayFor(model => cashReceipt.COA)
+                    </td>
+                    <td style="padding: 10px 30px 10px 30px;">
+                        @Html.DisplayFor(model => cashReceipt.Particulars)
                     </td>
                     <td class="text-end" style="padding: 10px 30px 10px 30px;">
-                        @ledger.Debit.ToString(SD.Two_Decimal_Format)
+                        @cashReceipt.Debit.ToString(SD.Two_Decimal_Format)
                     </td>
                     <td class="text-end" style="padding: 10px 30px 10px 30px;">
-                        @ledger.Credit.ToString(SD.Two_Decimal_Format)
+                        @cashReceipt.Credit.ToString(SD.Two_Decimal_Format)
                     </td>
                 </tr>
 
-                totalDebitAmount += ledger.Debit;
-                totalCreditAmount += ledger.Credit;
+                totalCreditAmount += cashReceipt.Credit;
+                totalDebitAmount += cashReceipt.Debit;
             }
             <tr class="align-text-bottom" style="border-top: 2px solid black;">
                 <td></td>
                 <td></td>
                 <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
                 <td class="text-center"><b>TOTAL:</b></td>
-                <td class="text-end" style="padding: 10px 30px 10px 30px;">@totalDebitAmount.ToString(SD.Two_Decimal_Format)</td>
                 <td class="text-end" style="padding: 10px 30px 10px 30px;">@totalCreditAmount.ToString(SD.Two_Decimal_Format)</td>
+                <td class="text-end" style="padding: 10px 30px 10px 30px;"><div>@totalDebitAmount.ToString(SD.Two_Decimal_Format)</div></td>
             </tr>
         </tbody>
     </table>
@@ -142,7 +159,7 @@ Extracted By:                       @UserManager.GetUserName(User)!.ToUpper()
     </p>
 
     <a class="btn btn-success buttons" onclick="printPage()" style="margin-top:25px;">Print</a>
-    <a asp-action="GeneralLedgerBook" class="btn buttons" style="margin-top:25px;">Back</a>
+    <a asp-action="CashReceiptBook" class="btn buttons" style="margin-top:25px;">Back</a>
 </div>
 @section Scripts {
     <script>
@@ -192,42 +209,66 @@ Extracted By:                       @UserManager.GetUserName(User)!.ToUpper()
                         content + '\n';
                     break;
                 case 1: // Serial No
-                    resultPre.textContent += padToLength('Reference', 20) +
-                        padToLength('Reference', 20) +
+                    resultPre.textContent += padToLength('RefNo', 20) +
+                        padToLength('Ref No.', 20) +
                         padToLength(startChar.toString(), 9) +
-                        padToLength('24', 7) +
-                        padToLength('13', 12) +
+                        padToLength(endChar.toString(), 7) +
+                        padToLength((endChar - startChar + 1).toString(), 12) +
                         content + '\n';
                     break;
                 case 2: // Sold To
-                    resultPre.textContent += padToLength('Description', 20) +
-                        padToLength('Description', 20) +
-                        padToLength('26', 9) +
-                        padToLength('75', 7) +
-                        padToLength('50', 12) +
+                    resultPre.textContent += padToLength('CustomerName', 20) +
+                        padToLength('Customer Name', 20) +
+                        padToLength(startChar.toString(), 9) +
+                        padToLength(endChar.toString(), 7) +
+                        padToLength((endChar - startChar + 1).toString(), 12) +
                         content + '\n';
                     break;
                 case 3: // Tin#
-                    resultPre.textContent += padToLength('AccountTitle', 20) +
-                        padToLength('Account Title', 20) +
-                        padToLength('77', 9) +
-                        padToLength('126', 7) +
-                        padToLength('50', 12) +
+                    resultPre.textContent += padToLength('Bank', 20) +
+                        padToLength('Bank', 20) +
+                        padToLength('25', 9) +
+                        padToLength('124', 7) +
+                        padToLength('100', 12) +
                         content + '\n';
                     break;
                 case 4: // Amount
-                    resultPre.textContent += padToLength('Debit', 20) +
-                        padToLength('Debit', 20) +
-                        padToLength('128', 9) +
+                    resultPre.textContent += padToLength('CheckNo', 20) +
+                        padToLength('Check No.', 20) +
+                        padToLength('126', 9) +
                         padToLength('145', 7) +
-                        padToLength('18', 12) +
+                        padToLength('20', 12) +
                         content + '\n';
                     break;
                 case 5: // Vat Amount
+                    resultPre.textContent += padToLength('COA', 20) +
+                        padToLength('Chart Of Account', 20) +
+                        padToLength('147', 9) +
+                        padToLength('246', 7) +
+                        padToLength('100', 12) +
+                        content + '\n';
+                    break;
+                case 6: // Vatable Sales
+                    resultPre.textContent += padToLength('Particulars', 20) +
+                        padToLength('Particulars', 20) +
+                        padToLength('248', 9) +
+                        padToLength('447', 7) +
+                        padToLength('200', 12) +
+                        content + '\n';
+                    break;
+                case 7: // VAT Exempt Sales
+                    resultPre.textContent += padToLength('Debit', 20) +
+                        padToLength('Debit', 20) +
+                        padToLength('449', 9) +
+                        padToLength('466', 7) +
+                        padToLength('18', 12) +
+                        content + '\n';
+                    break;
+                case 8: // Zero Rated
                     resultPre.textContent += padToLength('Credit', 20) +
                         padToLength('Credit', 20) +
-                        padToLength('147', 9) +
-                        padToLength('164', 7) +
+                        padToLength('468', 9) +
+                        padToLength('485', 7) +
                         padToLength('18', 12) +
                         content + '\n';
                     break;

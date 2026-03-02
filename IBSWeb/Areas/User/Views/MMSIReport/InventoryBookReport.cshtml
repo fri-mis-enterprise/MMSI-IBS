@@ -1,48 +1,27 @@
-﻿@model IEnumerable<CashReceiptBook>
+﻿@model IEnumerable<Inventory>
 @using IBS.Models
 @using IBS.Utility.Constants
 @using Microsoft.AspNetCore.Identity
 @inject UserManager<ApplicationUser> UserManager
 @{
-    ViewData["Title"] = "Cash Receipt Book";
+    ViewData["Title"] = "Inventory Book";
     var dateFrom = ViewBag.DateFrom;
     var dateTo = ViewBag.DateTo;
     var lastRecord = ViewBag.LastRecord;
 
     DateTime now = DateTimeHelper.GetCurrentPhilippineTime();
 
-    decimal totalCreditAmount = 0;
-    decimal totalDebitAmount = 0;
+    decimal totalQuantity = 0;
+    decimal totalPriceUnitAmount = 0;
+    decimal totalAmount = 0;
 
     int numberOfRecords = 0;
     decimal amountFieldControlTotal = 0;
 }
-<style>
-    body {
-        margin: 0 100px 0 0;
-        padding: 0;
-    }
-
-    .container {
-        margin: 0;
-        padding: 0;
-        max-width: 100%;
-    }
-
-    main {
-        margin: 0;
-        padding: 0;
-    }
-
-    footer {
-        display: none;
-        visibility: hidden;
-    }
-</style>
 <br class="br-top" />
 <div class="mx-5">
 <pre>
-TAXPAYER'S NAME: Filpride Resources Inc.
+TAXPAYER'S NAME: MALAYAN MARITIME SERVICES INC.
 TIN: 000-216-589-00000
 ADDRESS: 57 Westgate Office, Sampson Road, CBD, Subic Bay Freeport Zone, Kalaklan, Olongapo City, 2200 Zambales, Philippines
 
@@ -53,7 +32,7 @@ Date Issued: @* @CS.DateIssued *@
 
 <pre id="resultPre">
 Accounting Books File Attributes/Layout Definition
-File Name: Cash Receipt Book Report
+File Name: Inventory Book Report
 File Type: Text File
 Number of Records:                  @numberOfRecords
 Amount Field Control Total:         @amountFieldControlTotal
@@ -62,86 +41,89 @@ Transaction cut-off Date & Time:    @lastRecord
 Extracted By:                       @UserManager.GetUserName(User)!.ToUpper()
 </pre>
 
-    <h3><b>CASH RECEIPT BOOK</b></h3>
+    <h3><b>INVENTORY BOOK</b></h3>
     <table class="table-hover w-100" style="margin-top:20px;">
         <thead>
             <tr class="table-bordered">
                 <th style="padding: 10px 30px 10px 30px;">
-                    Date
+                    @Html.DisplayNameFor(model => model.Date)
                 </th>
                 <th style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.RefNo)
+                    @Html.DisplayNameFor(model => model.Product.ProductCode)
                 </th>
                 <th style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.CustomerName)
+                    @Html.DisplayNameFor(model => model.Product.ProductName)
                 </th>
                 <th style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.Bank)
-                </th>
-                <th style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.CheckNo)
-                </th>
-                <th style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.COA)
-                </th>
-                <th style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.Particulars)
+                    @Html.DisplayNameFor(model => model.Product.ProductUnit)
                 </th>
                 <th class="text-end" style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.Debit)
+                    @Html.DisplayNameFor(model => model.Quantity)
                 </th>
                 <th class="text-end" style="padding: 10px 30px 10px 30px;">
-                    @Html.DisplayNameFor(model => model.Credit)
+                    Price Per Unit
+                </th>
+                <th class="text-end" style="padding: 10px 30px 10px 30px;">
+                    @Html.DisplayNameFor(model => model.Total)
                 </th>
             </tr>
         </thead>
         <tbody>
-
-            @foreach (var cashReceipt in Model)
+            @foreach (var inventory in Model)
             {
                 <tr class="align-text-bottom">
                     <td style="padding: 10px 30px 10px 30px;">
-                        @cashReceipt.Date.ToString("MM/dd/yyyy")
+                        @inventory.Date.ToString("MM/dd/yyyy")
                     </td>
                     <td style="padding: 10px 30px 10px 30px;">
-                        @Html.DisplayFor(model => cashReceipt.RefNo)
+                        @Html.DisplayFor(model => inventory.Product.ProductCode)
                     </td>
                     <td style="padding: 10px 30px 10px 30px;">
-                        @Html.DisplayFor(model => cashReceipt.CustomerName)
+                        @Html.DisplayFor(model => inventory.Product.ProductName)
                     </td>
                     <td style="padding: 10px 30px 10px 30px;">
-                        @Html.DisplayFor(model => cashReceipt.Bank)
-                    </td>
-                    <td style="padding: 10px 30px 10px 30px;">
-                        @Html.DisplayFor(model => cashReceipt.CheckNo)
-                    </td>
-                    <td style="padding: 10px 30px 10px 30px;">
-                        @Html.DisplayFor(model => cashReceipt.COA)
-                    </td>
-                    <td style="padding: 10px 30px 10px 30px;">
-                        @Html.DisplayFor(model => cashReceipt.Particulars)
+                        @Html.DisplayFor(model => inventory.Product.ProductUnit)
                     </td>
                     <td class="text-end" style="padding: 10px 30px 10px 30px;">
-                        @cashReceipt.Debit.ToString(SD.Two_Decimal_Format)
+                        @inventory.Quantity.ToString(SD.Two_Decimal_Format)
                     </td>
                     <td class="text-end" style="padding: 10px 30px 10px 30px;">
-                        @cashReceipt.Credit.ToString(SD.Two_Decimal_Format)
+                        @inventory.Cost.ToString(SD.Four_Decimal_Format)
+                    </td>
+                    <td class="text-end" style="padding: 10px 30px 10px 30px;">
+                        @inventory.Total.ToString(SD.Two_Decimal_Format)
                     </td>
                 </tr>
-
-                totalCreditAmount += cashReceipt.Credit;
-                totalDebitAmount += cashReceipt.Debit;
+                if (inventory.Particular == "Sales" || inventory.Particular == "Actual Inventory(Loss)")
+                {
+                    totalQuantity -= inventory.Quantity;
+                    totalAmount -= inventory.Total;
+                }
+                else
+                {
+                    totalQuantity += inventory.Quantity;
+                    totalAmount += inventory.Total;
+                }
+                var getLastRecordCost = inventory.Cost;
+                if (totalAmount != 0 && totalQuantity != 0)
+                {
+                    totalPriceUnitAmount = totalAmount / totalQuantity;
+                }
+                else
+                {
+                    totalPriceUnitAmount = getLastRecordCost;
+                }
             }
             <tr class="align-text-bottom" style="border-top: 2px solid black;">
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td class="text-center"><b>TOTAL:</b></td>
-                <td class="text-end" style="padding: 10px 30px 10px 30px;">@totalCreditAmount.ToString(SD.Two_Decimal_Format)</td>
-                <td class="text-end" style="padding: 10px 30px 10px 30px;"><div>@totalDebitAmount.ToString(SD.Two_Decimal_Format)</div></td>
+                @{
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="text-center"><b>TOTAL:</b></td>
+                    <td class="text-end" style="padding: 10px 30px 10px 30px;">@totalQuantity.ToString(SD.Two_Decimal_Format)</td>
+                    <td class="text-end" style="padding: 10px 30px 10px 30px;">@totalPriceUnitAmount.ToString(SD.Four_Decimal_Format)</td>
+                    <td class="text-end" style="padding: 10px 30px 10px 30px;">@totalAmount.ToString(SD.Two_Decimal_Format)</td>
+                }
             </tr>
         </tbody>
     </table>
@@ -159,7 +141,7 @@ Extracted By:                       @UserManager.GetUserName(User)!.ToUpper()
     </p>
 
     <a class="btn btn-success buttons" onclick="printPage()" style="margin-top:25px;">Print</a>
-    <a asp-action="CashReceiptBook" class="btn buttons" style="margin-top:25px;">Back</a>
+    <a asp-action="InventoryBook" class="btn buttons" style="margin-top:25px;">Back</a>
 </div>
 @section Scripts {
     <script>
@@ -209,66 +191,50 @@ Extracted By:                       @UserManager.GetUserName(User)!.ToUpper()
                         content + '\n';
                     break;
                 case 1: // Serial No
-                    resultPre.textContent += padToLength('RefNo', 20) +
-                        padToLength('Ref No.', 20) +
-                        padToLength(startChar.toString(), 9) +
-                        padToLength(endChar.toString(), 7) +
-                        padToLength((endChar - startChar + 1).toString(), 12) +
-                        content + '\n';
-                    break;
-                case 2: // Sold To
-                    resultPre.textContent += padToLength('CustomerName', 20) +
-                        padToLength('Customer Name', 20) +
-                        padToLength(startChar.toString(), 9) +
-                        padToLength(endChar.toString(), 7) +
-                        padToLength((endChar - startChar + 1).toString(), 12) +
-                        content + '\n';
-                    break;
-                case 3: // Tin#
-                    resultPre.textContent += padToLength('Bank', 20) +
-                        padToLength('Bank', 20) +
-                        padToLength('25', 9) +
-                        padToLength('124', 7) +
-                        padToLength('100', 12) +
-                        content + '\n';
-                    break;
-                case 4: // Amount
-                    resultPre.textContent += padToLength('CheckNo', 20) +
-                        padToLength('Check No.', 20) +
-                        padToLength('126', 9) +
-                        padToLength('145', 7) +
+                    resultPre.textContent += padToLength('ProductCode', 20) +
+                        padToLength('Product Code', 20) +
+                        padToLength('12', 9) +
+                        padToLength('31', 7) +
                         padToLength('20', 12) +
                         content + '\n';
                     break;
-                case 5: // Vat Amount
-                    resultPre.textContent += padToLength('COA', 20) +
-                        padToLength('Chart Of Account', 20) +
-                        padToLength('147', 9) +
-                        padToLength('246', 7) +
-                        padToLength('100', 12) +
+                case 2: // Serial No
+                    resultPre.textContent += padToLength('ProductName', 20) +
+                        padToLength('Product Name', 20) +
+                        padToLength('33', 9) +
+                        padToLength('82', 7) +
+                        padToLength('50', 12) +
                         content + '\n';
                     break;
-                case 6: // Vatable Sales
-                    resultPre.textContent += padToLength('Particulars', 20) +
-                        padToLength('Particulars', 20) +
-                        padToLength('248', 9) +
-                        padToLength('447', 7) +
-                        padToLength('200', 12) +
+                case 3: // Sold To
+                    resultPre.textContent += padToLength('Unit', 20) +
+                        padToLength('Unit', 20) +
+                        padToLength('84', 9) +
+                        padToLength('85', 7) +
+                        padToLength('2', 12) +
                         content + '\n';
                     break;
-                case 7: // VAT Exempt Sales
-                    resultPre.textContent += padToLength('Debit', 20) +
-                        padToLength('Debit', 20) +
-                        padToLength('449', 9) +
-                        padToLength('466', 7) +
+                case 4: // Tin#
+                    resultPre.textContent += padToLength('Quantity', 20) +
+                        padToLength('Quantity', 20) +
+                        padToLength('87', 9) +
+                        padToLength('104', 7) +
                         padToLength('18', 12) +
                         content + '\n';
                     break;
-                case 8: // Zero Rated
-                    resultPre.textContent += padToLength('Credit', 20) +
-                        padToLength('Credit', 20) +
-                        padToLength('468', 9) +
-                        padToLength('485', 7) +
+                case 5: // Amount
+                    resultPre.textContent += padToLength('Price', 20) +
+                        padToLength('Price Per Unit', 20) +
+                        padToLength('106', 9) +
+                        padToLength('123', 7) +
+                        padToLength('18', 12) +
+                        content + '\n';
+                    break;
+                case 6: // Vat Amount
+                    resultPre.textContent += padToLength('Amount', 20) +
+                        padToLength('Amount', 20) +
+                        padToLength('125', 9) +
+                        padToLength('142', 7) +
                         padToLength('18', 12) +
                         content + '\n';
                     break;
@@ -290,7 +256,7 @@ Extracted By:                       @UserManager.GetUserName(User)!.ToUpper()
 
         // Replace the placeholder in the HTML with the actual number of records
         resultPre.innerHTML = resultPre.innerHTML.replace('@numberOfRecords', (allTrElements.length - 1));
-        resultPre.innerHTML = resultPre.innerHTML.replace('@amountFieldControlTotal', "@totalDebitAmount.ToString(SD.Two_Decimal_Format)");
+        resultPre.innerHTML = resultPre.innerHTML.replace('@amountFieldControlTotal', "@totalAmount.ToString(SD.Two_Decimal_Format)");
     </script>
 
 }
