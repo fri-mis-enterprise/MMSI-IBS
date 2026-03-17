@@ -484,3 +484,6 @@ $RECYCLE.BIN/
 *.swp
 
 /IBSWeb/wwwroot/documents/
+
+# ignore virtual_html files
+**/*.html
