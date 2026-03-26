@@ -31,9 +31,9 @@
                         </button>
                     </form>
                 }
-                <a asp-action="Edit" asp-route-id="@Model.JobOrderId" class="btn btn-light">
+                <button type="button" class="btn btn-light" onclick="openEditJobOrderModal(@Model.JobOrderId)">
                     <i class="bi bi-pencil"></i> Edit Details
-                </a>
+                </button>
                 <a asp-action="Delete" asp-route-id="@Model.JobOrderId" class="btn btn-outline-light">
                     <i class="bi bi-trash"></i> Delete
                 </a>
@@ -289,6 +289,29 @@
             </div>
         </div>
 
+        <!-- Edit Job Order Modal -->
+        <div class="modal fade" id="editJobOrderModal" tabindex="-1" aria-labelledby="editJobOrderModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="editJobOrderModalLabel">
+                            <i class="bi bi-pencil-square me-2"></i>Edit Job Order - <span id="editJobOrderNumber"></span>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="editJobOrderModalBody">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         @section Scripts {
             <script>
                 $(document).ready(function () {
@@ -343,6 +366,143 @@
                         });
                         body.innerHTML = '<div class="alert alert-danger">Error loading form. Please try again.</div>';
                     });
+                }
+
+                function openEditJobOrderModal(jobOrderId) {
+                    const modal = new bootstrap.Modal(document.getElementById('editJobOrderModal'));
+                    const body = document.getElementById('editJobOrderModalBody');
+                    const titleSpan = document.getElementById('editJobOrderNumber');
+
+                    // Show Loading
+                    body.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>`;
+
+                    modal.show();
+
+                    // Fetch edit form partial
+                    $.get('@Url.Action("EditModal", "JobOrder")', {id: jobOrderId}, function (data) {
+                        body.innerHTML = data;
+                        titleSpan.textContent = '@Model.JobOrderNumber';
+                        // Initialize Select2 and terminal loading after content is loaded
+                        setTimeout(function() {
+                            initializeEditModal();
+                        }, 100);
+                    }).fail(function (xhr, status, error) {
+                        console.error('Error loading edit form:', status, error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to load edit form. Please try again.'
+                        });
+                        body.innerHTML = '<div class="alert alert-danger">Error loading form. Please try again.</div>';
+                    });
+                }
+
+                function submitEditJobOrderForm() {
+                    const form = $('#editJobOrderForm');
+
+                    if (form.length === 0) return;
+
+                    // Check form validity using HTML5 validation
+                    if (!form[0].checkValidity()) {
+                        form[0].reportValidity();
+                        return;
+                    }
+
+                    // Show loading indicator
+                    Swal.fire({
+                        title: 'Saving Changes...',
+                        text: 'Please wait',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading() }
+                    });
+
+                    $.ajax({
+                        url: form.attr('action'),
+                        type: 'POST',
+                        data: form.serialize(),
+                        success: function (response) {
+                            // Check if it's a redirect (successful) or validation error
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Saved!',
+                                text: 'Job Order updated successfully.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                bootstrap.Modal.getInstance(document.getElementById('editJobOrderModal')).hide();
+                                location.reload();
+                            });
+                        },
+                        error: function (xhr, status, error) {
+                            console.error('Error saving job order:', status, error);
+                            Swal.fire('Error', 'An error occurred while saving changes.', 'error');
+                        }
+                    });
+                }
+
+                function initializeEditModal() {
+                    // Initialize Select2 for edit modal
+                    $('#editJobOrderModal .js-select2').select2({
+                        dropdownParent: $('#editJobOrderModal'),
+                    });
+
+                    // Terminal loading logic
+                    $('#EditPortId').off('change').on('change', function() {
+                        var portId = $(this).val();
+                        var terminalSelect = $('#EditTerminalId');
+
+                        console.log('Port changed, portId:', portId);
+
+                        if (!portId) {
+                            terminalSelect.empty();
+                            terminalSelect.append('<option value="">-- Select Terminal --</option>');
+                            terminalSelect.trigger('change');
+                            return;
+                        }
+
+                        terminalSelect.empty();
+                        terminalSelect.append('<option value="">Loading...</option>');
+                        terminalSelect.trigger('change');
+
+                        $.ajax({
+                            url: '@Url.Action("ChangeTerminal", "JobOrder")',
+                            type: 'GET',
+                            data: { portId: portId },
+                            success: function (data) {
+                                console.log('Terminals loaded:', data);
+                                terminalSelect.empty();
+                                terminalSelect.append('<option value="">-- Select Terminal --</option>');
+                                $.each(data, function (i, item) {
+                                    terminalSelect.append($('<option>', {
+                                        value: item.Value || item.value,
+                                        text: item.Text || item.text
+                                    }));
+                                });
+                                terminalSelect.trigger('change');
+                            },
+                            error: function (xhr, status, error) {
+                                console.error('Error loading terminals:', xhr.responseText, error);
+                                terminalSelect.empty();
+                                terminalSelect.append('<option value="">Error loading terminals</option>');
+                                terminalSelect.trigger('change');
+                            }
+                        });
+                    });
+                    
+                    // Trigger initial terminal load if port is already selected
+                    var initialPortId = $('#EditPortId').val();
+                    console.log('Initial portId:', initialPortId);
+                    console.log('Terminal options count:', $('#EditTerminalId').children('option').length);
+                    if (initialPortId && $('#EditTerminalId').children('option').length <= 1) {
+                        setTimeout(function() {
+                            $('#EditPortId').trigger('change');
+                        }, 200);
+                    }
                 }
 
                 function openDispatchTicketModalWithWarning(ticketId, status) {

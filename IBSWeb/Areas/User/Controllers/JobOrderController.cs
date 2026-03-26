@@ -191,6 +191,22 @@ namespace IBSWeb.Areas.User.Controllers
             return View(viewModel);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> EditModal(int id, CancellationToken cancellationToken)
+        {
+            if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.EditJobOrder))
+                return PartialView("_ErrorModal", new { message = "Access denied" });
+
+            var jobOrder = await _unitOfWork.JobOrder.GetAsync(j => j.JobOrderId == id, cancellationToken);
+            if (jobOrder == null)
+                return NotFound();
+
+            var viewModel = MapToViewModel(jobOrder);
+            await PopulateSelectListsAsync(viewModel, cancellationToken);
+
+            return PartialView("_EditModal", viewModel);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(JobOrderViewModel viewModel, CancellationToken cancellationToken)
