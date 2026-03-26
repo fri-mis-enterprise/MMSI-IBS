@@ -264,10 +264,10 @@ namespace IBSWeb.Areas.User.Controllers
 
         #endregion
 
-        #region Delete
+        #region Cancel
 
         [HttpGet]
-        public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+        public async Task<IActionResult> Cancel(int id, CancellationToken cancellationToken)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.DeleteJobOrder))
                 return AccessDenied();
@@ -276,11 +276,43 @@ namespace IBSWeb.Areas.User.Controllers
             if (jobOrder == null)
                 return NotFound();
 
-            if (jobOrder.DispatchTickets.Any())
+            if (jobOrder.Status == JobOrderStatus.Cancelled)
             {
-                TempData["error"] = $"Cannot delete Job Order. It has {jobOrder.DispatchTickets.Count} dispatch ticket(s) associated with it.";
+                TempData["error"] = $"Job Order #{jobOrder.JobOrderNumber} is already cancelled.";
                 return RedirectToAction(nameof(Details), new { id });
             }
+
+            // Count tickets by status for validation
+            var ticketsForBillingOrBilled = jobOrder.DispatchTickets
+                .Count(dt => dt.Status == "For Billing" || dt.Status == "Billed");
+            
+            var ticketsForApproval = jobOrder.DispatchTickets
+                .Count(dt => dt.Status == "For Approval");
+            
+            var ticketsDisapproved = jobOrder.DispatchTickets
+                .Count(dt => dt.Status == "Disapproved");
+            
+            var ticketsWithoutTariff = jobOrder.DispatchTickets
+                .Count(dt => dt.Status == "Pending" || dt.Status == "For Tariff");
+
+            // Build warning message
+            var warnings = new List<string>();
+            if (ticketsForApproval > 0)
+                warnings.Add($"{ticketsForApproval} ticket(s) pending approval will be affected");
+            if (ticketsDisapproved > 0)
+                warnings.Add($"{ticketsDisapproved} disapproved ticket(s) need attention");
+            if (ticketsWithoutTariff > 0)
+                warnings.Add($"{ticketsWithoutTariff} ticket(s) without tariff will be orphaned");
+
+            ViewData["HasTickets"] = jobOrder.DispatchTickets.Any();
+            ViewData["TicketsForBilling"] = ticketsForBillingOrBilled;
+            ViewData["TicketsForApproval"] = ticketsForApproval;
+            ViewData["TicketsDisapproved"] = ticketsDisapproved;
+            ViewData["TicketsWithoutTariff"] = ticketsWithoutTariff;
+            ViewData["WarningMessage"] = warnings.Any() 
+                ? "Warning: Cancelling this Job Order will affect existing tickets:<br/>• " + 
+                  string.Join("<br/>• ", warnings)
+                : "";
 
             return View(new JobOrderViewModel
             {
@@ -292,9 +324,9 @@ namespace IBSWeb.Areas.User.Controllers
             });
         }
 
-        [HttpPost, ActionName("Delete")]
+        [HttpPost, ActionName("Cancel")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken cancellationToken)
+        public async Task<IActionResult> CancelConfirmed(int id, bool confirmed = false, CancellationToken cancellationToken = default)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.DeleteJobOrder))
                 return AccessDenied();
@@ -303,33 +335,74 @@ namespace IBSWeb.Areas.User.Controllers
             if (jobOrder == null)
                 return NotFound();
 
-            if (jobOrder.DispatchTickets.Any())
+            if (jobOrder.Status == JobOrderStatus.Cancelled)
             {
-                TempData["error"] = "Cannot delete Job Order. It has dispatch tickets associated with it.";
+                TempData["error"] = $"Job Order #{jobOrder.JobOrderNumber} is already cancelled.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            try
+            // Count tickets by status for validation
+            var ticketsForBillingOrBilled = jobOrder.DispatchTickets
+                .Count(dt => dt.Status == "For Billing" || dt.Status == "Billed");
+            
+            var ticketsForApproval = jobOrder.DispatchTickets
+                .Count(dt => dt.Status == "For Approval");
+            
+            var ticketsDisapproved = jobOrder.DispatchTickets
+                .Count(dt => dt.Status == "Disapproved");
+            
+            var ticketsWithoutTariff = jobOrder.DispatchTickets
+                .Count(dt => dt.Status == "Pending" || dt.Status == "For Tariff");
+
+            // BLOCK if tickets are in billing process
+            if (ticketsForBillingOrBilled > 0)
             {
-                var currentUser = await GetCurrentUserAsync();
-
-                await RecordAuditAsync(
-                    activity: $"Deleted Job Order #{jobOrder.JobOrderNumber}",
-                    username: currentUser.UserName!,
-                    cancellationToken: cancellationToken);
-
-                await _unitOfWork.JobOrder.RemoveAsync(jobOrder, cancellationToken);
-                await _unitOfWork.SaveAsync(cancellationToken);
-
-                TempData["success"] = $"Job Order {jobOrder.JobOrderNumber} deleted successfully.";
-                return RedirectToAction(nameof(Index));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting Job Order {JobOrderId}", id);
-                TempData["error"] = "Error deleting Job Order.";
+                TempData["error"] = $"Cannot cancel Job Order. {ticketsForBillingOrBilled} ticket(s) are already in the billing process (For Billing/Billed). These tickets must be completed or removed before cancellation.";
                 return RedirectToAction(nameof(Details), new { id });
             }
+
+            // WARN if there are pending approvals or disapproved tickets (only if not confirmed)
+            if ((ticketsForApproval > 0 || ticketsDisapproved > 0) && !confirmed)
+            {
+                var warnings = new List<string>();
+                if (ticketsForApproval > 0)
+                    warnings.Add($"{ticketsForApproval} ticket(s) pending approval will be affected");
+                if (ticketsDisapproved > 0)
+                    warnings.Add($"{ticketsDisapproved} disapproved ticket(s) need attention");
+                if (ticketsWithoutTariff > 0)
+                    warnings.Add($"{ticketsWithoutTariff} ticket(s) without tariff will be orphaned");
+
+                TempData["warning"] = "<strong>Warning: Affected Tickets</strong><br/>" +
+                    string.Join("<br/>• ", warnings) +
+                    "<br/><br/>Are you sure you want to proceed?";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var currentUser = await GetCurrentUserAsync();
+
+            jobOrder.Status = JobOrderStatus.Cancelled;
+
+            // Build detailed audit message
+            var auditDetails = new List<string>();
+            if (ticketsForApproval > 0) auditDetails.Add($"{ticketsForApproval} for approval");
+            if (ticketsDisapproved > 0) auditDetails.Add($"{ticketsDisapproved} disapproved");
+            if (ticketsWithoutTariff > 0) auditDetails.Add($"{ticketsWithoutTariff} without tariff");
+            
+            var auditMessage = $"Cancelled Job Order #{jobOrder.JobOrderNumber}";
+            if (auditDetails.Any())
+            {
+                auditMessage += $". Affected tickets: {string.Join(", ", auditDetails)}";
+            }
+
+            await RecordAuditAsync(
+                activity: auditMessage,
+                username: currentUser.UserName!,
+                cancellationToken: cancellationToken);
+
+            await _unitOfWork.SaveAsync(cancellationToken);
+
+            TempData["success"] = $"Job Order #{jobOrder.JobOrderNumber} has been cancelled.";
+            return RedirectToAction(nameof(Details), new { id = jobOrder.JobOrderId });
         }
 
         #endregion
@@ -566,8 +639,9 @@ namespace IBSWeb.Areas.User.Controllers
 
     public static class JobOrderStatus
     {
-        public const string Open   = "Open";
-        public const string Closed = "Closed";
+        public const string Open      = "Open";
+        public const string Closed    = "Closed";
+        public const string Cancelled = "Cancelled";
     }
 
     #endregion

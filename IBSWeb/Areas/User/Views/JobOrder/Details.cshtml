@@ -34,9 +34,15 @@
                 <button type="button" class="btn btn-light" onclick="openEditJobOrderModal(@Model.JobOrderId)">
                     <i class="bi bi-pencil"></i> Edit Details
                 </button>
-                <a asp-action="Delete" asp-route-id="@Model.JobOrderId" class="btn btn-outline-light">
-                    <i class="bi bi-trash"></i> Delete
-                </a>
+                @if (Model.Status == "Open")
+                {
+                    <form asp-action="Cancel" asp-route-id="@Model.JobOrderId" method="post" id="cancelConfirmForm" class="d-inline">
+                        <input type="hidden" name="confirmed" value="false" />
+                        <button type="button" class="btn btn-outline-danger" onclick="confirmCancel()">
+                            <i class="bi bi-slash-circle"></i> Cancel
+                        </button>
+                    </form>
+                }
                 <a asp-action="Index" class="btn btn-outline-light">
                     <i class="bi bi-arrow-left"></i> Back to List
                 </a>
@@ -641,14 +647,41 @@
                     })
                 }
 
+                function confirmCancel() {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Cancel Job Order?',
+                        html: `
+                            <div class="text-start">
+                                <p class="mb-2"><strong>This will:</strong></p>
+                                <ul class="mb-2">
+                                    <li>Mark Job Order as "Cancelled"</li>
+                                    <li>Prevent adding new dispatch tickets</li>
+                                    <li>Affect existing tickets</li>
+                                </ul>
+                                <p class="text-danger small mb-0">Tickets in billing process (For Billing/Billed) will block cancellation.</p>
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonColor: '#dc3545',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, cancel it!',
+                        cancelButtonText: 'Review'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $('#cancelConfirmForm').submit();
+                        }
+                    })
+                }
+
                 // Check for server-side messages (error/warning/success)
                 @if (TempData["error"] != null)
                 {
                     <text>
                     Swal.fire({
                         icon: 'error',
-                        title: 'Cannot Close Job Order',
-                        html: '@TempData["error"]',
+                        title: 'Error',
+                        html: '@Html.Raw(TempData["error"])',
                         confirmButtonColor: '#d33'
                     });
                     </text>
@@ -658,17 +691,16 @@
                     <text>
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Warning',
+                        title: 'Warning: Affected Tickets',
                         html: '@Html.Raw(TempData["warning"])',
                         showCancelButton: true,
-                        confirmButtonColor: '#ffc107',
+                        confirmButtonColor: '#dc3545',
                         cancelButtonColor: '#6c757d',
-                        confirmButtonText: 'Yes, close anyway',
-                        cancelButtonText: 'Cancel'
+                        confirmButtonText: 'Yes, cancel anyway',
+                        cancelButtonText: 'Review Tickets'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            $('#confirmCloseValue').val('true');
-                            $('#closeForm').submit();
+                            $('#cancelConfirmForm').submit();
                         }
                     });
                     </text>

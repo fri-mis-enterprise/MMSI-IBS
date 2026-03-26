@@ -33,10 +33,15 @@
                     <tbody>
                         @foreach (var item in Model)
                         {
-                            <tr>
+                            var isCancelled = item.Status == "Cancelled";
+                            <tr class="@(isCancelled ? "table-secondary" : "")" style="@(isCancelled ? "opacity: 0.7;" : "")">
                                 <td class="text-start">
                                     <a asp-action="Details" asp-route-id="@item.JobOrderId" class="text-decoration-none text-primary fw-bold">
                                         @item.JobOrderNumber
+                                        @if (isCancelled)
+                                        {
+                                            <span class="badge bg-secondary ms-1">Cancelled</span>
+                                        }
                                     </a>
                                 </td>
                                 <td class="text-start">@item.Date.ToString("MMM dd, yyyy")</td>
@@ -57,21 +62,31 @@
                                     <span class="badge bg-secondary">@item.DispatchTickets.Count</span>
                                 </td>
                                 <td class="text-start">
-                                    <span class="badge rounded-pill @(item.Status == "Open" ? "bg-success" : "bg-secondary")">
-                                        @item.Status
-                                    </span>
+                                    @if (isCancelled)
+                                    {
+                                        <span class="badge rounded-pill bg-secondary">@item.Status</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill @(item.Status == "Open" ? "bg-success" : "bg-secondary")">
+                                            @item.Status
+                                        </span>
+                                    }
                                 </td>
                                 <td class="text-center">
                                     <div class="d-flex justify-content-center gap-1">
                                         <a asp-action="Details" asp-route-id="@item.JobOrderId" class="btn btn-sm btn-outline-primary" title="View Details">
                                             <i class="bi bi-eye"></i>
                                         </a>
-                                        <a asp-action="Edit" asp-route-id="@item.JobOrderId" class="btn btn-sm btn-outline-secondary" title="Edit Job Order">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <a asp-action="Delete" asp-route-id="@item.JobOrderId" class="btn btn-sm btn-outline-danger" title="Delete Job Order">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
+                                        @if (!isCancelled)
+                                        {
+                                            <a asp-action="Edit" asp-route-id="@item.JobOrderId" class="btn btn-sm btn-outline-secondary" title="Edit Job Order">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <a asp-action="Cancel" asp-route-id="@item.JobOrderId" class="btn btn-sm btn-outline-danger" title="Cancel Job Order">
+                                                <i class="bi bi-slash-circle"></i>
+                                            </a>
+                                        }
                                     </div>
                                 </td>
                             </tr>
