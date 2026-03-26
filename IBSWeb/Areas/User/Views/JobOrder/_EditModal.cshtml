@@ -32,7 +32,7 @@
             <!-- Customer -->
             <div class="col-12 col-md-6">
                 <label asp-for="CustomerId" class="form-label fw-bold small"></label>
-                <select asp-for="CustomerId" asp-items="@Model.Customers" class="form-select js-select2">
+                <select asp-for="CustomerId" asp-items="@Model.Customers" class="form-select js-select2" required>
                     <option value="">-- Select Customer --</option>
                 </select>
                 <span asp-validation-for="CustomerId" class="text-danger small"></span>
@@ -41,7 +41,7 @@
             <!-- Vessel -->
             <div class="col-12 col-md-6">
                 <label asp-for="VesselId" class="form-label fw-bold small"></label>
-                <select asp-for="VesselId" asp-items="@Model.Vessels" class="form-select js-select2">
+                <select asp-for="VesselId" asp-items="@Model.Vessels" class="form-select js-select2" required>
                     <option value="">-- Select Vessel --</option>
                 </select>
                 <span asp-validation-for="VesselId" class="text-danger small"></span>

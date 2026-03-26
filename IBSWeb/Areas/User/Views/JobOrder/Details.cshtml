@@ -18,7 +18,7 @@
 <div class="container-fluid mt-4">
     <!-- Header Card -->
     <div class="card shadow border-0 mb-4">
-        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center p-3">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center p-3">
             <h5 class="m-0"><i class="bi bi-folder2-open"></i> @Model.JobOrderNumber</h5>
             <div class="d-flex gap-2">
                 @if (Model.Status == "Open")
@@ -31,12 +31,12 @@
                         </button>
                     </form>
                 }
-                <button type="button" class="btn btn-light" onclick="openEditJobOrderModal(@Model.JobOrderId)">
+                <button type="button" class="btn btn-light" onclick="openEditJobOrderModal(@Model.JobOrderId, @(Model.DispatchTickets != null && Model.DispatchTickets.Any() ? "true" : "false"))">
                     <i class="bi bi-pencil"></i> Edit Details
                 </button>
-                @if (Model.Status == "Open")
+                @if (Model.Status == "Open" && User.IsInRole("Admin"))
                 {
-                    <form asp-action="CancelConfirmed" asp-route-id="@Model.JobOrderId" method="post" id="cancelConfirmForm" class="d-inline">
+                    <form asp-action="Cancel" asp-route-id="@Model.JobOrderId" method="post" id="cancelConfirmForm" class="d-inline">
                         <input type="hidden" name="confirmed" id="cancelConfirmed" value="false" />
                         <button type="button" class="btn btn-outline-danger" onclick="confirmCancel()">
                             <i class="bi bi-slash-circle"></i> Cancel
@@ -155,8 +155,10 @@
                             </tr>
                             </thead>
                             <tbody>
-                            @foreach (var ticket in Model.DispatchTickets)
+                            @if (Model.DispatchTickets != null)
                             {
+                                @foreach (var ticket in Model.DispatchTickets)
+                                {
                                 <tr>
                                     <td class="text-start">
                                         <span class="fw-bold">@ticket.DispatchNumber</span>
@@ -235,6 +237,7 @@
                                         </div>
                                     </td>
                                 </tr>
+                                }
                             }
                             </tbody>
                         </table>
@@ -374,7 +377,15 @@
                     });
                 }
 
-                function openEditJobOrderModal(jobOrderId) {
+                function openEditJobOrderModal(jobOrderId, hasTickets = false) {
+                    if (hasTickets === "true" || hasTickets === true) {
+                        openEditJobOrderModalWithWarning(jobOrderId);
+                    } else {
+                        openEditJobOrderModalNoWarning(jobOrderId);
+                    }
+                }
+
+                function openEditJobOrderModalNoWarning(jobOrderId) {
                     const modal = new bootstrap.Modal(document.getElementById('editJobOrderModal'));
                     const body = document.getElementById('editJobOrderModalBody');
                     const titleSpan = document.getElementById('editJobOrderNumber');
@@ -405,6 +416,31 @@
                             text: 'Failed to load edit form. Please try again.'
                         });
                         body.innerHTML = '<div class="alert alert-danger">Error loading form. Please try again.</div>';
+                    });
+                }
+
+                function openEditJobOrderModalWithWarning(jobOrderId) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Edit Job Order with Tickets',
+                        html: `
+                            <div class="text-start">
+                                <p class="mb-2"><strong>This Job Order has existing dispatch tickets.</strong></p>
+                                <p class="small text-muted mb-0">
+                                    Changing details (especially Port, Terminal, or Vessel) may require you to review 
+                                    and update the affected tickets to ensure consistency.
+                                </p>
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonColor: '#0d6efd',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Continue Editing',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            openEditJobOrderModal(jobOrderId);
+                        }
                     });
                 }
 
@@ -650,7 +686,7 @@
                 function confirmCancel() {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Cancel Job Order?',
+                        title: 'Admin Action: Cancel Job Order?',
                         html: `
                             <div class="text-start">
                                 <p class="mb-2"><strong>This will:</strong></p>
@@ -659,7 +695,9 @@
                                     <li>Prevent adding new dispatch tickets</li>
                                     <li>Affect existing tickets</li>
                                 </ul>
-                                <p class="text-danger small mb-0">Tickets in billing process (For Billing/Billed) will block cancellation.</p>
+                                <p class="text-danger small mb-0">
+                                    Admin-only action. Tickets in billing process (For Billing/Billed) will block cancellation.
+                                </p>
                             </div>
                         `,
                         showCancelButton: true,
@@ -677,24 +715,24 @@
                 }
 
                 // Check for server-side messages (error/warning/success)
-                @if (TempData["error"] != null)
+                @if (TempData.Peek("error") != null)
                 {
                     <text>
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        html: '@Html.Raw(TempData["error"])',
+                        html: '@Html.Raw(TempData.Peek("error"))',
                         confirmButtonColor: '#d33'
                     });
                     </text>
                 }
-                @if (TempData["warning"] != null)
+                @if (TempData.Peek("warning") != null)
                 {
                     <text>
                     Swal.fire({
                         icon: 'warning',
                         title: 'Warning: Affected Tickets',
-                        html: '@Html.Raw(TempData["warning"])',
+                        html: '@Html.Raw(TempData.Peek("warning"))',
                         showCancelButton: true,
                         confirmButtonColor: '#dc3545',
                         cancelButtonColor: '#6c757d',
@@ -709,13 +747,13 @@
                     });
                     </text>
                 }
-                @if (TempData["success"] != null)
+                @if (TempData.Peek("success") != null)
                 {
                     <text>
                     Swal.fire({
                         icon: 'success',
                         title: 'Success',
-                        text: '@TempData["success"]',
+                        text: '@TempData.Peek("success")',
                         timer: 3000,
                         showConfirmButton: false
                     });
@@ -877,7 +915,7 @@
                 }
 
                 function buildTicketModalActions(data) {
-                    const isJobOrderOpen = @Model.Status!.ToLower() === "open";
+                    const isJobOrderOpen = '@Model.Status' === 'Open';
                     let buttons = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
 
                     switch(data.status) {

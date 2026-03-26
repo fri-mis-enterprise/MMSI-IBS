@@ -7,6 +7,7 @@ using IBS.Services.AccessControl;
 using IBS.Services.Attributes;
 using IBS.Utility.Constants;
 using IBS.Utility.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -217,10 +218,25 @@ namespace IBSWeb.Areas.User.Controllers
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.EditJobOrder))
                 return AccessDenied();
 
+            // Validate required fields
+            if (viewModel.CustomerId <= 0)
+            {
+                TempData["error"] = "Customer is required.";
+                await PopulateSelectListsAsync(viewModel, cancellationToken);
+                return PartialView("_EditModal", viewModel);
+            }
+            
+            if (viewModel.VesselId <= 0)
+            {
+                TempData["error"] = "Vessel is required.";
+                await PopulateSelectListsAsync(viewModel, cancellationToken);
+                return PartialView("_EditModal", viewModel);
+            }
+
             if (!ModelState.IsValid)
             {
                 await PopulateSelectListsAsync(viewModel, cancellationToken);
-                return View(viewModel);
+                return PartialView("_EditModal", viewModel);
             }
 
             try
@@ -259,13 +275,14 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             await PopulateSelectListsAsync(viewModel, cancellationToken);
-            return View(viewModel);
+            return PartialView("_EditModal", viewModel);
         }
 
         #endregion
 
         #region Cancel
 
+        [Authorize(Roles = "Admin")]
         [HttpGet]
         public async Task<IActionResult> Cancel(int id, CancellationToken cancellationToken)
         {
@@ -324,6 +341,7 @@ namespace IBSWeb.Areas.User.Controllers
             });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost, ActionName("Cancel")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelConfirmed(int id, bool confirmed = false, CancellationToken cancellationToken = default)
