@@ -36,8 +36,8 @@
                 </button>
                 @if (Model.Status == "Open")
                 {
-                    <form asp-action="Cancel" asp-route-id="@Model.JobOrderId" method="post" id="cancelConfirmForm" class="d-inline">
-                        <input type="hidden" name="confirmed" value="false" />
+                    <form asp-action="CancelConfirmed" asp-route-id="@Model.JobOrderId" method="post" id="cancelConfirmForm" class="d-inline">
+                        <input type="hidden" name="confirmed" id="cancelConfirmed" value="false" />
                         <button type="button" class="btn btn-outline-danger" onclick="confirmCancel()">
                             <i class="bi bi-slash-circle"></i> Cancel
                         </button>
@@ -669,6 +669,8 @@
                         cancelButtonText: 'Review'
                     }).then((result) => {
                         if (result.isConfirmed) {
+                            // Set confirmed flag before submitting
+                            $('#cancelConfirmed').val('true');
                             $('#cancelConfirmForm').submit();
                         }
                     })
@@ -700,6 +702,8 @@
                         cancelButtonText: 'Review Tickets'
                     }).then((result) => {
                         if (result.isConfirmed) {
+                            // Set confirmed flag and submit
+                            $('#cancelConfirmed').val('true');
                             $('#cancelConfirmForm').submit();
                         }
                     });
