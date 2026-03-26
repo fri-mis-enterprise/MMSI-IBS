@@ -1,9 +1,13 @@
 
 @using IBS.Models.Enums
 @using IBS.Utility.Constants
+@using IBS.DataAccess.Repository.IRepository
+@using IBS.Services.AccessControl
 @using Microsoft.AspNetCore.Identity
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
+@inject IUnitOfWork UnitOfWork
+@inject IAccessControlService AccessControl
 
 @{
     var selectedCompany = string.Empty;
@@ -17,8 +21,23 @@
     var userDepartment = User.Claims.FirstOrDefault(c => c.Type == "Department")?.Value;
 
     var userName = UserManager.GetUserName(this.User);
-    
+    var userId = UserManager.GetUserId(User);
+
     ViewBag.AppVersion = "2.1.2";
+
+    // Helper function to check if user has MSAP access
+    async Task<bool> HasMsapAccess()
+    {
+        if (string.IsNullOrEmpty(userId)) return false;
+        return await AccessControl.HasMsapAccessAsync(userId);
+    }
+
+    // Helper function to check specific JobOrder access
+    async Task<bool> HasJobOrderAccess()
+    {
+        if (string.IsNullOrEmpty(userId)) return false;
+        return await AccessControl.HasJobOrderAccessAsync(userId);
+    }
 }
 
 <!DOCTYPE html>
@@ -70,41 +89,47 @@
                                 {
                                     @if (!User.IsInRole("PortCoordinator"))
                                     {
-                                        <li class="nav-item dropdown">
-                                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">MSAP</a>
-                                            <ul class="dropdown-menu">
-                                                <li class="nav-item">
-                                                    <a class="dropdown-item text-dark" asp-area="User" title="Manage Job Orders" asp-controller="JobOrder" asp-action="Index">Job Orders</a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li class="nav-item">
-                                                    <a class="dropdown-item text-dark" asp-area="User" title="Create Service Request" asp-controller="ServiceRequest" asp-action="Index">Service Requests (Legacy)</a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li class="nav-item">
-                                                    <a class="dropdown-item text-dark" title="Create, Tariff, and Approve Dispatch Tickets" asp-area="User" asp-controller="DispatchTicket" asp-action="Index">Dispatch Tickets</a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li class="nav-item">
-                                                    <a class="dropdown-item text-dark" asp-area="User" title="Dispatch Ticket Billings" asp-controller="Billing" asp-action="Index">Billing</a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li class="nav-item">
-                                                    <a class="dropdown-item text-dark" asp-area="User" title="Billing Collection" asp-controller="Collection" asp-action="Index">Collection</a>
-                                                </li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li class="nav-item dropend">
-                                                    <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                        MMSI Reports
-                                                    </a>
-                                                    <ul class="dropdown-menu">
+                                        @if (await HasMsapAccess())
+                                        {
+                                            <li class="nav-item dropdown">
+                                                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">MSAP</a>
+                                                <ul class="dropdown-menu">
+                                                    @if (await HasJobOrderAccess())
+                                                    {
                                                         <li class="nav-item">
-                                                            <a class="dropdown-item text-dark" asp-area="User" asp-controller="MaritimeReport" asp-action="SalesReport"> Sales</a>
+                                                            <a class="dropdown-item text-dark" asp-area="User" title="Manage Job Orders" asp-controller="JobOrder" asp-action="Index">Job Orders</a>
                                                         </li>
-                                                    </ul>
-                                                </li>
-                                            </ul>
-                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                    }
+                                                    <li class="nav-item">
+                                                        <a class="dropdown-item text-dark" asp-area="User" title="Create Service Request" asp-controller="ServiceRequest" asp-action="Index">Service Requests (Legacy)</a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li class="nav-item">
+                                                        <a class="dropdown-item text-dark" title="Create, Tariff, and Approve Dispatch Tickets" asp-area="User" asp-controller="DispatchTicket" asp-action="Index">Dispatch Tickets</a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li class="nav-item">
+                                                        <a class="dropdown-item text-dark" asp-area="User" title="Dispatch Ticket Billings" asp-controller="Billing" asp-action="Index">Billing</a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li class="nav-item">
+                                                        <a class="dropdown-item text-dark" asp-area="User" title="Billing Collection" asp-controller="Collection" asp-action="Index">Collection</a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li class="nav-item dropend">
+                                                        <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                            MMSI Reports
+                                                        </a>
+                                                        <ul class="dropdown-menu">
+                                                            <li class="nav-item">
+                                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="MaritimeReport" asp-action="SalesReport"> Sales</a>
+                                                            </li>
+                                                        </ul>
+                                                    </li>
+                                                </ul>
+                                            </li>
+                                        }
                                     }
                                 }
 

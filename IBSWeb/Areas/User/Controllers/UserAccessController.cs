@@ -140,10 +140,16 @@ namespace IBSWeb.Areas.User.Controllers
                 tempModel.CanCreateServiceRequest = model.CanCreateServiceRequest;
                 tempModel.CanPostServiceRequest = model.CanPostServiceRequest;
                 tempModel.CanCreateDispatchTicket = model.CanCreateDispatchTicket;
+                tempModel.CanEditDispatchTicket = model.CanEditDispatchTicket;
+                tempModel.CanCancelDispatchTicket = model.CanCancelDispatchTicket;
                 tempModel.CanSetTariff = model.CanSetTariff;
                 tempModel.CanApproveTariff = model.CanApproveTariff;
                 tempModel.CanCreateBilling = model.CanCreateBilling;
                 tempModel.CanCreateCollection = model.CanCreateCollection;
+                tempModel.CanCreateJobOrder = model.CanCreateJobOrder;
+                tempModel.CanEditJobOrder = model.CanEditJobOrder;
+                tempModel.CanDeleteJobOrder = model.CanDeleteJobOrder;
+                tempModel.CanCloseJobOrder = model.CanCloseJobOrder;
                 await _unitOfWork.SaveAsync(cancellationToken);
 
                 await transaction.CommitAsync(cancellationToken);

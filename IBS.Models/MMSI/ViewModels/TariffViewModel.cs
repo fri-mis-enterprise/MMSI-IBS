@@ -83,6 +83,16 @@ namespace IBS.Models.MMSI.ViewModels
 
         public string? BAFChargeType { get; set; }
 
+        public string? ImageSignedUrl { get; set; }
+
+        public string? TariffBy { get; set; }
+
+        public DateTime TariffDate { get; set; }
+
+        public string? TariffEditedBy { get; set; }
+
+        public DateTime? TariffEditedDate { get; set; }
+
         #endregion
 
         #region --Select List

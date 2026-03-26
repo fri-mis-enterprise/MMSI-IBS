@@ -44,6 +44,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public IActionResult Index()
         {
+            // Collection Index is just a placeholder, actual access is checked on Create
             return View();
         }
 
@@ -534,6 +535,12 @@ namespace IBSWeb.Areas.User.Controllers
             var list = await _unitOfWork.Collection.GetMMSIUncollectedBillingsByCustomer(customerId, cancellationToken);
 
             return list;
+        }
+
+        private async Task<bool> HasCollectionAccessAsync(CancellationToken cancellationToken)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            return await _userAccessService.CheckAccess(userId, ProcedureEnum.CreateCollection, cancellationToken);
         }
     }
 }

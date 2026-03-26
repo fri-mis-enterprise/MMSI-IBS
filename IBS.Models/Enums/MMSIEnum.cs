@@ -9,9 +9,15 @@ namespace IBS.Models.Enums
         CreateServiceRequest,
         PostServiceRequest,
         CreateDispatchTicket,
+        EditDispatchTicket,
+        CancelDispatchTicket,
         SetTariff,
         ApproveTariff,
         CreateBilling,
-        CreateCollection
+        CreateCollection,
+        CreateJobOrder,
+        EditJobOrder,
+        DeleteJobOrder,
+        CloseJobOrder
     }
 }

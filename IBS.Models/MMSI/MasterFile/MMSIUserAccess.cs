@@ -20,6 +20,10 @@ namespace IBS.Models.MMSI.MasterFile
 
         public bool CanCreateDispatchTicket { get; set; }
 
+        public bool CanEditDispatchTicket { get; set; }
+
+        public bool CanCancelDispatchTicket { get; set; }
+
         public bool CanSetTariff { get; set; }
 
         public bool CanApproveTariff { get; set; }
@@ -29,6 +33,14 @@ namespace IBS.Models.MMSI.MasterFile
         public bool CanCreateCollection { get; set; }
 
         public bool CanPrintReport { get; set; }
+
+        public bool CanCreateJobOrder { get; set; }
+
+        public bool CanEditJobOrder { get; set; }
+
+        public bool CanDeleteJobOrder { get; set; }
+
+        public bool CanCloseJobOrder { get; set; }
 
         [NotMapped]
         public List<SelectListItem>? Users { get; set; }

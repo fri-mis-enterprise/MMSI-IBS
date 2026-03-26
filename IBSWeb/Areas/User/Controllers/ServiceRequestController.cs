@@ -82,6 +82,12 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Index(string filterType, CancellationToken cancellationToken)
         {
+            if (!await HasServiceRequestAccessAsync(cancellationToken))
+            {
+                TempData["error"] = "Access denied.";
+                return RedirectToAction("Index", "Home", new { area = "User" });
+            }
+
             var dispatchTickets = await _unitOfWork.DispatchTicket.GetAllAsync(dt => dt.Status == "For Posting" || dt.Status == "Incomplete", cancellationToken);
             var currentUser = await _userManager.GetUserAsync(User);
 
@@ -937,6 +943,15 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             return viewModel;
+        }
+
+        private async Task<bool> HasServiceRequestAccessAsync(CancellationToken cancellationToken)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var hasCreateAccess = await _userAccessService.CheckAccess(userId, ProcedureEnum.CreateServiceRequest, cancellationToken);
+            var hasPostAccess = await _userAccessService.CheckAccess(userId, ProcedureEnum.PostServiceRequest, cancellationToken);
+
+            return hasCreateAccess || hasPostAccess;
         }
     }
 }

@@ -69,6 +69,12 @@
             <label asp-for="TimeArrived" class="form-label small fw-bold">Time End</label>
             <input asp-for="TimeArrived" type="time" class="form-control form-control-sm  shadow-sm" required>
         </div>
+        <div class="col-12 mt-2">
+            <div id="durationAlert" class="badge bg-secondary duration-badge shadow-sm">
+                <i class="bi bi-calculator me-1"></i>
+                Duration: <span id="modalDurationDisplay" class="fw-bold">0.00</span> hours
+            </div>
+        </div>
 
         <!-- III. Service & Provider -->
         <div class="col-12 mt-3">

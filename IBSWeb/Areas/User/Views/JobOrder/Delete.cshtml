@@ -31,7 +31,7 @@
                 <dd class="col-sm-9">@Model.VesselName</dd>
             </dl>
 
-            <form asp-action="DeleteConfirmed" method="post">
+            <form asp-action="DeleteConfirmed" asp-route-id="@Model.JobOrderId" method="post">
                 <input type="hidden" asp-for="JobOrderId" />
                 <div class="mt-4 d-flex justify-content-end gap-2">
                     <a asp-action="Details" asp-route-id="@Model.JobOrderId" class="btn btn-outline-secondary">

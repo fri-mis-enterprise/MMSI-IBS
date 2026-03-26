@@ -47,6 +47,12 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Index(string filterType, CancellationToken cancellationToken)
         {
+            if (!await HasBillingAccessAsync(cancellationToken))
+            {
+                TempData["error"] = "Access denied.";
+                return RedirectToAction("Index", "Home", new { area = "User" });
+            }
+
             var model = await _unitOfWork.Billing.GetAllAsync(null, cancellationToken);
             await UpdateFilterTypeClaim(filterType);
             ViewBag.FilterType = await GetCurrentFilterType();
@@ -925,6 +931,12 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             return viewModel;
+        }
+
+        private async Task<bool> HasBillingAccessAsync(CancellationToken cancellationToken)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            return await _userAccessService.CheckAccess(userId, ProcedureEnum.CreateBilling, cancellationToken);
         }
     }
 }

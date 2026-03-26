@@ -41,6 +41,10 @@ namespace IBS.Services
                     return userAccess.CanPostServiceRequest;
                 case ProcedureEnum.CreateDispatchTicket:
                     return userAccess.CanCreateDispatchTicket;
+                case ProcedureEnum.EditDispatchTicket:
+                    return userAccess.CanEditDispatchTicket;
+                case ProcedureEnum.CancelDispatchTicket:
+                    return userAccess.CanCancelDispatchTicket;
                 case ProcedureEnum.SetTariff:
                     return userAccess.CanSetTariff;
                 case ProcedureEnum.ApproveTariff:
@@ -49,6 +53,14 @@ namespace IBS.Services
                     return userAccess.CanCreateBilling;
                 case ProcedureEnum.CreateCollection:
                     return userAccess.CanCreateCollection;
+                case ProcedureEnum.CreateJobOrder:
+                    return userAccess.CanCreateJobOrder;
+                case ProcedureEnum.EditJobOrder:
+                    return userAccess.CanEditJobOrder;
+                case ProcedureEnum.DeleteJobOrder:
+                    return userAccess.CanDeleteJobOrder;
+                case ProcedureEnum.CloseJobOrder:
+                    return userAccess.CanCloseJobOrder;
                 default:
                     return false;
             }

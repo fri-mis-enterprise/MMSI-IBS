@@ -50,6 +50,14 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Index(string filterType)
         {
+            // Check if user has ANY DispatchTicket permission to view the list
+            using var cancellationTokenSource = new CancellationTokenSource();
+            if (!HasDispatchTicketAccessAsync(cancellationTokenSource.Token).Result)
+            {
+                TempData["error"] = "Access denied.";
+                return RedirectToAction("Index", "Home", new { area = "User" });
+            }
+
             var dispatchTickets = await _unitOfWork.DispatchTicket
                 .GetAllAsync(dt => dt.Status != "For Posting" && dt.Status != "Cancelled");
             await UpdateFilterTypeClaim(filterType);
@@ -66,7 +74,7 @@ namespace IBSWeb.Areas.User.Controllers
             if (id.HasValue && id > 0)
             {
                 // Edit Mode
-                if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.CreateDispatchTicket, cancellationToken))
+                if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.EditDispatchTicket, cancellationToken))
                 {
                     return Forbid();
                 }
@@ -84,7 +92,7 @@ namespace IBSWeb.Areas.User.Controllers
                 }
 
                 viewModel = DispatchTicketModelToServiceRequestVm(model);
-                
+
                 if (!string.IsNullOrEmpty(model.ImageName))
                 {
                     viewModel.ImageSignedUrl = await GenerateSignedUrl(model.ImageName);
@@ -93,7 +101,7 @@ namespace IBSWeb.Areas.User.Controllers
                 {
                     viewModel.VideoSignedUrl = await GenerateSignedUrl(model.VideoName);
                 }
-                
+
                 ViewData["Title"] = "Edit Dispatch Ticket";
                 ViewData["JobOrderId"] = viewModel.JobOrderId;
             }
@@ -104,9 +112,9 @@ namespace IBSWeb.Areas.User.Controllers
                 {
                     return Forbid();
                 }
-                
+
                 ViewData["Title"] = "Create Dispatch Ticket";
-                
+
                 // Pre-fill from JobOrder if provided
                 if (jobOrderId.HasValue)
                 {
@@ -597,7 +605,7 @@ namespace IBSWeb.Areas.User.Controllers
         {
             var companyClaims = await GetCompanyClaimAsync();
 
-            if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.CreateDispatchTicket, cancellationToken))
+            if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.EditDispatchTicket, cancellationToken))
             {
                 TempData["error"] = "Access denied.";
                 return RedirectToAction(nameof(Index));
@@ -626,7 +634,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             // Preserve JobOrderId for redirection after save
             viewModel.JobOrderId = jobOrderId ?? model.JobOrderId;
-            
+
             ViewData["PortId"] = model.Terminal?.Port?.PortId;
             ViewData["JobOrderId"] = viewModel.JobOrderId;
             ViewBag.FilterType = await GetCurrentFilterType();
@@ -636,6 +644,12 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpPost]
         public async Task<IActionResult> EditTicket(ServiceRequestViewModel viewModel, IFormFile? imageFile, IFormFile? videoFile, CancellationToken cancellationToken = default)
         {
+            if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.EditDispatchTicket, cancellationToken))
+            {
+                TempData["error"] = "Access denied.";
+                return RedirectToAction(nameof(Index));
+            }
+
             if (!ModelState.IsValid)
             {
                 TempData["warning"] = "Can't apply edit, please review your input.";
@@ -1013,6 +1027,12 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<IActionResult> Cancel(int id, CancellationToken cancellationToken)
         {
+            if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.CancelDispatchTicket, cancellationToken))
+            {
+                TempData["error"] = "Access denied.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var model = await _unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
 
             if (model == null)
@@ -1028,7 +1048,7 @@ namespace IBSWeb.Areas.User.Controllers
                 model.Status = "Cancelled";
                 await _unitOfWork.SaveAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
-                TempData["success"] = "Service Request cancelled.";
+                TempData["success"] = "Dispatch ticket cancelled.";
                 return RedirectToAction(nameof(Index), new { filterType = await GetCurrentFilterType() });
 
             }
@@ -1286,20 +1306,38 @@ namespace IBSWeb.Areas.User.Controllers
                 return NotFound();
             }
 
+            // Try to find tariff rate with exact match (Customer + Terminal + Service)
             var tariffRate = await _unitOfWork.TariffTable
                 .GetAsync(t => t.CustomerId == customerId &&
                                t.TerminalId == dispatchModel.TerminalId &&
                                t.ServiceId == dispatchModel.ServiceId &&
                                t.AsOfDate <= dispatchModel.DateLeft, cancellationToken);
 
+            // If not found, try fallback: Customer + Terminal only (any service)
+            if (tariffRate == null)
+            {
+                tariffRate = await _unitOfWork.TariffTable
+                    .GetAsync(t => t.CustomerId == customerId &&
+                                   t.TerminalId == dispatchModel.TerminalId &&
+                                   t.AsOfDate <= dispatchModel.DateLeft, cancellationToken);
+            }
+
+            // If still not found, try fallback: Customer only (any terminal, any service)
+            if (tariffRate == null)
+            {
+                tariffRate = await _unitOfWork.TariffTable
+                    .GetAsync(t => t.CustomerId == customerId &&
+                                   t.AsOfDate <= dispatchModel.DateLeft, cancellationToken);
+            }
+
             if (tariffRate != null)
             {
                 var result = new
                 {
-                    tariffRate.Dispatch, // Assuming Rate is a decimal property in MMSITariffRates
-                    tariffRate.BAF, // Example second decimal; replace with your logic
-                    tariffRate.DispatchDiscount,
-                    tariffRate.BAFDiscount,
+                    Dispatch = tariffRate.Dispatch,
+                    BAF = tariffRate.BAF,
+                    DispatchDiscount = tariffRate.DispatchDiscount,
+                    BAFDiscount = tariffRate.BAFDiscount,
                     Exists = true
                 };
 
@@ -1550,6 +1588,265 @@ namespace IBSWeb.Areas.User.Controllers
                 {
                     Console.WriteLine(" Row:" + row + " column:" + col + " Value:" + worksheet.Cells[row, col].Value?.ToString()?.Trim());
                 }
+            }
+        }
+
+        private async Task<bool> HasDispatchTicketAccessAsync(CancellationToken cancellationToken)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var hasCreateAccess = await _userAccessService.CheckAccess(userId, ProcedureEnum.CreateDispatchTicket, cancellationToken);
+            var hasEditAccess = await _userAccessService.CheckAccess(userId, ProcedureEnum.EditDispatchTicket, cancellationToken);
+            var hasCancelAccess = await _userAccessService.CheckAccess(userId, ProcedureEnum.CancelDispatchTicket, cancellationToken);
+
+            return hasCreateAccess || hasEditAccess || hasCancelAccess;
+        }
+
+        // Modal Actions for Job Order-centric workflow
+
+        [HttpGet]
+        public async Task<IActionResult> SetTariffModal(int id, CancellationToken cancellationToken)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var hasAccess = await _userAccessService.CheckAccess(userId, ProcedureEnum.SetTariff, cancellationToken);
+            
+            if (!hasAccess)
+            {
+                TempData["error"] = "You don't have permission to set tariff rates.";
+                return PartialView("_ErrorModal", new { message = "Access denied: You need Set Tariff permission" });
+            }
+
+            var model = await _unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
+            if (model == null)
+            {
+                return NotFound();
+            }
+
+            var viewModel = DispatchTicketModelToTariffVm(model);
+            if (!string.IsNullOrEmpty(model.ImageName))
+            {
+                viewModel.ImageSignedUrl = await GenerateSignedUrl(model.ImageName);
+            }
+            return PartialView("_SetTariffModal", viewModel);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditTariffModal(int id, CancellationToken cancellationToken)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var hasAccess = await _userAccessService.CheckAccess(userId, ProcedureEnum.SetTariff, cancellationToken);
+            
+            if (!hasAccess)
+            {
+                TempData["error"] = "You don't have permission to edit tariff rates.";
+                return PartialView("_ErrorModal", new { message = "Access denied: You need Set Tariff permission" });
+            }
+
+            var model = await _unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
+            if (model == null)
+            {
+                return NotFound();
+            }
+
+            var viewModel = DispatchTicketModelToTariffVm(model);
+            if (!string.IsNullOrEmpty(model.ImageName))
+            {
+                viewModel.ImageSignedUrl = await GenerateSignedUrl(model.ImageName);
+            }
+            return PartialView("_EditTariffModal", viewModel);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> TariffApprovalModal(int id, CancellationToken cancellationToken)
+        {
+            var userId = _userManager.GetUserId(User)!;
+            var hasAccess = await _userAccessService.CheckAccess(userId, ProcedureEnum.ApproveTariff, cancellationToken);
+            
+            if (!hasAccess)
+            {
+                TempData["error"] = "You don't have permission to approve tariffs.";
+                return PartialView("_ErrorModal", new { message = "Access denied: You need Approve Tariff permission" });
+            }
+
+            var model = await _unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
+            if (model == null)
+            {
+                return NotFound();
+            }
+
+            var viewModel = DispatchTicketModelToTariffVm(model);
+            if (!string.IsNullOrEmpty(model.ImageName))
+            {
+                viewModel.ImageSignedUrl = await GenerateSignedUrl(model.ImageName);
+            }
+            return PartialView("_TariffApprovalModal", viewModel);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SaveTariff(TariffViewModel vm, string chargeType, CancellationToken cancellationToken)
+        {
+            if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.SetTariff, cancellationToken))
+            {
+                return Json(new { success = false, message = "Access denied" });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "Invalid tariff data" });
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            var currentModel = await _unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == vm.DispatchTicketId, cancellationToken);
+
+            if (currentModel == null)
+            {
+                return Json(new { success = false, message = "Ticket not found" });
+            }
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                // Update tariff values
+                currentModel.Status = "For Approval";
+                currentModel.TariffBy = user!.UserName!;
+                currentModel.TariffDate = DateTimeHelper.GetCurrentPhilippineTime();
+                currentModel.DispatchChargeType = chargeType ?? "Per hour";
+                currentModel.BAFChargeType = chargeType ?? "Per hour";  // Same charge type for both
+                currentModel.DispatchRate = vm.DispatchRate ?? 0;
+                currentModel.DispatchDiscount = vm.DispatchDiscount ?? 0;
+                currentModel.BAFRate = vm.BAFRate ?? 0;
+                currentModel.BAFDiscount = vm.BAFDiscount ?? 0;
+                currentModel.DispatchBillingAmount = vm.DispatchBillingAmount;
+                currentModel.DispatchNetRevenue = vm.DispatchNetRevenue;
+                currentModel.BAFBillingAmount = vm.BAFBillingAmount;
+                currentModel.BAFNetRevenue = vm.BAFNetRevenue;
+                currentModel.TotalBilling = vm.TotalBilling;
+                currentModel.TotalNetRevenue = vm.TotalNetRevenue;
+                currentModel.ApOtherTugs = vm.ApOtherTugs ?? 0;
+
+                await _unitOfWork.SaveAsync(cancellationToken);
+
+                #region -- Audit Trail
+                var audit = new AuditTrail
+                {
+                    Date = DateTimeHelper.GetCurrentPhilippineTime(),
+                    Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
+                    MachineName = Environment.MachineName,
+                    Activity = $"Set tariff for dispatch ticket #{currentModel.DispatchNumber}",
+                    DocumentType = "Dispatch Ticket",
+                    Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException(),
+                };
+                await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
+                #endregion
+
+                await transaction.CommitAsync(cancellationToken);
+
+                return Json(new {
+                    success = true,
+                    message = "Tariff saved successfully",
+                    jobOrderId = currentModel.JobOrderId
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError(ex, "Failed to save tariff");
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ApproveTariff(int id, CancellationToken cancellationToken)
+        {
+            if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.ApproveTariff, cancellationToken))
+            {
+                return Json(new { success = false, message = "Access denied" });
+            }
+
+            var model = await _unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
+            if (model == null)
+            {
+                return Json(new { success = false, message = "Ticket not found" });
+            }
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                model.Status = "For Billing";
+                await _unitOfWork.SaveAsync(cancellationToken);
+
+                #region -- Audit Trail
+                var audit = new AuditTrail
+                {
+                    Date = DateTimeHelper.GetCurrentPhilippineTime(),
+                    Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
+                    MachineName = Environment.MachineName,
+                    Activity = $"Approved tariff for dispatch ticket #{model.DispatchNumber}",
+                    DocumentType = "Dispatch Ticket",
+                    Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException(),
+                };
+                await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
+                #endregion
+
+                await transaction.CommitAsync(cancellationToken);
+                return Json(new { success = true, message = "Tariff approved successfully" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError(ex, "Failed to approve tariff");
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DisapproveTariff(int id, string reason, CancellationToken cancellationToken)
+        {
+            if (!await _userAccessService.CheckAccess(_userManager.GetUserId(User)!, ProcedureEnum.ApproveTariff, cancellationToken))
+            {
+                return Json(new { success = false, message = "Access denied" });
+            }
+
+            if (string.IsNullOrWhiteSpace(reason) || reason.Length < 10)
+            {
+                return Json(new { success = false, message = "Please provide a detailed reason (at least 10 characters)" });
+            }
+
+            var model = await _unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
+            if (model == null)
+            {
+                return Json(new { success = false, message = "Ticket not found" });
+            }
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                model.Status = "Disapproved";
+                model.Remarks = string.IsNullOrEmpty(model.Remarks) 
+                    ? $"Disapproved: {reason}" 
+                    : $"{model.Remarks} | Disapproved: {reason}";
+                await _unitOfWork.SaveAsync(cancellationToken);
+
+                #region -- Audit Trail
+                var audit = new AuditTrail
+                {
+                    Date = DateTimeHelper.GetCurrentPhilippineTime(),
+                    Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
+                    MachineName = Environment.MachineName,
+                    Activity = $"Disapproved tariff for dispatch ticket #{model.DispatchNumber}. Reason: {reason}",
+                    DocumentType = "Dispatch Ticket",
+                    Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException(),
+                };
+                await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
+                #endregion
+
+                await transaction.CommitAsync(cancellationToken);
+                return Json(new { success = true, message = "Tariff disapproved successfully" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                _logger.LogError(ex, "Failed to disapprove tariff");
+                return Json(new { success = false, message = ex.Message });
             }
         }
     }
