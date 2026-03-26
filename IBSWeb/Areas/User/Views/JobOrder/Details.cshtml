@@ -198,6 +198,14 @@
                                                         onclick="openApprovalModal(@ticket.DispatchTicketId)">
                                                     <i class="bi bi-check-circle"></i>
                                                 </button>
+                                                @if (Model.Status == "Open")
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                                            title="Edit Ticket"
+                                                            onclick="openDispatchTicketModal(@ticket.DispatchTicketId)">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                }
                                             }
                                             else if (ticket.Status == "Disapproved")
                                             {
@@ -209,11 +217,14 @@
                                             }
                                             else if (ticket.Status == "For Billing" || ticket.Status == "Billed")
                                             {
-                                                <a asp-controller="DispatchTicket" asp-action="Preview"
-                                                   asp-route-id="@ticket.DispatchTicketId"
-                                                   class="btn btn-sm btn-outline-secondary" title="View Details">
-                                                    <i class="bi bi-file-earmark-text"></i>
-                                                </a>
+                                                @if (Model.Status == "Open")
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                                            title="Edit Ticket (Warning: Billed)"
+                                                            onclick="openDispatchTicketModalWithWarning(@ticket.DispatchTicketId, '@ticket.Status')">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                }
                                             }
                                         </div>
                                     </td>
@@ -231,9 +242,10 @@
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title" id="ticketModalLabel">Dispatch Ticket Details</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
+                        <h5 class="modal-title" id="ticketModalLabel">
+                            <i class="bi bi-ticket-perforated me-2"></i>Dispatch Ticket - <span id="ticketModalDispatchNumber"></span>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body" id="ticketModalBody">
                         <div class="text-center py-4">
@@ -242,7 +254,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer">
+                    <div class="modal-footer bg-light" id="ticketModalFooter">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
@@ -330,6 +342,24 @@
                             text: 'Failed to load ticket form. Please try again.'
                         });
                         body.innerHTML = '<div class="alert alert-danger">Error loading form. Please try again.</div>';
+                    });
+                }
+
+                function openDispatchTicketModalWithWarning(ticketId, status) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Edit Billed Ticket',
+                        html: `<p>This ticket has status <strong class="text-primary">${status}</strong>.</p>
+                               <p class="small text-muted">Editing this ticket may affect billing records. Make sure to update all related information correctly.</p>`,
+                        showCancelButton: true,
+                        confirmButtonColor: '#0d6efd',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, edit anyway',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            openDispatchTicketModal(ticketId);
+                        }
                     });
                 }
 
@@ -498,6 +528,8 @@
                 function showTicketModal(id) {
                     const modal = new bootstrap.Modal(document.getElementById('ticketModal'));
                     const body = document.getElementById('ticketModalBody');
+                    const footer = document.getElementById('ticketModalFooter');
+                    const titleSpan = document.getElementById('ticketModalDispatchNumber');
 
                     body.innerHTML = `
                 <div class="text-center py-4">
@@ -511,55 +543,189 @@
                     fetch(`@Url.Action("GetTicketDetails", "JobOrder")/${id}`)
                         .then(response => response.json())
                         .then(data => {
+                            // Update title
+                            titleSpan.textContent = data.dispatchNumber;
+
+                            // Build compact rich content
                             body.innerHTML = `
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label class="text-muted d-block">Dispatch #</label>
-                                <span class="fw-bold">${data.dispatchNumber}</span>
+                            <!-- Basic Info - 3 columns for compactness -->
+                            <div class="col-12">
+                                <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-info-circle me-2"></i>Ticket Information</h6>
                             </div>
-                            <div class="col-md-6">
-                                <label class="text-muted d-block">Date</label>
-                                <span class="fw-bold">${data.date}</span>
+                            <div class="col-6 col-md-4">
+                                <label class="text-muted small mb-0">Dispatch #</label>
+                                <div class="fw-bold">${data.dispatchNumber}</div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="text-muted d-block">Service</label>
-                                <span>${data.serviceName}</span>
+                            <div class="col-6 col-md-4">
+                                <label class="text-muted small mb-0">Date</label>
+                                <div class="fw-bold">${data.date}</div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="text-muted d-block">Tugboat</label>
-                                <span>${data.tugboatName}</span>
+                            <div class="col-6 col-md-4">
+                                <label class="text-muted small mb-0">Service</label>
+                                <div>${data.serviceName}</div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="text-muted d-block">Tug Master</label>
-                                <span>${data.tugMasterName}</span>
+                            <div class="col-6 col-md-4">
+                                <label class="text-muted small mb-0">Tugboat</label>
+                                <div>${data.tugboatName}</div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="text-muted d-block">Location</label>
-                                <span>${data.location}</span>
+                            <div class="col-6 col-md-4">
+                                <label class="text-muted small mb-0">Tug Master</label>
+                                <div>${data.tugMasterName}</div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="text-muted d-block">Time Start</label>
-                                <span>${data.timeStart}</span>
+                            <div class="col-6 col-md-4">
+                                <label class="text-muted small mb-0">Location</label>
+                                <div>${data.location}</div>
                             </div>
-                            <div class="col-md-6">
-                                <label class="text-muted d-block">Time End</label>
-                                <span>${data.timeEnd}</span>
+                            <div class="col-6 col-md-4">
+                                <label class="text-muted small mb-0">Time Start</label>
+                                <div>${data.timeStart}</div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <label class="text-muted small mb-0">Time End</label>
+                                <div>${data.timeEnd}</div>
+                            </div>
+                            <div class="col-6 col-md-4">
+                                <label class="text-muted small mb-0">Duration</label>
+                                <div class="fw-bold text-primary">${data.totalHours} hrs</div>
+                            </div>
+                            
+                            <!-- Tariff Info (if available) -->
+                            ${data.dispatchRate && data.dispatchRate !== '-' ? `
+                            <div class="col-12 mt-3">
+                                <h6 class="border-bottom pb-2 mb-3"><i class="bi bi-currency-dollar me-2"></i>Tariff Details</h6>
+                            </div>
+                            <div class="col-6">
+                                <div class="card h-100 border-0 bg-light">
+                                    <div class="card-header bg-primary text-white py-2">
+                                        <strong>Dispatch</strong>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <div class="row mb-2">
+                                            <div class="col-6 small">Rate: ₱ ${data.dispatchRate}/hr</div>
+                                            <div class="col-6 small text-end">Disc: ${data.dispatchDiscount}%</div>
+                                        </div>
+                                        <hr class="my-2">
+                                        <div class="text-center fw-bold text-primary">₱ ${data.dispatchBilling}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="card h-100 border-0 bg-light">
+                                    <div class="card-header bg-primary text-white py-2">
+                                        <strong>BAF</strong>
+                                    </div>
+                                    <div class="card-body p-3">
+                                        <div class="row mb-2">
+                                            <div class="col-6 small">Rate: ₱ ${data.bafRate}/hr</div>
+                                            <div class="col-6 small text-end">Disc: ${data.bafDiscount}%</div>
+                                        </div>
+                                        <hr class="my-2">
+                                        <div class="text-center fw-bold text-primary">₱ ${data.bafBilling}</div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-12">
-                                <label class="text-muted d-block">Remarks</label>
-                                <p class="mb-0 fst-italic">${data.remarks}</p>
+                                <div class="card bg-light">
+                                    <div class="card-body py-3">
+                                        <div class="row g-2 align-items-center">
+                                            <div class="col-6 text-center border-end">
+                                                <div class="text-muted small">Total Billing</div>
+                                                <div class="fw-bold">₱ ${data.totalBilling}</div>
+                                            </div>
+                                            <div class="col-6 text-center">
+                                                <div class="text-muted small">Net Revenue</div>
+                                                <div class="fw-bold text-success">₱ ${data.totalNetRevenue}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="col-12">
-                                <hr>
-                                <label class="text-muted d-block">Status</label>
-                                <span class="badge rounded-pill bg-info text-dark">${data.status}</span>
+                            ` : '<div class="col-12"><div class="alert alert-warning mb-0 py-2 small"><i class="bi bi-exclamation-triangle me-1"></i>No tariff details set yet.</div></div>'}
+                            
+                            <!-- Remarks & Status -->
+                            <div class="col-12 mt-3">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <label class="text-muted small mb-1">Remarks</label>
+                                        <p class="mb-0 fst-italic small">${data.remarks || 'No remarks'}</p>
+                                    </div>
+                                    <div class="col-md-4 text-end">
+                                        <label class="text-muted small mb-1">Status</label><br>
+                                        <span class="badge rounded-pill ${getStatusBadgeClass(data.status)}">${data.status}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     `;
+
+                            // Build action buttons based on status
+                            footer.innerHTML = buildTicketModalActions(data);
                         })
                         .catch(error => {
                             body.innerHTML = `<div class="alert alert-danger">Error loading ticket details: ${error}</div>`;
                         });
+                }
+
+                function getStatusBadgeClass(status) {
+                    const classes = {
+                        'Pending': 'bg-secondary',
+                        'For Tariff': 'bg-warning text-dark',
+                        'For Approval': 'bg-orange',
+                        'For Billing': 'bg-primary',
+                        'Billed': 'bg-success',
+                        'Disapproved': 'bg-danger'
+                    };
+                    return classes[status] || 'bg-secondary';
+                }
+
+                function buildTicketModalActions(data) {
+                    const isJobOrderOpen = @Model.Status!.ToLower() === "open";
+                    let buttons = '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>';
+
+                    switch(data.status) {
+                        case 'Pending':
+                        case 'For Tariff':
+                            buttons = `
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" onclick="openSetTariffModal(${data.id})">
+                                    <i class="bi bi-currency-dollar me-1"></i>Set Tariff
+                                </button>
+                            `;
+                            break;
+                        case 'For Approval':
+                            buttons = `
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-danger" onclick="openDisapproveModal(${data.id})">
+                                    <i class="bi bi-x-circle me-1"></i>Disapprove
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="approveTariff(${data.id})">
+                                    <i class="bi bi-check-circle me-1"></i>Approve
+                                </button>
+                            `;
+                            break;
+                        case 'Disapproved':
+                            buttons = `
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-warning" onclick="openEditTariffModal(${data.id})">
+                                    <i class="bi bi-pencil me-1"></i>Edit Tariff
+                                </button>
+                            `;
+                            break;
+                        case 'For Billing':
+                        case 'Billed':
+                            if (isJobOrderOpen) {
+                                buttons = `
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="button" class="btn btn-primary" onclick="openDispatchTicketModalWithWarning(${data.id}, '${data.status}')">
+                                        <i class="bi bi-pencil me-1"></i>Edit Ticket
+                                    </button>
+                                `;
+                            }
+                            break;
+                    }
+
+                    return buttons;
                 }
 
                 // Tariff Modal Functions

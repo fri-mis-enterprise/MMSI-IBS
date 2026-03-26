@@ -412,6 +412,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             return Json(new
             {
+                id = ticket.DispatchTicketId,
                 dispatchNumber = ticket.DispatchNumber,
                 date           = ticket.Date?.ToString("MMM dd, yyyy") ?? "-",
                 serviceName    = ticket.Service?.ServiceName,
@@ -427,7 +428,18 @@ namespace IBSWeb.Areas.User.Controllers
                     ? $"{ticket.DateArrived.Value:MMM dd, yyyy} {ticket.TimeArrived.Value:HH:mm}"
                     : "-",
                 remarks = ticket.Remarks ?? "No remarks",
-                status  = ticket.Status
+                status  = ticket.Status,
+                totalHours = ticket.TotalHours.ToString("N2"),
+                
+                // Tariff details (if available)
+                dispatchRate = ticket.DispatchRate.ToString("N2") ?? "-",
+                dispatchDiscount = ticket.DispatchDiscount.ToString("N2") ?? "0",
+                dispatchBilling = ticket.DispatchBillingAmount.ToString("N2") ?? "-",
+                bafRate = ticket.BAFRate.ToString("N2") ?? "-",
+                bafDiscount = ticket.BAFDiscount.ToString("N2") ?? "0",
+                bafBilling = ticket.BAFBillingAmount.ToString("N2") ?? "-",
+                totalBilling = ticket.TotalBilling.ToString("N2") ?? "-",
+                totalNetRevenue = ticket.TotalNetRevenue.ToString("N2") ?? "-"
             });
         }
 
