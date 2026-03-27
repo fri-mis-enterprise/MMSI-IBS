@@ -4,8 +4,15 @@ namespace IBS.Models.Enums
     {
 
     }
+
+    /// <summary>
+    /// Defines all access procedures for MMSI permission system.
+    /// Grouped by module for easier management.
+    /// </summary>
     public enum ProcedureEnum
     {
+        #region -- MSAP Workflow --
+
         CreateServiceRequest,
         PostServiceRequest,
         CreateDispatchTicket,
@@ -18,6 +25,57 @@ namespace IBS.Models.Enums
         CreateJobOrder,
         EditJobOrder,
         DeleteJobOrder,
-        CloseJobOrder
+        CloseJobOrder,
+
+        #endregion -- MSAP Workflow --
+
+        #region -- A. Receivable --
+
+        AccessReceivable,
+        CreateCustomerOrderSlip,
+        CreateDeliveryReceipt,
+        CreateSalesInvoice,
+        CreateServiceInvoice,
+        CreateCollectionReceipt,
+        CreateDebitMemo,
+        CreateCreditMemo,
+
+        #endregion -- A. Receivable --
+
+        #region -- A. Payable --
+
+        AccessPayable,
+        CreateAuthorityToLoad,
+        CreatePurchaseOrder,
+        CreateReceivingReport,
+        CreateCheckVoucherTrade,
+        CreateCheckVoucherNonTradeInvoice,
+        CreateCheckVoucherNonTradePayment,
+        CreateJournalVoucher,
+
+        #endregion -- A. Payable --
+
+        #region -- Treasury --
+
+        AccessTreasury,
+        CreateDisbursement,
+
+        #endregion -- Treasury --
+
+        #region -- MSAP Import --
+
+        ManageMsapImport,
+
+        #endregion -- MSAP Import --
+
+        #region -- Reports --
+
+        ViewGeneralLedger,
+        ViewInventoryReport,
+        ViewAccountsPayableReport,
+        ViewAccountsReceivableReport,
+        ViewMaritimeReport,
+
+        #endregion -- Reports --
     }
 }

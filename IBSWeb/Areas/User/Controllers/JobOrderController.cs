@@ -37,7 +37,10 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> Index(CancellationToken cancellationToken)
         {
             if (!await HasJobOrderAccessAsync())
-                return AccessDenied();
+            {
+                TempData["error"] = "Access denied. You don't have permission to access Job Orders.";
+                return RedirectToAction("Index", "Home", new { area = "User" });
+            }
 
             var jobOrders = await _unitOfWork.JobOrder.GetAllJobOrdersWithDetailsAsync(cancellationToken);
 
@@ -54,7 +57,10 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> Create(CancellationToken cancellationToken)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.CreateJobOrder))
-                return AccessDenied();
+            {
+                TempData["error"] = "Access denied. You don't have permission to create Job Orders.";
+                return RedirectToAction("Index", "Home", new { area = "User" });
+            }
 
             var viewModel = new JobOrderViewModel();
             await PopulateSelectListsAsync(viewModel, cancellationToken);
@@ -67,7 +73,10 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> Create(JobOrderViewModel viewModel, CancellationToken cancellationToken)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.CreateJobOrder))
-                return AccessDenied();
+            {
+                TempData["error"] = "Access denied. You don't have permission to create Job Orders.";
+                return RedirectToAction("Index", "Home", new { area = "User" });
+            }
 
             if (!ModelState.IsValid)
             {
@@ -124,7 +133,10 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> Details(int id, CancellationToken cancellationToken)
         {
             if (!await HasJobOrderAccessAsync())
-                return AccessDenied();
+            {
+                TempData["error"] = "Access denied. You don't have permission to view Job Orders.";
+                return RedirectToAction("Index", "Home", new { area = "User" });
+            }
 
             var jobOrder = await _unitOfWork.JobOrder.GetJobOrderWithDetailsAsync(id, cancellationToken);
             if (jobOrder == null)
@@ -180,7 +192,10 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.EditJobOrder))
-                return AccessDenied();
+            {
+                TempData["error"] = "Access denied. You don't have permission to edit Job Orders.";
+                return RedirectToAction("Index", "Home", new { area = "User" });
+            }
 
             var jobOrder = await _unitOfWork.JobOrder.GetAsync(j => j.JobOrderId == id, cancellationToken);
             if (jobOrder == null)
@@ -196,7 +211,7 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> EditModal(int id, CancellationToken cancellationToken)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.EditJobOrder))
-                return PartialView("_ErrorModal", new { message = "Access denied" });
+                return PartialView("_ErrorModal", new { message = "You don't have permission to edit this Job Order." });
 
             var jobOrder = await _unitOfWork.JobOrder.GetJobOrderWithDetailsAsync(id, cancellationToken);
             if (jobOrder == null)
@@ -204,7 +219,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             var viewModel = MapToViewModel(jobOrder);
             await PopulateSelectListsAsync(viewModel, cancellationToken);
-            
+
             // Pass ticket count for warning display
             ViewData["HasTickets"] = jobOrder.DispatchTickets.Any();
 
@@ -216,7 +231,10 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> Edit(JobOrderViewModel viewModel, CancellationToken cancellationToken)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.EditJobOrder))
-                return AccessDenied();
+            {
+                TempData["error"] = "Access denied. You don't have permission to edit Job Orders.";
+                return RedirectToAction("Index", "Home", new { area = "User" });
+            }
 
             // Validate required fields
             if (viewModel.CustomerId <= 0)
@@ -287,7 +305,9 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> Cancel(int id, CancellationToken cancellationToken)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.DeleteJobOrder))
-                return AccessDenied();
+            {
+                return PermissionDenied("You don't have permission to cancel Job Orders.");
+            }
 
             var jobOrder = await _unitOfWork.JobOrder.GetJobOrderWithDetailsAsync(id, cancellationToken);
             if (jobOrder == null)
@@ -347,7 +367,9 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> CancelConfirmed(int id, bool confirmed = false, CancellationToken cancellationToken = default)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.DeleteJobOrder))
-                return AccessDenied();
+            {
+                return PermissionDenied("You don't have permission to cancel Job Orders.");
+            }
 
             var jobOrder = await _unitOfWork.JobOrder.GetJobOrderWithDetailsAsync(id, cancellationToken);
             if (jobOrder == null)
@@ -432,7 +454,10 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> Close(int id, bool confirmed = false, CancellationToken cancellationToken = default)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.CloseJobOrder))
-                return AccessDenied();
+            {
+                TempData["error"] = "Access denied. You don't have permission to close Job Orders.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
 
             var jobOrder = await _unitOfWork.JobOrder.GetJobOrderWithDetailsAsync(id, cancellationToken);
             if (jobOrder == null)
@@ -570,9 +595,17 @@ namespace IBSWeb.Areas.User.Controllers
             return claims.FirstOrDefault(c => c.Type == "Company")?.Value;
         }
 
-        private IActionResult AccessDenied()
+        private IActionResult AccessDenied(string? returnUrl = null)
         {
-            TempData["error"] = "Access denied.";
+            TempData["error"] = "Access denied. You don't have permission to perform this action.";
+            
+            // If return URL is provided (for modal actions), redirect back there
+            if (!string.IsNullOrEmpty(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+            
+            // Otherwise redirect to Home
             return RedirectToAction("Index", "Home", new { area = "User" });
         }
 

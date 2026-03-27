@@ -38,6 +38,53 @@
         if (string.IsNullOrEmpty(userId)) return false;
         return await AccessControl.HasJobOrderAccessAsync(userId);
     }
+
+    // Helper function to check Service Request access (for Port Coordinators)
+    async Task<bool> HasServiceRequestAccess()
+    {
+        if (string.IsNullOrEmpty(userId)) return false;
+        return await AccessControl.HasServiceRequestAccessAsync(userId);
+    }
+
+    // Helper function to check A. Receivable access
+    async Task<bool> HasReceivableAccess()
+    {
+        if (string.IsNullOrEmpty(userId)) return false;
+        return await AccessControl.HasReceivableAccessAsync(userId);
+    }
+
+    // Helper function to check A. Payable access
+    async Task<bool> HasPayableAccess()
+    {
+        if (string.IsNullOrEmpty(userId)) return false;
+        return await AccessControl.HasPayableAccessAsync(userId);
+    }
+
+    // Helper function to check Treasury access
+    async Task<bool> HasTreasuryAccess()
+    {
+        if (string.IsNullOrEmpty(userId)) return false;
+        return await AccessControl.HasTreasuryAccessAsync(userId);
+    }
+
+    // Helper function to check MSAP Import access
+    async Task<bool> HasMsapImportAccess()
+    {
+        if (string.IsNullOrEmpty(userId)) return false;
+        return await AccessControl.HasMsapImportAccessAsync(userId);
+    }
+
+    // Helper function to check Reports access
+    async Task<bool> HasReportsAccess()
+    {
+        if (string.IsNullOrEmpty(userId)) return false;
+        return await AccessControl.HasAnyAccessAsync(userId,
+            ProcedureEnum.ViewGeneralLedger,
+            ProcedureEnum.ViewInventoryReport,
+            ProcedureEnum.ViewAccountsPayableReport,
+            ProcedureEnum.ViewAccountsReceivableReport,
+            ProcedureEnum.ViewMaritimeReport);
+    }
 }
 
 <!DOCTYPE html>
@@ -116,6 +163,13 @@
                                                     <li class="nav-item">
                                                         <a class="dropdown-item text-dark" asp-area="User" title="Billing Collection" asp-controller="Collection" asp-action="Index">Collection</a>
                                                     </li>
+                                                    @if (await HasMsapImportAccess())
+                                                    {
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li class="nav-item">
+                                                            <a class="dropdown-item text-dark" asp-area="User" title="MSAP Data Import" asp-controller="MsapImport" asp-action="Index">MSAP Import</a>
+                                                        </li>
+                                                    }
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li class="nav-item dropend">
                                                         <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -135,157 +189,168 @@
 
                                 if (selectedCompany == "MMSI" || selectedCompany == "Filpride")
                                 {
-                                    <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">A. Receivable</a>
-                                        <ul class="dropdown-menu">
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="CustomerOrderSlip" asp-action="Index">Customer Order Slip</a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="DeliveryReceipt" asp-action="Index">Delivery Receipt</a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="SalesInvoice" asp-action="Index">Sales Invoice</a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="ServiceInvoice" asp-action="Index">Service Invoice</a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item dropend">
-                                                <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                    Collection Receipt
-                                                </a>
-                                                <ul class="dropdown-menu">
-                                                    <li class="nav-item">
-                                                        <a class="dropdown-item text-dark" asp-area="User" asp-controller="CollectionReceipt" asp-action="ServiceInvoiceIndex">For Service</a>
-                                                    </li>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li class="nav-item">
-                                                        <a class="dropdown-item text-dark" asp-area="User" asp-controller="CollectionReceipt" asp-action="Index">For Sales</a>
-                                                    </li>
-                                                </ul>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="DebitMemo" asp-action="Index">Debit Memo</a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="CreditMemo" asp-action="Index">Credit Memo</a>
-                                            </li>
-                                                
-
-                                        </ul>
-                                    </li>
-                                    <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">A. Payable</a>
-                                        <ul class="dropdown-menu">
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="AuthorityToLoad" asp-action="Index">Authority To Load</a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="PurchaseOrder" asp-action="Index">Purchase Order</a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="ReceivingReport" asp-action="Index">Receiving Report</a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item dropend">
-                                                <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                    Check Voucher
-                                                </a>
-                                                <ul class="dropdown-menu">
-                                                    <li class="nav-item">
-                                                        <a class="dropdown-item text-dark" asp-area="User" asp-controller="CheckVoucherTrade" asp-action="Index">Trade</a>
-                                                    </li>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li class="nav-item dropend">
-                                                        <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                            Non-Trade
-                                                        </a>
-                                                        <ul class="dropdown-menu">
-                                                            <li class="nav-item dropend">
-                                                                <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                                    Invoice
-                                                                </a>
-                                                                <ul class="dropdown-menu">
-                                                                    <li class="nav-item dropend">
-                                                                        <a class="dropdown-item text-dark" asp-area="User" asp-controller="CheckVoucherNonTradeInvoice" asp-action="Index">Non-Payroll</a>
-                                                                    </li>
-                                                                    <li><hr class="dropdown-divider"></li>
-                                                                    <li class="nav-item dropend">
-                                                                        <a class="dropdown-item text-dark" asp-area="User" asp-controller="CheckVoucherNonTradePayrollInvoice" asp-action="Index">Payroll</a>
-                                                                    </li>
-                                                                </ul>
-                                                            </li>
-                                                            <li><hr class="dropdown-divider"></li>
-                                                            <li class="nav-item dropend">
-                                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="CheckVoucherNonTradePayment" asp-action="Index">Payment</a>
-                                                            </li>
-                                                        </ul>
-                                                    </li>
-                                                </ul>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="JournalVoucher" asp-action="Index">Journal Voucher</a>
-                                            </li>
-                                            
-                                        </ul>
-                                    </li>
-                                    <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Treasury</a>
-                                        <ul class="dropdown-menu">
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="Disbursement" asp-action="Index">Disbursement</a>
-                                            </li>
-                                        </ul>
-                                    </li>
-                                    <li class="nav-item dropdown">
-                                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Report</a>
-                                        <ul class="dropdown-menu">
-                                            <li class="nav-item dropend">
-                                                <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                    General Ledger
-                                                </a>
-                                                <ul class="dropdown-menu">
-                                                    <li class="nav-item">
-                                                        <a class="dropdown-item text-dark" asp-area="User" asp-controller="GeneralLedgerReport" asp-action="GeneralLedgerBook">General Ledger by Transaction</a>
-                                                    </li>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li class="nav-item">
-                                                        <a class="dropdown-item text-dark" asp-area="User" asp-controller="GeneralLedgerReport" asp-action="GeneralLedgerReportByAccountNumber">General Ledger By Acct#</a>
-                                                    </li>
-                                                    <li><hr class="dropdown-divider"></li>
+                                    @if (await HasReceivableAccess())
+                                    {
+                                        <li class="nav-item dropdown">
+                                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">A. Receivable</a>
+                                            <ul class="dropdown-menu">
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="CustomerOrderSlip" asp-action="Index">Customer Order Slip</a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="DeliveryReceipt" asp-action="Index">Delivery Receipt</a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="SalesInvoice" asp-action="Index">Sales Invoice</a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="ServiceInvoice" asp-action="Index">Service Invoice</a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item dropend">
                                                     <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                        Journal Voucher
+                                                        Collection Receipt
                                                     </a>
                                                     <ul class="dropdown-menu">
                                                         <li class="nav-item">
-                                                            <a class="dropdown-item text-dark" asp-area="User" asp-controller="GeneralLedgerReport" asp-action="JournalVoucherPriceReport">Due to updating selling price</a>
+                                                            <a class="dropdown-item text-dark" asp-area="User" asp-controller="CollectionReceipt" asp-action="ServiceInvoiceIndex">For Service</a>
                                                         </li>
                                                         <li><hr class="dropdown-divider"></li>
                                                         <li class="nav-item">
-                                                            <a class="dropdown-item text-dark" asp-area="User" asp-controller="GeneralLedgerReport" asp-action="JournalVoucherUnitCostReport">Due to updating unit cost</a>
+                                                            <a class="dropdown-item text-dark" asp-area="User" asp-controller="CollectionReceipt" asp-action="Index">For Sales</a>
                                                         </li>
                                                     </ul>
-                                                </ul>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item">
-                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="InventoryReport" asp-action="InventoryReport">Inventory</a>
-                                            </li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li class="nav-item dropend">
-                                                <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                    A. Payable
-                                                </a>
-                                                <ul class="dropdown-menu">
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="DebitMemo" asp-action="Index">Debit Memo</a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="CreditMemo" asp-action="Index">Credit Memo</a>
+                                                </li>
+
+
+                                            </ul>
+                                        </li>
+                                    }
+                                    @if (await HasPayableAccess())
+                                    {
+                                        <li class="nav-item dropdown">
+                                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">A. Payable</a>
+                                            <ul class="dropdown-menu">
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="AuthorityToLoad" asp-action="Index">Authority To Load</a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="PurchaseOrder" asp-action="Index">Purchase Order</a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="ReceivingReport" asp-action="Index">Receiving Report</a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item dropend">
+                                                    <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        Check Voucher
+                                                    </a>
+                                                    <ul class="dropdown-menu">
+                                                        <li class="nav-item">
+                                                            <a class="dropdown-item text-dark" asp-area="User" asp-controller="CheckVoucherTrade" asp-action="Index">Trade</a>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li class="nav-item dropend">
+                                                            <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                                Non-Trade
+                                                            </a>
+                                                            <ul class="dropdown-menu">
+                                                                <li class="nav-item dropend">
+                                                                    <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                                        Invoice
+                                                                    </a>
+                                                                    <ul class="dropdown-menu">
+                                                                        <li class="nav-item dropend">
+                                                                            <a class="dropdown-item text-dark" asp-area="User" asp-controller="CheckVoucherNonTradeInvoice" asp-action="Index">Non-Payroll</a>
+                                                                        </li>
+                                                                        <li><hr class="dropdown-divider"></li>
+                                                                        <li class="nav-item dropend">
+                                                                            <a class="dropdown-item text-dark" asp-area="User" asp-controller="CheckVoucherNonTradePayrollInvoice" asp-action="Index">Payroll</a>
+                                                                        </li>
+                                                                    </ul>
+                                                                </li>
+                                                                <li><hr class="dropdown-divider"></li>
+                                                                <li class="nav-item dropend">
+                                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="CheckVoucherNonTradePayment" asp-action="Index">Payment</a>
+                                                                </li>
+                                                            </ul>
+                                                        </li>
+                                                    </ul>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="JournalVoucher" asp-action="Index">Journal Voucher</a>
+                                                </li>
+
+                                            </ul>
+                                        </li>
+                                    }
+                                    @if (await HasTreasuryAccess())
+                                    {
+                                        <li class="nav-item dropdown">
+                                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Treasury</a>
+                                            <ul class="dropdown-menu">
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="Disbursement" asp-action="Index">Disbursement</a>
+                                                </li>
+                                            </ul>
+                                        </li>
+                                    }
+                                    @if (await HasReportsAccess())
+                                    {
+                                        <li class="nav-item dropdown">
+                                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">Report</a>
+                                            <ul class="dropdown-menu">
+                                                <li class="nav-item dropend">
+                                                    <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        General Ledger
+                                                    </a>
+                                                    <ul class="dropdown-menu">
+                                                        <li class="nav-item">
+                                                            <a class="dropdown-item text-dark" asp-area="User" asp-controller="GeneralLedgerReport" asp-action="GeneralLedgerBook">General Ledger by Transaction</a>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li class="nav-item">
+                                                            <a class="dropdown-item text-dark" asp-area="User" asp-controller="GeneralLedgerReport" asp-action="GeneralLedgerReportByAccountNumber">General Ledger By Acct#</a>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                            Journal Voucher
+                                                        </a>
+                                                        <ul class="dropdown-menu">
+                                                            <li class="nav-item">
+                                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="GeneralLedgerReport" asp-action="JournalVoucherPriceReport">Due to updating selling price</a>
+                                                            </li>
+                                                            <li><hr class="dropdown-divider"></li>
+                                                            <li class="nav-item">
+                                                                <a class="dropdown-item text-dark" asp-area="User" asp-controller="GeneralLedgerReport" asp-action="JournalVoucherUnitCostReport">Due to updating unit cost</a>
+                                                            </li>
+                                                        </ul>
+                                                    </ul>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item">
+                                                    <a class="dropdown-item text-dark" asp-area="User" asp-controller="InventoryReport" asp-action="InventoryReport">Inventory</a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="nav-item dropend">
+                                                    <a class="nav-link dropdown-toggle text-dark" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        A. Payable
+                                                    </a>
+                                                    <ul class="dropdown-menu">
                                                     <li class="nav-item">
                                                         <a class="dropdown-item text-dark" asp-area="User" asp-controller="AccountsPayableReport" asp-action="ClearedDisbursementReport">Cleared Disbursement</a>
                                                     </li>
@@ -450,13 +515,15 @@
                                             </li>
                                         </ul>
                                     </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link" asp-area="User" asp-controller="MsapImport" asp-action="Index">MSAP Import</a>
-                                        </li>
                                     }
                                     else
                                     {
-                                        <a class="nav-link" role="button" asp-area="User" asp-controller="ServiceRequest" asp-action="Index" aria-expanded="false">Service Request</a>
+                                        @if (await HasServiceRequestAccess())
+                                        {
+                                            <li class="nav-item">
+                                                <a class="nav-link" role="button" asp-area="User" asp-controller="ServiceRequest" asp-action="Index" aria-expanded="false">Service Request</a>
+                                            </li>
+                                        }
                                     }
                                 }
                             }
@@ -637,7 +704,6 @@
         </nav>
     </header>
     <div class="container" style="padding-top:5rem">
-        <partial name="_Notification" />
         <main role="main">
             <input type="hidden" id="hfUsername" value="@userName" />
             @RenderBody()
@@ -652,7 +718,7 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-    <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script><!--select 2 scripts-->
@@ -663,6 +729,10 @@
     <script src="~/js/spinner.js"></script>
     <script src="https://cdn.datatables.net/select/3.1.3/js/dataTables.select.js"></script>
     <script src="https://cdn.datatables.net/select/3.1.3/js/select.dataTables.js"></script>
+    
+    <!-- Notification partial (must be after SweetAlert2) -->
+    <partial name="_Notification" />
+    
     @await RenderSectionAsync("Scripts", required: false)
     <script>
     $(document).ready(function () {

@@ -90,6 +90,8 @@ namespace IBS.Services.AccessControl
     /// </summary>
     public static class AccessControlExtensions
     {
+        #region -- MSAP Workflow --
+
         public static async Task<bool> HasJobOrderAccessAsync(this IAccessControlService accessControl, string userId)
         {
             return await accessControl.HasAnyAccessAsync(userId,
@@ -150,5 +152,195 @@ namespace IBS.Services.AccessControl
                 ProcedureEnum.DeleteJobOrder,
                 ProcedureEnum.CloseJobOrder);
         }
+
+        #endregion -- MSAP Workflow --
+
+        #region -- A. Receivable --
+
+        public static async Task<bool> HasReceivableAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessReceivable,
+                ProcedureEnum.CreateCustomerOrderSlip,
+                ProcedureEnum.CreateDeliveryReceipt,
+                ProcedureEnum.CreateSalesInvoice,
+                ProcedureEnum.CreateServiceInvoice,
+                ProcedureEnum.CreateCollectionReceipt,
+                ProcedureEnum.CreateDebitMemo,
+                ProcedureEnum.CreateCreditMemo);
+        }
+
+        public static async Task<bool> HasCustomerOrderSlipAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessReceivable,
+                ProcedureEnum.CreateCustomerOrderSlip);
+        }
+
+        public static async Task<bool> HasDeliveryReceiptAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessReceivable,
+                ProcedureEnum.CreateDeliveryReceipt);
+        }
+
+        public static async Task<bool> HasSalesInvoiceAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessReceivable,
+                ProcedureEnum.CreateSalesInvoice);
+        }
+
+        public static async Task<bool> HasServiceInvoiceAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessReceivable,
+                ProcedureEnum.CreateServiceInvoice);
+        }
+
+        public static async Task<bool> HasCollectionReceiptAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessReceivable,
+                ProcedureEnum.CreateCollectionReceipt);
+        }
+
+        public static async Task<bool> HasDebitMemoAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessReceivable,
+                ProcedureEnum.CreateDebitMemo);
+        }
+
+        public static async Task<bool> HasCreditMemoAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessReceivable,
+                ProcedureEnum.CreateCreditMemo);
+        }
+
+        #endregion -- A. Receivable --
+
+        #region -- A. Payable --
+
+        public static async Task<bool> HasPayableAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessPayable,
+                ProcedureEnum.CreateAuthorityToLoad,
+                ProcedureEnum.CreatePurchaseOrder,
+                ProcedureEnum.CreateReceivingReport,
+                ProcedureEnum.CreateCheckVoucherTrade,
+                ProcedureEnum.CreateCheckVoucherNonTradeInvoice,
+                ProcedureEnum.CreateCheckVoucherNonTradePayment,
+                ProcedureEnum.CreateJournalVoucher);
+        }
+
+        public static async Task<bool> HasAuthorityToLoadAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessPayable,
+                ProcedureEnum.CreateAuthorityToLoad);
+        }
+
+        public static async Task<bool> HasPurchaseOrderAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessPayable,
+                ProcedureEnum.CreatePurchaseOrder);
+        }
+
+        public static async Task<bool> HasReceivingReportAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessPayable,
+                ProcedureEnum.CreateReceivingReport);
+        }
+
+        public static async Task<bool> HasCheckVoucherTradeAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessPayable,
+                ProcedureEnum.CreateCheckVoucherTrade);
+        }
+
+        public static async Task<bool> HasCheckVoucherNonTradeAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessPayable,
+                ProcedureEnum.CreateCheckVoucherNonTradeInvoice,
+                ProcedureEnum.CreateCheckVoucherNonTradePayment);
+        }
+
+        public static async Task<bool> HasJournalVoucherAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessPayable,
+                ProcedureEnum.CreateJournalVoucher);
+        }
+
+        #endregion -- A. Payable --
+
+        #region -- Treasury --
+
+        public static async Task<bool> HasTreasuryAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessTreasury,
+                ProcedureEnum.CreateDisbursement);
+        }
+
+        public static async Task<bool> HasDisbursementAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.AccessTreasury,
+                ProcedureEnum.CreateDisbursement);
+        }
+
+        #endregion -- Treasury --
+
+        #region -- MSAP Import --
+
+        public static async Task<bool> HasMsapImportAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.ManageMsapImport);
+        }
+
+        #endregion -- MSAP Import --
+
+        #region -- Reports --
+
+        public static async Task<bool> HasGeneralLedgerReportAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.ViewGeneralLedger);
+        }
+
+        public static async Task<bool> HasInventoryReportAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.ViewInventoryReport);
+        }
+
+        public static async Task<bool> HasAccountsPayableReportAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.ViewAccountsPayableReport);
+        }
+
+        public static async Task<bool> HasAccountsReceivableReportAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.ViewAccountsReceivableReport);
+        }
+
+        public static async Task<bool> HasMaritimeReportAccessAsync(this IAccessControlService accessControl, string userId)
+        {
+            return await accessControl.HasAnyAccessAsync(userId,
+                ProcedureEnum.ViewMaritimeReport);
+        }
+
+        #endregion -- Reports --
     }
 }

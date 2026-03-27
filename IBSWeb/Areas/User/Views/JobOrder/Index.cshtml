@@ -75,8 +75,8 @@
                                 </td>
                                 <td class="text-center">
                                     <div class="dropdown">
-                                        <button class="btn btn-primary dropdown-toggle" type="button" 
-                                                data-bs-toggle="dropdown" aria-expanded="false" 
+                                        <button class="btn btn-primary dropdown-toggle" type="button"
+                                                data-bs-toggle="dropdown" aria-expanded="false"
                                                 style="min-width: 100px;">
                                             Actions
                                         </button>
@@ -86,22 +86,6 @@
                                                     <i class="bi bi-eye"></i> View
                                                 </a>
                                             </li>
-                                            @if (!isCancelled)
-                                            {
-                                                <li>
-                                                    <a class="dropdown-item" asp-action="Edit" asp-route-id="@item.JobOrderId">
-                                                        <i class="bi bi-pencil"></i> Edit
-                                                    </a>
-                                                </li>
-                                                @if (isAdmin)
-                                                {
-                                                    <li>
-                                                        <a class="dropdown-item text-danger" asp-action="Cancel" asp-route-id="@item.JobOrderId">
-                                                            <i class="bi bi-slash-circle"></i> Cancel
-                                                        </a>
-                                                    </li>
-                                                }
-                                            }
                                         </ul>
                                     </div>
                                 </td>

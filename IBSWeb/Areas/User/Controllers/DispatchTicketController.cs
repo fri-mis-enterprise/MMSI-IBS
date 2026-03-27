@@ -75,7 +75,8 @@ namespace IBSWeb.Areas.User.Controllers
                 if (!await userAccessService.CheckAccess(
                         userManager.GetUserId(User)!, ProcedureEnum.EditDispatchTicket, cancellationToken))
                 {
-                    return Forbid();
+                    ViewData["message"] = "You don't have permission to edit dispatch tickets.";
+                    return PartialView("_PermissionDeniedModal");
                 }
 
                 var model = await unitOfWork.DispatchTicket
@@ -109,7 +110,8 @@ namespace IBSWeb.Areas.User.Controllers
                 if (!await userAccessService.CheckAccess(
                         userManager.GetUserId(User)!, ProcedureEnum.CreateDispatchTicket, cancellationToken))
                 {
-                    return Forbid();
+                    ViewData["message"] = "You don't have permission to create dispatch tickets.";
+                    return PartialView("_PermissionDeniedModal");
                 }
 
                 ViewData["Title"] = "Create Dispatch Ticket";
@@ -1032,8 +1034,8 @@ namespace IBSWeb.Areas.User.Controllers
             if (!await userAccessService.CheckAccess(
                     userManager.GetUserId(User)!, ProcedureEnum.SetTariff, cancellationToken))
             {
-                TempData["error"] = "You don't have permission to set tariff rates.";
-                return PartialView("_SetTariffModal", new { message = "Access denied: You need Set Tariff permission" });
+                ViewData["message"] = "You don't have permission to set tariff rates.";
+                return PartialView("_PermissionDeniedModal");
             }
 
             var model = await unitOfWork.DispatchTicket
@@ -1053,8 +1055,8 @@ namespace IBSWeb.Areas.User.Controllers
             if (!await userAccessService.CheckAccess(
                     userManager.GetUserId(User)!, ProcedureEnum.SetTariff, cancellationToken))
             {
-                TempData["error"] = "You don't have permission to edit tariff rates.";
-                return PartialView("_ErrorModal", new { message = "Access denied: You need Set Tariff permission" });
+                ViewData["message"] = "You don't have permission to edit tariff rates.";
+                return PartialView("_PermissionDeniedModal");
             }
 
             var model = await unitOfWork.DispatchTicket
@@ -1074,8 +1076,8 @@ namespace IBSWeb.Areas.User.Controllers
             if (!await userAccessService.CheckAccess(
                     userManager.GetUserId(User)!, ProcedureEnum.ApproveTariff, cancellationToken))
             {
-                TempData["error"] = "You don't have permission to approve tariffs.";
-                return PartialView("_ErrorModal", new { message = "Access denied: You need Approve Tariff permission" });
+                ViewData["message"] = "You don't have permission to approve tariffs.";
+                return PartialView("_PermissionDeniedModal");
             }
 
             var model = await unitOfWork.DispatchTicket

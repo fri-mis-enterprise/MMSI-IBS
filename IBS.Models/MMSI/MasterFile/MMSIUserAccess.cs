@@ -14,6 +14,8 @@ namespace IBS.Models.MMSI.MasterFile
         [Column(TypeName = "varchar(100)")]
         public string? UserName { get; set; }
 
+        #region -- MSAP Workflow --
+
         public bool CanCreateServiceRequest { get; set; }
 
         public bool CanPostServiceRequest { get; set; }
@@ -32,8 +34,6 @@ namespace IBS.Models.MMSI.MasterFile
 
         public bool CanCreateCollection { get; set; }
 
-        public bool CanPrintReport { get; set; }
-
         public bool CanCreateJobOrder { get; set; }
 
         public bool CanEditJobOrder { get; set; }
@@ -41,6 +41,76 @@ namespace IBS.Models.MMSI.MasterFile
         public bool CanDeleteJobOrder { get; set; }
 
         public bool CanCloseJobOrder { get; set; }
+
+        #endregion -- MSAP Workflow --
+
+        #region -- A. Receivable --
+
+        public bool CanAccessReceivable { get; set; }
+
+        public bool CanCreateCustomerOrderSlip { get; set; }
+
+        public bool CanCreateDeliveryReceipt { get; set; }
+
+        public bool CanCreateSalesInvoice { get; set; }
+
+        public bool CanCreateServiceInvoice { get; set; }
+
+        public bool CanCreateCollectionReceipt { get; set; }
+
+        public bool CanCreateDebitMemo { get; set; }
+
+        public bool CanCreateCreditMemo { get; set; }
+
+        #endregion -- A. Receivable --
+
+        #region -- A. Payable --
+
+        public bool CanAccessPayable { get; set; }
+
+        public bool CanCreateAuthorityToLoad { get; set; }
+
+        public bool CanCreatePurchaseOrder { get; set; }
+
+        public bool CanCreateReceivingReport { get; set; }
+
+        public bool CanCreateCheckVoucherTrade { get; set; }
+
+        public bool CanCreateCheckVoucherNonTradeInvoice { get; set; }
+
+        public bool CanCreateCheckVoucherNonTradePayment { get; set; }
+
+        public bool CanCreateJournalVoucher { get; set; }
+
+        #endregion -- A. Payable --
+
+        #region -- Treasury --
+
+        public bool CanAccessTreasury { get; set; }
+
+        public bool CanCreateDisbursement { get; set; }
+
+        #endregion -- Treasury --
+
+        #region -- MSAP Import --
+
+        public bool CanManageMsapImport { get; set; }
+
+        #endregion -- MSAP Import --
+
+        #region -- Reports --
+
+        public bool CanViewGeneralLedger { get; set; }
+
+        public bool CanViewInventoryReport { get; set; }
+
+        public bool CanViewAccountsPayableReport { get; set; }
+
+        public bool CanViewAccountsReceivableReport { get; set; }
+
+        public bool CanViewMaritimeReport { get; set; }
+
+        #endregion -- Reports --
 
         [NotMapped]
         public List<SelectListItem>? Users { get; set; }

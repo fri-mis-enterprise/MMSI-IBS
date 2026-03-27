@@ -335,7 +335,7 @@
                 });
 
                 function openDispatchTicketModal(ticketId = null) {
-                    const modal = new bootstrap.Modal(document.getElementById('addTicketModal'));
+                    const modalElement = document.getElementById('addTicketModal');
                     const body = document.getElementById('addTicketModalBody');
                     const title = document.getElementById('addTicketModalLabel');
                     const saveBtn = document.getElementById('saveTicketBtn');
@@ -344,7 +344,7 @@
                     title.innerHTML = ticketId ? '<i class="bi bi-pencil-square me-2"></i>Edit Dispatch Ticket' : '<i class="bi bi-plus-circle me-2"></i>Add New Dispatch Ticket';
                     saveBtn.innerHTML = ticketId ? '<i class="bi bi-check-circle me-1"></i> Update Ticket' : '<i class="bi bi-save me-1"></i> Save Ticket';
 
-                    // Show Loading
+                    // Show Loading in body first (before modal is shown)
                     body.innerHTML = `
                 <div class="text-center py-4">
                     <div class="spinner-border text-primary" role="status">
@@ -352,28 +352,44 @@
                     </div>
                 </div>`;
 
-                    modal.show();
-
-                    // Fetch partial
+                    // Fetch partial FIRST, before showing modal
                     const url = '@Url.Action("GetDispatchTicketPartial", "DispatchTicket")';
                     console.log('Fetching ticket form from:', url);
+                    
                     $.get(url, {id: ticketId, jobOrderId: '@Model.JobOrderId'}, function (data) {
                         console.log('✓ Form loaded, length:', data.length);
-                        body.innerHTML = data;
-                        // Initialize duration calculation after content is fully rendered
-                        setTimeout(function () {
-                            console.log('Initializing duration calculation...');
-                            initializeDurationCalculation();
-                        }, 200);
+                        
+                        // Check if response is permission denied
+                        if (data.indexOf('permission-denied-content') !== -1) {
+                            // Show permission denied in dedicated modal instead
+                            $('#permissionDeniedModal .modal-body').html(data);
+                            new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                        } else {
+                            // Show the add ticket modal with the form
+                            body.innerHTML = data;
+                            const modal = new bootstrap.Modal(modalElement);
+                            modal.show();
+                            
+                            // Initialize duration calculation after content is fully rendered
+                            setTimeout(function () {
+                                console.log('Initializing duration calculation...');
+                                initializeDurationCalculation();
+                            }, 200);
+                        }
                     }).fail(function (xhr, status, error) {
                         console.error('✗ Failed to load form:', status, error);
                         console.error('Response:', xhr.responseText);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to load ticket form. Please try again.'
-                        });
-                        body.innerHTML = '<div class="alert alert-danger">Error loading form. Please try again.</div>';
+                        
+                        // Check if response is permission denied
+                        if (xhr.responseText && xhr.responseText.indexOf('permission-denied-content') !== -1) {
+                            $('#permissionDeniedModal .modal-body').html(xhr.responseText);
+                            new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                        } else {
+                            // Show error in the add ticket modal
+                            body.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Failed to load ticket form. Please try again.</div>';
+                            const modal = new bootstrap.Modal(modalElement);
+                            modal.show();
+                        }
                     });
                 }
 
@@ -678,6 +694,7 @@
                         confirmButtonText: 'Yes, close it!'
                     }).then((result) => {
                         if (result.isConfirmed) {
+                            // Submit form normally - will handle redirect properly
                             $('#closeForm').submit();
                         }
                     })
@@ -707,9 +724,61 @@
                         cancelButtonText: 'Review'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            // Set confirmed flag before submitting
-                            $('#cancelConfirmed').val('true');
-                            $('#cancelConfirmForm').submit();
+                            // Submit via AJAX to handle permission denied
+                            $.ajax({
+                                url: '@Url.Action("Cancel", "JobOrder")',
+                                type: 'GET',
+                                data: { id: '@Model.JobOrderId' },
+                                success: function(response) {
+                                    // If we get HTML back, check what type
+                                    if (response.indexOf('permission-denied-content') !== -1) {
+                                        // Show permission denied in modal
+                                        $('#permissionDeniedModal .modal-body').html(response);
+                                        new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                                    } else if (response.indexOf('card-header bg-danger') !== -1) {
+                                        // Got the Cancel confirmation view - show it in modal
+                                        $('#cancelConfirmModal .modal-body').html(response);
+                                        
+                                        // Setup form submission within modal
+                                        $('#cancelConfirmModal form').on('submit', function(e) {
+                                            e.preventDefault();
+                                            var form = $(this);
+                                            $.post(form.attr('action'), form.serialize(), function(result) {
+                                                if (result.indexOf('permission-denied-content') !== -1) {
+                                                    $('#permissionDeniedModal .modal-body').html(result);
+                                                    bootstrap.Modal.getInstance(document.getElementById('cancelConfirmModal')).hide();
+                                                    new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                                                } else {
+                                                    // Success - reload page
+                                                    location.reload();
+                                                }
+                                            }).fail(function(xhr) {
+                                                if (xhr.responseText && xhr.responseText.indexOf('permission-denied-content') !== -1) {
+                                                    $('#permissionDeniedModal .modal-body').html(xhr.responseText);
+                                                    bootstrap.Modal.getInstance(document.getElementById('cancelConfirmModal')).hide();
+                                                    new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                                                } else {
+                                                    Swal.fire('Error', 'Failed to cancel Job Order', 'error');
+                                                }
+                                            });
+                                        });
+                                        
+                                        new bootstrap.Modal(document.getElementById('cancelConfirmModal')).show();
+                                    } else {
+                                        // Success - reload page
+                                        location.reload();
+                                    }
+                                },
+                                error: function(xhr) {
+                                    // Check if response is permission denied
+                                    if (xhr.responseText && xhr.responseText.indexOf('permission-denied-content') !== -1) {
+                                        $('#permissionDeniedModal .modal-body').html(xhr.responseText);
+                                        new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                                    } else {
+                                        Swal.fire('Error', 'Failed to load cancel form', 'error');
+                                    }
+                                }
+                            });
                         }
                     })
                 }
@@ -965,9 +1034,10 @@
 
                 // Tariff Modal Functions
                 function openSetTariffModal(ticketId) {
-                    const modal = new bootstrap.Modal(document.getElementById('setTariffModal'));
+                    const modalElement = document.getElementById('setTariffModal');
                     const body = document.getElementById('setTariffModalBody');
 
+                    // Show Loading in body first (before modal is shown)
                     body.innerHTML = `
                 <div class="text-center py-4">
                     <div class="spinner-border text-primary" role="status">
@@ -975,29 +1045,45 @@
                     </div>
                 </div>`;
 
-                    modal.show();
-
+                    // Fetch content FIRST, before showing modal
                     $.get('@Url.Action("SetTariffModal", "DispatchTicket")', {id: ticketId}, function (data) {
-                        body.innerHTML = data;
-                        // Initialize calculation after content loads
-                        setTimeout(function () {
-                            initializeTariffCalculation();
-                        }, 100);
+                        // Check if response is permission denied
+                        if (data.indexOf('permission-denied-content') !== -1) {
+                            // Show permission denied in dedicated modal instead
+                            $('#permissionDeniedModal .modal-body').html(data);
+                            new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                        } else {
+                            // Show the tariff modal with the form
+                            body.innerHTML = data;
+                            const modal = new bootstrap.Modal(modalElement);
+                            modal.show();
+                            
+                            // Initialize calculation after content loads
+                            setTimeout(function () {
+                                initializeTariffCalculation();
+                            }, 100);
+                        }
                     }).fail(function (xhr, status, error) {
                         console.error('Error loading tariff modal:', status, error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            html: '<strong>Failed to load tariff form</strong><br>Please check your permissions and try again.'
-                        });
-                        modal.hide();
+                        
+                        // Check if response is permission denied
+                        if (xhr.responseText && xhr.responseText.indexOf('permission-denied-content') !== -1) {
+                            $('#permissionDeniedModal .modal-body').html(xhr.responseText);
+                            new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                        } else {
+                            // Show error in the tariff modal
+                            body.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Failed to load tariff form. Please try again.</div>';
+                            const modal = new bootstrap.Modal(modalElement);
+                            modal.show();
+                        }
                     });
                 }
 
                 function openEditTariffModal(ticketId) {
-                    const modal = new bootstrap.Modal(document.getElementById('editTariffModal'));
+                    const modalElement = document.getElementById('editTariffModal');
                     const body = document.getElementById('editTariffModalBody');
 
+                    // Show Loading in body first (before modal is shown)
                     body.innerHTML = `
                 <div class="text-center py-4">
                     <div class="spinner-border text-warning" role="status">
@@ -1005,29 +1091,45 @@
                     </div>
                 </div>`;
 
-                    modal.show();
-
+                    // Fetch content FIRST, before showing modal
                     $.get('@Url.Action("EditTariffModal", "DispatchTicket")', {id: ticketId}, function (data) {
-                        body.innerHTML = data;
-                        // Initialize calculation after content loads
-                        setTimeout(function () {
-                            initializeTariffCalculation();
-                        }, 100);
+                        // Check if response is permission denied
+                        if (data.indexOf('permission-denied-content') !== -1) {
+                            // Show permission denied in dedicated modal instead
+                            $('#permissionDeniedModal .modal-body').html(data);
+                            new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                        } else {
+                            // Show the edit tariff modal with the form
+                            body.innerHTML = data;
+                            const modal = new bootstrap.Modal(modalElement);
+                            modal.show();
+                            
+                            // Initialize calculation after content loads
+                            setTimeout(function () {
+                                initializeTariffCalculation();
+                            }, 100);
+                        }
                     }).fail(function (xhr, status, error) {
                         console.error('Error loading edit tariff modal:', status, error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            html: '<strong>Failed to load tariff form</strong><br>Please check your permissions and try again.'
-                        });
-                        modal.hide();
+                        
+                        // Check if response is permission denied
+                        if (xhr.responseText && xhr.responseText.indexOf('permission-denied-content') !== -1) {
+                            $('#permissionDeniedModal .modal-body').html(xhr.responseText);
+                            new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                        } else {
+                            // Show error in the tariff modal
+                            body.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Failed to load tariff form. Please try again.</div>';
+                            const modal = new bootstrap.Modal(modalElement);
+                            modal.show();
+                        }
                     });
                 }
 
                 function openApprovalModal(ticketId) {
-                    const modal = new bootstrap.Modal(document.getElementById('tariffApprovalModal'));
+                    const modalElement = document.getElementById('tariffApprovalModal');
                     const body = document.getElementById('tariffApprovalModalBody');
 
+                    // Show Loading in body first (before modal is shown)
                     body.innerHTML = `
                 <div class="text-center py-4">
                     <div class="spinner-border text-info" role="status">
@@ -1035,18 +1137,32 @@
                     </div>
                 </div>`;
 
-                    modal.show();
-
+                    // Fetch content FIRST, before showing modal
                     $.get('@Url.Action("TariffApprovalModal", "DispatchTicket")', {id: ticketId}, function (data) {
-                        body.innerHTML = data;
+                        // Check if response is permission denied
+                        if (data.indexOf('permission-denied-content') !== -1) {
+                            // Show permission denied in dedicated modal instead
+                            $('#permissionDeniedModal .modal-body').html(data);
+                            new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                        } else {
+                            // Show the approval modal with the content
+                            body.innerHTML = data;
+                            const modal = new bootstrap.Modal(modalElement);
+                            modal.show();
+                        }
                     }).fail(function (xhr, status, error) {
                         console.error('Error loading approval modal:', status, error);
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            html: '<strong>Failed to load tariff details</strong><br>Please check your permissions and try again.'
-                        });
-                        modal.hide();
+                        
+                        // Check if response is permission denied
+                        if (xhr.responseText && xhr.responseText.indexOf('permission-denied-content') !== -1) {
+                            $('#permissionDeniedModal .modal-body').html(xhr.responseText);
+                            new bootstrap.Modal(document.getElementById('permissionDeniedModal')).show();
+                        } else {
+                            // Show error in the tariff modal
+                            body.innerHTML = '<div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>Failed to load tariff details. Please try again.</div>';
+                            const modal = new bootstrap.Modal(modalElement);
+                            modal.show();
+                        }
                     });
                 }
 
@@ -1498,6 +1614,40 @@
                         <button type="button" class="btn btn-danger" onclick="submitDisapproval()">
                             <i class="bi bi-x-circle me-1"></i>Disapprove
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permission Denied Modal -->
+        <div class="modal fade" id="permissionDeniedModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-shield-lock me-2"></i>Access Denied
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Content will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cancel Confirmation Modal -->
+        <div class="modal fade" id="cancelConfirmModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Cancel Job Order
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Content will be loaded dynamically -->
                     </div>
                 </div>
             </div>
