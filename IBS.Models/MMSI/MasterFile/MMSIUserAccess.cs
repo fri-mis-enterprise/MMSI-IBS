@@ -44,46 +44,6 @@ namespace IBS.Models.MMSI.MasterFile
 
         #endregion -- MSAP Workflow --
 
-        #region -- A. Receivable --
-
-        public bool CanAccessReceivable { get; set; }
-
-        public bool CanCreateCustomerOrderSlip { get; set; }
-
-        public bool CanCreateDeliveryReceipt { get; set; }
-
-        public bool CanCreateSalesInvoice { get; set; }
-
-        public bool CanCreateServiceInvoice { get; set; }
-
-        public bool CanCreateCollectionReceipt { get; set; }
-
-        public bool CanCreateDebitMemo { get; set; }
-
-        public bool CanCreateCreditMemo { get; set; }
-
-        #endregion -- A. Receivable --
-
-        #region -- A. Payable --
-
-        public bool CanAccessPayable { get; set; }
-
-        public bool CanCreateAuthorityToLoad { get; set; }
-
-        public bool CanCreatePurchaseOrder { get; set; }
-
-        public bool CanCreateReceivingReport { get; set; }
-
-        public bool CanCreateCheckVoucherTrade { get; set; }
-
-        public bool CanCreateCheckVoucherNonTradeInvoice { get; set; }
-
-        public bool CanCreateCheckVoucherNonTradePayment { get; set; }
-
-        public bool CanCreateJournalVoucher { get; set; }
-
-        #endregion -- A. Payable --
-
         #region -- Treasury --
 
         public bool CanAccessTreasury { get; set; }
@@ -103,10 +63,6 @@ namespace IBS.Models.MMSI.MasterFile
         public bool CanViewGeneralLedger { get; set; }
 
         public bool CanViewInventoryReport { get; set; }
-
-        public bool CanViewAccountsPayableReport { get; set; }
-
-        public bool CanViewAccountsReceivableReport { get; set; }
 
         public bool CanViewMaritimeReport { get; set; }
 

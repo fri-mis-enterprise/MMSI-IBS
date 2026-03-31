@@ -1,7 +1,4 @@
 using IBS.Models.Books;
-using IBS.DataAccess.Repository.AccountsPayable.IRepository;
-using IBS.DataAccess.Repository.AccountsReceivable.IRepository;
-using IBS.DataAccess.Repository.Books.IRepository;
 using IBS.DataAccess.Repository.Integrated.IRepository;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.DataAccess.Repository.MasterFile.IRepository;
@@ -43,7 +40,6 @@ namespace IBS.DataAccess.Repository.IRepository
 
         IChartOfAccountRepository ChartOfAccount { get; }
         ICustomerOrderSlipRepository CustomerOrderSlip { get; }
-        IDeliveryReceiptRepository DeliveryReceipt { get; }
         ISupplierRepository Supplier { get; }
         ICustomerRepository Customer { get; }
         IAuditTrailRepository AuditTrail { get; }
@@ -67,9 +63,13 @@ namespace IBS.DataAccess.Repository.IRepository
 
         Task<List<SelectListItem>> GetEmployeeListById(CancellationToken cancellationToken = default);
 
-        Task<List<SelectListItem>> GetDistinctPickupPointListById(string company, CancellationToken cancellationToken = default);
+        #endregion
 
-        Task<List<SelectListItem>> GetServiceListById(string company, CancellationToken cancellationToken = default);
+        #region --Master File
+
+        IBankAccountRepository BankAccount { get; }
+        IServiceMasterRepository ServiceMaster { get; }
+        IPickUpPointRepository PickUpPoint { get; }
 
         #endregion
 
@@ -92,54 +92,6 @@ namespace IBS.DataAccess.Repository.IRepository
         ITugboatOwnerRepository TugboatOwner { get; }
         IUserAccessRepository UserAccess { get; }
         IVesselRepository Vessel { get; }
-
-        #endregion
-
-        #region AAS
-
-        #region Accounts Receivable
-        ISalesInvoiceRepository SalesInvoice { get; }
-
-        IServiceInvoiceRepository ServiceInvoice { get; }
-
-        ICollectionReceiptRepository CollectionReceipt { get; }
-
-        IDebitMemoRepository DebitMemo { get; }
-
-        ICreditMemoRepository CreditMemo { get; }
-        #endregion
-
-        #region Accounts Payable
-
-        ICheckVoucherRepository CheckVoucher { get; }
-
-        IJournalVoucherRepository JournalVoucher { get; }
-
-        IPurchaseOrderRepository PurchaseOrder { get; }
-
-        IReceivingReportRepository ReceivingReport { get; }
-
-        #endregion
-
-        #region Books and Report
-        IInventoryRepository Inventory { get; }
-
-        IReportRepository Report { get; }
-        #endregion
-
-        #region Master File
-
-        IBankAccountRepository BankAccount { get; }
-
-        IServiceMasterRepository ServiceMaster { get; }
-
-        IPickUpPointRepository PickUpPoint { get; }
-
-        IFreightRepository Freight { get; }
-
-        IAuthorityToLoadRepository AuthorityToLoad { get; }
-
-        #endregion
 
         #endregion
 

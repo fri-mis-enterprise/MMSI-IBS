@@ -1,6 +1,4 @@
 using IBS.Models.Books;
-using IBS.Models.AccountsReceivable;
-using IBS.Models.AccountsPayable;
 using IBS.Models.Integrated;
 using IBS.Models.MasterFile;
 using IBS.Utility.Constants;
@@ -151,26 +149,6 @@ namespace IBSWeb.Areas.User.Controllers
                 tempModel.CanDeleteJobOrder = model.CanDeleteJobOrder;
                 tempModel.CanCloseJobOrder = model.CanCloseJobOrder;
 
-                // A. Receivable permissions
-                tempModel.CanAccessReceivable = model.CanAccessReceivable;
-                tempModel.CanCreateCustomerOrderSlip = model.CanCreateCustomerOrderSlip;
-                tempModel.CanCreateDeliveryReceipt = model.CanCreateDeliveryReceipt;
-                tempModel.CanCreateSalesInvoice = model.CanCreateSalesInvoice;
-                tempModel.CanCreateServiceInvoice = model.CanCreateServiceInvoice;
-                tempModel.CanCreateCollectionReceipt = model.CanCreateCollectionReceipt;
-                tempModel.CanCreateDebitMemo = model.CanCreateDebitMemo;
-                tempModel.CanCreateCreditMemo = model.CanCreateCreditMemo;
-
-                // A. Payable permissions
-                tempModel.CanAccessPayable = model.CanAccessPayable;
-                tempModel.CanCreateAuthorityToLoad = model.CanCreateAuthorityToLoad;
-                tempModel.CanCreatePurchaseOrder = model.CanCreatePurchaseOrder;
-                tempModel.CanCreateReceivingReport = model.CanCreateReceivingReport;
-                tempModel.CanCreateCheckVoucherTrade = model.CanCreateCheckVoucherTrade;
-                tempModel.CanCreateCheckVoucherNonTradeInvoice = model.CanCreateCheckVoucherNonTradeInvoice;
-                tempModel.CanCreateCheckVoucherNonTradePayment = model.CanCreateCheckVoucherNonTradePayment;
-                tempModel.CanCreateJournalVoucher = model.CanCreateJournalVoucher;
-
                 // Treasury permissions
                 tempModel.CanAccessTreasury = model.CanAccessTreasury;
                 tempModel.CanCreateDisbursement = model.CanCreateDisbursement;
@@ -181,8 +159,6 @@ namespace IBSWeb.Areas.User.Controllers
                 // Reports permissions
                 tempModel.CanViewGeneralLedger = model.CanViewGeneralLedger;
                 tempModel.CanViewInventoryReport = model.CanViewInventoryReport;
-                tempModel.CanViewAccountsPayableReport = model.CanViewAccountsPayableReport;
-                tempModel.CanViewAccountsReceivableReport = model.CanViewAccountsReceivableReport;
                 tempModel.CanViewMaritimeReport = model.CanViewMaritimeReport;
 
                 await _unitOfWork.SaveAsync(cancellationToken);

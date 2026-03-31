@@ -29,32 +29,6 @@ namespace IBS.Models.Enums
 
         #endregion -- MSAP Workflow --
 
-        #region -- A. Receivable --
-
-        AccessReceivable,
-        CreateCustomerOrderSlip,
-        CreateDeliveryReceipt,
-        CreateSalesInvoice,
-        CreateServiceInvoice,
-        CreateCollectionReceipt,
-        CreateDebitMemo,
-        CreateCreditMemo,
-
-        #endregion -- A. Receivable --
-
-        #region -- A. Payable --
-
-        AccessPayable,
-        CreateAuthorityToLoad,
-        CreatePurchaseOrder,
-        CreateReceivingReport,
-        CreateCheckVoucherTrade,
-        CreateCheckVoucherNonTradeInvoice,
-        CreateCheckVoucherNonTradePayment,
-        CreateJournalVoucher,
-
-        #endregion -- A. Payable --
-
         #region -- Treasury --
 
         AccessTreasury,
@@ -72,8 +46,6 @@ namespace IBS.Models.Enums
 
         ViewGeneralLedger,
         ViewInventoryReport,
-        ViewAccountsPayableReport,
-        ViewAccountsReceivableReport,
         ViewMaritimeReport,
 
         #endregion -- Reports --

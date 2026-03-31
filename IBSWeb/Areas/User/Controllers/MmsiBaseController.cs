@@ -84,55 +84,6 @@ namespace IBSWeb.Areas.User.Controllers
         protected async Task<bool> HasMsapAccessAsync()
             => await AccessControl.HasMsapAccessAsync(GetUserId());
 
-        // A. Receivable access helpers
-
-        protected async Task<bool> HasReceivableAccessAsync()
-            => await AccessControl.HasReceivableAccessAsync(GetUserId());
-
-        protected async Task<bool> HasCustomerOrderSlipAccessAsync()
-            => await AccessControl.HasCustomerOrderSlipAccessAsync(GetUserId());
-
-        protected async Task<bool> HasDeliveryReceiptAccessAsync()
-            => await AccessControl.HasDeliveryReceiptAccessAsync(GetUserId());
-
-        protected async Task<bool> HasSalesInvoiceAccessAsync()
-            => await AccessControl.HasSalesInvoiceAccessAsync(GetUserId());
-
-        protected async Task<bool> HasServiceInvoiceAccessAsync()
-            => await AccessControl.HasServiceInvoiceAccessAsync(GetUserId());
-
-        protected async Task<bool> HasCollectionReceiptAccessAsync()
-            => await AccessControl.HasCollectionReceiptAccessAsync(GetUserId());
-
-        protected async Task<bool> HasDebitMemoAccessAsync()
-            => await AccessControl.HasDebitMemoAccessAsync(GetUserId());
-
-        protected async Task<bool> HasCreditMemoAccessAsync()
-            => await AccessControl.HasCreditMemoAccessAsync(GetUserId());
-
-        // A. Payable access helpers
-
-        protected async Task<bool> HasPayableAccessAsync()
-            => await AccessControl.HasPayableAccessAsync(GetUserId());
-
-        protected async Task<bool> HasAuthorityToLoadAccessAsync()
-            => await AccessControl.HasAuthorityToLoadAccessAsync(GetUserId());
-
-        protected async Task<bool> HasPurchaseOrderAccessAsync()
-            => await AccessControl.HasPurchaseOrderAccessAsync(GetUserId());
-
-        protected async Task<bool> HasReceivingReportAccessAsync()
-            => await AccessControl.HasReceivingReportAccessAsync(GetUserId());
-
-        protected async Task<bool> HasCheckVoucherTradeAccessAsync()
-            => await AccessControl.HasCheckVoucherTradeAccessAsync(GetUserId());
-
-        protected async Task<bool> HasCheckVoucherNonTradeAccessAsync()
-            => await AccessControl.HasCheckVoucherNonTradeAccessAsync(GetUserId());
-
-        protected async Task<bool> HasJournalVoucherAccessAsync()
-            => await AccessControl.HasJournalVoucherAccessAsync(GetUserId());
-
         // Treasury access helpers
 
         protected async Task<bool> HasTreasuryAccessAsync()
@@ -153,12 +104,6 @@ namespace IBSWeb.Areas.User.Controllers
 
         protected async Task<bool> HasInventoryReportAccessAsync()
             => await AccessControl.HasInventoryReportAccessAsync(GetUserId());
-
-        protected async Task<bool> HasAccountsPayableReportAccessAsync()
-            => await AccessControl.HasAccountsPayableReportAccessAsync(GetUserId());
-
-        protected async Task<bool> HasAccountsReceivableReportAccessAsync()
-            => await AccessControl.HasAccountsReceivableReportAccessAsync(GetUserId());
 
         protected async Task<bool> HasMaritimeReportAccessAsync()
             => await AccessControl.HasMaritimeReportAccessAsync(GetUserId());
