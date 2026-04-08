@@ -18,7 +18,7 @@ namespace IBS.Models.MMSI.ViewModels
         public string? COSNumber { get; set; }
 
         [StringLength(20, ErrorMessage = "Dispatch Number should not exceed 20 characters")]
-        public string DispatchNumber { get; set; }
+        public string DispatchNumber { get; set; } = null!;
 
         [StringLength(100)]
         public string? VoyageNumber { get; set; }

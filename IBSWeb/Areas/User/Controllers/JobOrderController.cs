@@ -248,7 +248,7 @@ namespace IBSWeb.Areas.User.Controllers
                 await PopulateSelectListsAsync(viewModel, cancellationToken);
                 return PartialView("_EditModal", viewModel);
             }
-            
+
             if (viewModel.VesselId <= 0)
             {
                 TempData["error"] = "Vessel is required.";
@@ -327,13 +327,13 @@ namespace IBSWeb.Areas.User.Controllers
             // Count tickets by status for validation
             var ticketsForBillingOrBilled = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "For Billing" || dt.Status == "Billed");
-            
+
             var ticketsForApproval = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "For Approval");
-            
+
             var ticketsDisapproved = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "Disapproved");
-            
+
             var ticketsWithoutTariff = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "Pending" || dt.Status == "For Tariff");
 
@@ -351,8 +351,8 @@ namespace IBSWeb.Areas.User.Controllers
             ViewData["TicketsForApproval"] = ticketsForApproval;
             ViewData["TicketsDisapproved"] = ticketsDisapproved;
             ViewData["TicketsWithoutTariff"] = ticketsWithoutTariff;
-            ViewData["WarningMessage"] = warnings.Any() 
-                ? "Warning: Cancelling this Job Order will affect existing tickets:<br/>• " + 
+            ViewData["WarningMessage"] = warnings.Any()
+                ? "Warning: Cancelling this Job Order will affect existing tickets:<br/>• " +
                   string.Join("<br/>• ", warnings)
                 : "";
 
@@ -389,13 +389,13 @@ namespace IBSWeb.Areas.User.Controllers
             // Count tickets by status for validation
             var ticketsForBillingOrBilled = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "For Billing" || dt.Status == "Billed");
-            
+
             var ticketsForApproval = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "For Approval");
-            
+
             var ticketsDisapproved = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "Disapproved");
-            
+
             var ticketsWithoutTariff = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "Pending" || dt.Status == "For Tariff");
 
@@ -432,7 +432,7 @@ namespace IBSWeb.Areas.User.Controllers
             if (ticketsForApproval > 0) auditDetails.Add($"{ticketsForApproval} for approval");
             if (ticketsDisapproved > 0) auditDetails.Add($"{ticketsDisapproved} disapproved");
             if (ticketsWithoutTariff > 0) auditDetails.Add($"{ticketsWithoutTariff} without tariff");
-            
+
             var auditMessage = $"Cancelled Job Order #{jobOrder.JobOrderNumber}";
             if (auditDetails.Any())
             {
@@ -570,7 +570,7 @@ namespace IBSWeb.Areas.User.Controllers
                 remarks = ticket.Remarks ?? "No remarks",
                 status  = ticket.Status,
                 totalHours = ticket.TotalHours.ToString("N2"),
-                
+
                 // Tariff details (if available)
                 dispatchRate = ticket.DispatchRate.ToString("N2") ?? "-",
                 dispatchDiscount = ticket.DispatchDiscount.ToString("N2") ?? "0",
@@ -603,13 +603,13 @@ namespace IBSWeb.Areas.User.Controllers
         private IActionResult AccessDenied(string? returnUrl = null)
         {
             TempData["error"] = "Access denied. You don't have permission to perform this action.";
-            
+
             // If return URL is provided (for modal actions), redirect back there
             if (!string.IsNullOrEmpty(returnUrl))
             {
                 return Redirect(returnUrl);
             }
-            
+
             // Otherwise redirect to Home
             return RedirectToAction("Index", "Home", new { area = "User" });
         }
@@ -622,15 +622,7 @@ namespace IBSWeb.Areas.User.Controllers
             var companyClaim = await GetCompanyClaimAsync()
                 ?? throw new InvalidOperationException("Company claim not found.");
 
-            var audit = new AuditTrail
-            {
-                Date         = DateTimeHelper.GetCurrentPhilippineTime(),
-                Username     = username,
-                MachineName  = Environment.MachineName,
-                Activity     = activity,
-                DocumentType = "Job Order",
-                Company      = companyClaim
-            };
+            var audit = new AuditTrail(username, activity, "Job Order", companyClaim);
 
             await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
         }

@@ -16,7 +16,7 @@ namespace IBS.Models
         public int DeliveryReceiptId { get; set; }
 
         [ForeignKey(nameof(DeliveryReceiptId))]
-        public DeliveryReceipt DeliveryReceipt { get; set; }
+        public DeliveryReceipt DeliveryReceipt { get; set; } = null!;
 
         [Column(TypeName = "numeric(18,4)")]
         public decimal Quantity { get; set; }

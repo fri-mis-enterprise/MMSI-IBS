@@ -16,13 +16,13 @@ namespace IBS.Models.MasterFile
         public Customer? Customer { get; set; }
 
         [StringLength(50)]
-        public string BranchName { get; set; }
+        public string BranchName { get; set; } = null!;
 
         [StringLength(200)]
-        public string BranchAddress { get; set; }
+        public string BranchAddress { get; set; } = null!;
 
         [StringLength(50)]
-        public string BranchTin { get; set; }
+        public string BranchTin { get; set; } = null!;
 
         [NotMapped]
         public List<SelectListItem>? CustomerSelectList { get; set; }

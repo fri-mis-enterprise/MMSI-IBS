@@ -42,7 +42,7 @@ namespace IBS.Models.MasterFile
         [Required]
         [Display(Name = "Service Name")]
         [StringLength(50)]
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
         [Required]
         public int Percent { get; set; }

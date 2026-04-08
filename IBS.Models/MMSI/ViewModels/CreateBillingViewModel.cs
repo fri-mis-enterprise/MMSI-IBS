@@ -15,7 +15,7 @@ namespace IBS.Models.MMSI.ViewModels
 
         public bool IsUndocumented { get; set; }
 
-        public string BilledTo { get; set; }
+        public string BilledTo { get; set; } = null!;
 
         public string? VoyageNumber { get; set; }
 

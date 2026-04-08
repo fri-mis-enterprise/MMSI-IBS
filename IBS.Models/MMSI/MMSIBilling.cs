@@ -18,16 +18,16 @@ namespace IBS.Models.MMSI
             set => _billingNumber = value.Trim();
         }
 
-        private string _billingNumber;
+        private string _billingNumber = null!;
 
         public DateOnly Date { get; set; }
 
-        public string Status { get; set; }
+        public string Status { get; set; } = null!;
 
         public bool IsUndocumented { get; set; }
 
         [Column(TypeName = "varchar(10)")]
-        public string BilledTo { get; set; }
+        public string BilledTo { get; set; } = null!;
 
         public string? VoyageNumber
         {

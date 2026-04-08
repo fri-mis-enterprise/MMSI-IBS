@@ -10,11 +10,11 @@ namespace IBS.Models.MMSI.MasterFile
 
         [StringLength(4, MinimumLength = 4, ErrorMessage = "Vessel number must be exactly 4 characters.")]
         [Column(TypeName = "varchar(4)")]
-        public string VesselNumber { get; set; }
+        public string VesselNumber { get; set; } = null!;
 
         [StringLength(50, ErrorMessage = "Vessel name cannot exceed 50 characters.")]
         [Column(TypeName = "varchar(50)")]
-        public string VesselName { get; set; }
+        public string VesselName { get; set; } = null!;
 
         [StringLength(20, ErrorMessage = "Vessel name cannot exceed 20 characters.")]
         [Column(TypeName = "varchar(20)")]

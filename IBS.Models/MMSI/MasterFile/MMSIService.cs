@@ -10,10 +10,10 @@ namespace IBS.Models.MMSI.MasterFile
 
         [StringLength(3, MinimumLength = 3, ErrorMessage = "Service number must be exactly 3 characters.")]
         [Column(TypeName = "varchar(3)")]
-        public string ServiceNumber { get; set; }
+        public string ServiceNumber { get; set; } = null!;
 
         [StringLength(100, ErrorMessage = "Service name cannot exceed 100 characters.")]
         [Column(TypeName = "varchar(100)")]
-        public string ServiceName { get; set; }
+        public string ServiceName { get; set; } = null!;
     }
 }

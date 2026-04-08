@@ -21,7 +21,7 @@ namespace IBS.Models.MMSI
             set => _dispatchNumber = value.Trim();
         }
 
-        private string _dispatchNumber;
+        private string _dispatchNumber = null!;
 
         [Column(TypeName = "varchar(10)")]
         public string? COSNumber
@@ -71,9 +71,9 @@ namespace IBS.Models.MMSI
 
         public decimal TotalHours { get; set; }
 
-        public string Status { get; set; }
+        public string Status { get; set; } = null!;
 
-        public string CreatedBy { get; set; }
+        public string CreatedBy { get; set; } = null!;
 
         [Column(TypeName = "timestamp without time zone")]
         public DateTime CreatedDate { get; set; }

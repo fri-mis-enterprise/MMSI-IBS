@@ -11,11 +11,11 @@ namespace IBS.Models.MMSI.MasterFile
 
         [StringLength(3, MinimumLength = 3, ErrorMessage = "Tugboat number must be 3 characters long.")]
         [Column(TypeName = "varchar(3)")]
-        public string TugboatNumber { get; set; }
+        public string TugboatNumber { get; set; } = null!;
 
         [StringLength(50, ErrorMessage = "Tugboat name cannot exceed 50 characters.")]
         [Column(TypeName = "varchar(50)")]
-        public string TugboatName { get; set; }
+        public string TugboatName { get; set; } = null!;
 
         public bool IsCompanyOwned { get; set; }
 

@@ -158,15 +158,12 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                var audit = new AuditTrail
-                {
-                    Date = DateTimeHelper.GetCurrentPhilippineTime(),
-                    Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
-                    MachineName = Environment.MachineName,
-                    Activity = $"Create billing #{newModel.MMSIBillingNumber} for tickets #{string.Join(", #", model.ToBillDispatchTickets!)}",
-                    DocumentType = "Billing",
-                    Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
-                };
+                var audit = new AuditTrail(
+                    await GetUserNameAsync() ?? throw new InvalidOperationException(),
+                    $"Create billing #{newModel.MMSIBillingNumber} for tickets #{string.Join(", #", model.ToBillDispatchTickets!)}",
+                    "Billing",
+                    await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                );
 
                 await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 
@@ -559,17 +556,16 @@ namespace IBSWeb.Areas.User.Controllers
 
                     #region -- Audit Trail
 
-                    var audit = new AuditTrail
-                    {
-                        Date = DateTimeHelper.GetCurrentPhilippineTime(),
-                        Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
-                        MachineName = Environment.MachineName,
-                        Activity = changes.Any()
-                            ? $"Edit billing #{currentModel.MMSIBillingNumber} {string.Join(", ", changes)}"
-                            : $"No changes detected for Billing #{currentModel.MMSIBillingNumber}",
-                        DocumentType = "Billing",
-                        Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
-                    };
+                    var activity = changes.Any()
+                        ? $"Edit billing #{currentModel.MMSIBillingNumber} {string.Join(", ", changes)}"
+                        : $"No changes detected for Billing #{currentModel.MMSIBillingNumber}";
+
+                    var audit = new AuditTrail(
+                        await GetUserNameAsync() ?? throw new InvalidOperationException(),
+                        activity,
+                        "Billing",
+                        await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                    );
 
                     await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 

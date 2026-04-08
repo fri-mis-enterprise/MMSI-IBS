@@ -6,13 +6,13 @@ namespace IBS.Models
 {
     public class ApplicationUser : IdentityUser
     {
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
-        public string Department { get; set; }
+        public string Department { get; set; } = null!;
 
         public string? StationAccess { get; set; }
 
-        public ICollection<UserNotification> UserNotifications { get; set; }
+        public ICollection<UserNotification> UserNotifications { get; set; } = null!;
 
         public string? Position { get; set; }
         // ⭐ USER MANAGEMENT PROPERTIES ⭐

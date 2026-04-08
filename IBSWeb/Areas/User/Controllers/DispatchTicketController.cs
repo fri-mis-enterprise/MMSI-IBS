@@ -1358,15 +1358,7 @@ namespace IBSWeb.Areas.User.Controllers
         /// </summary>
         private static AuditTrail BuildAudit(
             string username, string company, string activity, string documentType) =>
-            new()
-            {
-                Date         = DateTimeHelper.GetCurrentPhilippineTime(),
-                Username     = username,
-                MachineName  = Environment.MachineName,
-                Activity     = activity,
-                DocumentType = documentType,
-                Company      = company
-            };
+            new AuditTrail(username, activity, documentType, company);
 
         private async Task GenerateSignedUrl(MMSIDispatchTicket model)
         {

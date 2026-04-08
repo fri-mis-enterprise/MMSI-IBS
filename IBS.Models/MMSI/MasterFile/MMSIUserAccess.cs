@@ -9,7 +9,7 @@ namespace IBS.Models.MMSI.MasterFile
         [Key]
         public int Id { get; set; }
 
-        public string UserId { get; set; }
+        public string UserId { get; set; } = null!;
 
         [Column(TypeName = "varchar(100)")]
         public string? UserName { get; set; }

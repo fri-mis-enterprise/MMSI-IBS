@@ -221,15 +221,12 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                var audit = new AuditTrail
-                {
-                    Date = DateTimeHelper.GetCurrentPhilippineTime(),
-                    Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
-                    MachineName = Environment.MachineName,
-                    Activity = $"Create service request #{model.DispatchNumber}",
-                    DocumentType = "Service Request",
-                    Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
-                };
+                var audit = new AuditTrail(
+                    await GetUserNameAsync() ?? throw new InvalidOperationException(),
+                    $"Create service request #{model.DispatchNumber}",
+                    "Service Request",
+                    await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                );
 
                 await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 
@@ -461,17 +458,16 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                var audit = new AuditTrail
-                {
-                    Date = DateTimeHelper.GetCurrentPhilippineTime(),
-                    Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
-                    MachineName = Environment.MachineName,
-                    Activity = changes.Any()
-                        ? $"Edit service request #{currentModel.DispatchNumber}, {string.Join(", ", changes)}"
-                        : $"No changes detected: id#{currentModel.DispatchNumber}",
-                    DocumentType = "Service Request",
-                    Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
-                };
+                var activity = changes.Any()
+                    ? $"Edit service request #{currentModel.DispatchNumber}, {string.Join(", ", changes)}"
+                    : $"No changes detected: id#{currentModel.DispatchNumber}";
+
+                var audit = new AuditTrail(
+                    await GetUserNameAsync() ?? throw new InvalidOperationException(),
+                    activity,
+                    "Service Request",
+                    await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                );
 
                 await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 
@@ -752,17 +748,16 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                var audit = new AuditTrail
-                {
-                    Date = DateTimeHelper.GetCurrentPhilippineTime(),
-                    Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
-                    MachineName = Environment.MachineName,
-                    Activity = postedTickets.Any()
-                        ? $"Posted service requests #{string.Join(", #", postedTickets)}"
-                        : $"No posting detected",
-                    DocumentType = "Service Request",
-                    Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
-                };
+                var activity = postedTickets.Any()
+                    ? $"Posted service requests #{string.Join(", #", postedTickets)}"
+                    : $"No posting detected";
+
+                var audit = new AuditTrail(
+                    await GetUserNameAsync() ?? throw new InvalidOperationException(),
+                    activity,
+                    "Service Request",
+                    await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                );
 
                 await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 
@@ -818,17 +813,16 @@ namespace IBSWeb.Areas.User.Controllers
 
                 #region -- Audit Trail
 
-                var audit = new AuditTrail
-                {
-                    Date = DateTimeHelper.GetCurrentPhilippineTime(),
-                    Username = await GetUserNameAsync() ?? throw new InvalidOperationException(),
-                    MachineName = Environment.MachineName,
-                    Activity = cancelledTickets.Any()
-                        ? $"Cancel service requests #{string.Join(", #", cancelledTickets)}"
-                        : $"No cancel detected",
-                    DocumentType = "ServiceRequest",
-                    Company = await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
-                };
+                var activity = cancelledTickets.Any()
+                    ? $"Cancel service requests #{string.Join(", #", cancelledTickets)}"
+                    : $"No cancel detected";
+
+                var audit = new AuditTrail(
+                    await GetUserNameAsync() ?? throw new InvalidOperationException(),
+                    activity,
+                    "ServiceRequest",
+                    await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                );
 
                 await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
 

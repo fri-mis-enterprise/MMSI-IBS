@@ -13,7 +13,7 @@ namespace IBS.Models.Integrated
 
         [StringLength(13)]
         [Display(Name = "DR No")]
-        public string DeliveryReceiptNo { get; set; }
+        public string DeliveryReceiptNo { get; set; } = null!;
 
         [Column(TypeName = "date")]
         [DisplayFormat(DataFormatString = "{0:MMM dd, yyyy}")]
@@ -31,10 +31,10 @@ namespace IBS.Models.Integrated
         public Customer? Customer { get; set; }
 
         [StringLength(200)]
-        public string CustomerAddress { get; set; }
+        public string CustomerAddress { get; set; } = null!;
 
         [StringLength(20)]
-        public string CustomerTin { get; set; }
+        public string CustomerTin { get; set; } = null!;
 
         #endregion
 
@@ -54,7 +54,7 @@ namespace IBS.Models.Integrated
             set => _remarks = value.Trim();
         }
 
-        private string _remarks;
+        private string _remarks = null!;
 
         [Column(TypeName = "numeric(18,4)")]
         [DisplayFormat(DataFormatString = "{0:#,##0.0000;(#,##0.0000)}", ApplyFormatInEditMode = false)]
@@ -76,7 +76,7 @@ namespace IBS.Models.Integrated
             set => _manualDrNo = value.Trim();
         }
 
-        private string _manualDrNo;
+        private string _manualDrNo = null!;
 
         [StringLength(50)]
         public string Status { get; set; } = nameof(DRStatus.PendingDelivery);

@@ -13,14 +13,14 @@ namespace IBS.Models.MMSI
 
         [Required]
         [Column(TypeName = "varchar(20)")]
-        public string JobOrderNumber { get; set; }
+        public string JobOrderNumber { get; set; } = null!;
 
         [Required]
         public DateOnly Date { get; set; }
 
         [Required]
         [Column(TypeName = "varchar(20)")]
-        public string Status { get; set; }
+        public string Status { get; set; } = null!;
 
         [Column(TypeName = "varchar(20)")]
         public string? COSNumber { get; set; }

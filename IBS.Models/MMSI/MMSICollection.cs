@@ -18,7 +18,7 @@ namespace IBS.Models.MMSI
             set => _collectionNumber = value.Trim();
         }
 
-        private string _collectionNumber;
+        private string _collectionNumber = null!;
 
         [Display(Name = "Reference No")]
         [StringLength(50)]

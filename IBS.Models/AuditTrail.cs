@@ -22,10 +22,6 @@ namespace IBS.Models
 
         public string Company { get; set; }
 
-        public AuditTrail()
-        {
-        }
-
         public AuditTrail(string username, string activity, string documentType, string company)
         {
             Username = username;

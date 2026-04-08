@@ -14,14 +14,14 @@ namespace IBS.Models
         public int AccountId { get; set; }
 
         [ForeignKey(nameof(AccountId))]
-        public ChartOfAccount Account { get; set; }
+        public ChartOfAccount Account { get; set; } = null!;
 
         public SubAccountType SubAccountType { get; set; }
 
         public int SubAccountId { get; set; }
 
         [Column(TypeName = "varchar(200)")]
-        public string SubAccountName { get; set; }
+        public string SubAccountName { get; set; } = null!;
 
         [Column(TypeName = "date")]
         public DateOnly PeriodStartDate { get; set; }
@@ -48,7 +48,7 @@ namespace IBS.Models
         public bool IsClosed { get; set; }
 
         [Column(TypeName = "varchar(50)")]
-        public string Company { get; set; }
+        public string Company { get; set; } = null!;
 
     }
 }
