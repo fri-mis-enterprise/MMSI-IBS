@@ -1066,7 +1066,6 @@ namespace IBSWeb.Areas.User.Controllers
         {
             viewModel.Vessels = await unitOfWork.Vessel.GetMMSIVesselsSelectList(cancellationToken);
             viewModel.Ports = await unitOfWork.Port.GetMMSIPortsSelectList(cancellationToken);
-            viewModel.Customers = await unitOfWork.Billing.GetMMSICustomersWithBillablesSelectList(0, string.Empty, cancellationToken);
 
             if (viewModel.PortId != 0)
             {

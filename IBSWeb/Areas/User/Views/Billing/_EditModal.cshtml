@@ -242,212 +242,22 @@
 <script>
     $(document).ready(function () {
         let multiSelectVar = $('.js-example-basic-multiple');
-        multiSelectVar.select2({
-            dropdownParent: $('#billingModal')
-        });
-
-        // Initialize select2 for all dropdowns within modal
-        $('#billingModal .js-select2').select2({
-            dropdownParent: $('#billingModal')
-        });
+        multiSelectVar.select2({ dropdownParent: $('#billingModal') });
+        $('#billingModal .js-select2').select2({ dropdownParent: $('#billingModal') });
 
         let table = initializeDataTable('#dataTable');
+        const currentCustomerId = $("#CustomerId").val();
+
         setupEventListeners();
-
-        // Initialize data on startup
         fillDataOnStartup();
-        handleDispatchTicketsChange();
-
-        // Job Order typeahead search
-        let jobOrderSearchTimeout;
-        const $jobOrderSearch = $("#JobOrderSearch");
-        const $jobOrderResults = $("#JobOrderSearchResults");
-        const $jobOrderId = $("#JobOrderId");
-        const $ticketsTableBody = $("#ticketsTable tbody");
-        const $dispatchSelect = $("#DispatchTicketSelect");
-        let currentCustomerId = $("#CustomerId").val();
-
-        function performJobOrderSearch(searchTerm) {
-            if (!currentCustomerId) {
-                $jobOrderResults.empty().addClass('d-none');
-                return;
-            }
-
-            $.ajax({
-                url: '@Url.Action("SearchJobOrders", "Billing", new { area = "User" })',
-                type: 'GET',
-                data: { customerId: currentCustomerId, term: searchTerm },
-                success: function(data) {
-                    $jobOrderResults.empty();
-                    if (Array.isArray(data) && data.length > 0) {
-                        $.each(data, function(index, item) {
-                            $jobOrderResults.append(
-                                $('<a href="#" class="list-group-item list-group-item-action py-2">')
-                                    .data('jobOrder', item)
-                                    .html('<div class="d-flex justify-content-between"><strong>' + item.name + '</strong></div><small class="text-muted">' + (item.description || '') + '</small>')
-                            );
-                        });
-                        $jobOrderResults.removeClass('d-none');
-                    } else {
-                        $jobOrderResults.append(
-                            $('<div class="list-group-item py-2 text-muted">')
-                                .html('<em>No job orders found</em>')
-                        );
-                        $jobOrderResults.removeClass('d-none');
-                    }
-                },
-                error: function() {
-                    $jobOrderResults.empty().addClass('d-none');
-                }
-            });
-        }
-
-        $jobOrderSearch.on('input', function() {
-            clearTimeout(jobOrderSearchTimeout);
-            const searchTerm = $(this).val().trim();
-
-            if (searchTerm.length === 0) {
-                $jobOrderResults.empty().addClass('d-none');
-                return;
-            }
-
-            jobOrderSearchTimeout = setTimeout(function() {
-                performJobOrderSearch(searchTerm);
-            }, 150);
-        });
-
-        // Handle Job Order selection
-        $jobOrderResults.on('click', 'a', function(e) {
-            e.preventDefault();
-            const jobOrder = $(this).data('jobOrder');
-            $jobOrderSearch.val(jobOrder.name);
-            $jobOrderId.val(jobOrder.value);
-            $jobOrderResults.empty().addClass('d-none');
-
-            // Load dispatch tickets for this job order
-            loadJobOrderTickets(jobOrder.value);
-        });
-
-        function loadJobOrderTickets(jobOrderId) {
-            $.ajax({
-                url: '@Url.Action("GetDispatchTicketsByJobOrder", "Billing", new { area = "User" })',
-                type: 'GET',
-                data: { jobOrderId: jobOrderId },
-                success: function(data) {
-                    renderTicketsTable(data);
-                },
-                error: function() {
-                    $ticketsTableBody.html(`
-                        <tr class="text-danger">
-                            <td colspan="6" class="text-center py-3">
-                                <em>Error loading tickets</em>
-                            </td>
-                        </tr>
-                    `);
-                }
-            });
-        }
-
-        function renderTicketsTable(tickets) {
-            $ticketsTableBody.empty();
-            $dispatchSelect.empty();
-
-            if (!tickets || tickets.length === 0) {
-                $ticketsTableBody.html(`
-                    <tr class="text-muted">
-                        <td colspan="6" class="text-center py-3">
-                            <em>No tickets available for billing in this job order</em>
-                        </td>
-                    </tr>
-                `);
-                updateTotals([]);
-                return;
-            }
-
-            $.each(tickets, function(index, ticket) {
-                const row = $(`
-                    <tr data-ticket-id="${ticket.dispatchTicketId}">
-                        <td class="text-center">
-                            <input type="checkbox" class="form-check-input ticket-checkbox" value="${ticket.dispatchTicketId}" checked>
-                        </td>
-                        <td class="text-center">${ticket.dispatchNo}</td>
-                        <td class="text-center">${ticket.tugboat}</td>
-                        <td class="text-center">${ticket.service}</td>
-                        <td class="text-center">${ticket.duration}</td>
-                        <td class="text-end">${formatNumber(ticket.totalAmount)}</td>
-                    </tr>
-                `);
-                $ticketsTableBody.append(row);
-
-                // Add to hidden select for form submission
-                $dispatchSelect.append($('<option></option>')
-                    .val(ticket.dispatchTicketId)
-                    .text(ticket.dispatchNo)
-                    .prop('selected', true));
-            });
-
-            updateTotals(tickets);
-        }
-
-        // Handle individual ticket checkbox changes
-        $ticketsTableBody.on('change', '.ticket-checkbox', function() {
-            const ticketId = $(this).val();
-            const isChecked = $(this).is(':checked');
-
-            // Update hidden select
-            const $option = $dispatchSelect.find('option[value="' + ticketId + '"]');
-            if (isChecked) {
-                if ($option.length === 0) {
-                    $dispatchSelect.append($('<option></option>')
-                        .val(ticketId)
-                        .prop('selected', true));
-                } else {
-                    $option.prop('selected', true);
-                }
-            } else {
-                $option.prop('selected', false);
-            }
-
-            updateTicketCount($ticketsTableBody.find('.ticket-checkbox:checked').length);
-        });
-
-        // Handle select all checkbox
-        $('#selectAllTickets').on('change', function() {
-            const isChecked = $(this).is(':checked');
-            $ticketsTableBody.find('.ticket-checkbox').prop('checked', isChecked).trigger('change');
-        });
-
-        function updateTotals(tickets) {
-            let dispatchAmount = 0;
-            let bafAmount = 0;
-
-            $ticketsTableBody.find('.ticket-checkbox:checked').each(function() {
-                const row = $(this).closest('tr');
-                const total = parseFloat(row.find('td:eq(5)').text().replace(/[^0-9.-]+/g, '')) || 0;
-                dispatchAmount += total * 0.8;
-                bafAmount += total * 0.2;
-            });
-
-            $('#DispatchAmountTotal').text(formatNumber(dispatchAmount));
-            $('#BAFAmountTotal').text(formatNumber(bafAmount));
-            $('#OverallTotal').text(formatNumber(dispatchAmount + bafAmount));
-            updateTicketCount($ticketsTableBody.find('.ticket-checkbox:checked').length);
-        }
-
-        function updateTicketCount(count) {
-            $('#selectedTicketCount').text(count + ' selected');
-        }
 
         function initializeDataTable(selector) {
             if ($.fn.DataTable.isDataTable(selector)) {
                 $(selector).DataTable().destroy();
             }
             return $(selector).DataTable({
-                paging: false,
-                info: false,
-                order: [[0, 'asc']],
-                lengthChange: false,
-                searching: false
+                paging: false, info: false, order: [[0, 'asc']],
+                lengthChange: false, searching: false
             });
         }
 
@@ -456,323 +266,286 @@
             $("#PortSelect").on("change", handlePortChange);
             $("#submitEditBilling").on("click", areYouSureToBill);
             multiSelectVar.on('change', handleDispatchTicketsChange);
-
-            // Principal search typeahead
-            setupPrincipalSearch();
         }
 
-        function setupPrincipalSearch() {
-            let principalSearchTimeout;
-            const $principalSearch = $("#PrincipalSearch");
-            const $principalResults = $("#PrincipalSearchResults");
-            const $principalId = $("#PrincipalId");
-            const customerId = $("#CustomerId").val();
-
-            function performPrincipalSearch(searchTerm) {
-                if (!customerId) {
-                    $principalResults.empty().addClass('d-none');
-                    return;
-                }
-
-                // Allow empty search term to show all principals
-                var requestData = { customerId: customerId };
-                if (searchTerm.length > 0) {
-                    requestData.term = searchTerm;
-                }
-
-                $.ajax({
-                    url: '@Url.Action("SearchPrincipals", "Billing", new { area = "User" })',
-                    type: 'GET',
-                    data: requestData,
-                    success: function(data) {
-                        $principalResults.empty();
-                        if (Array.isArray(data) && data.length > 0) {
-                            $.each(data, function(index, item) {
-                                $principalResults.append(
-                                    $('<a href="#" class="list-group-item list-group-item-action py-2">')
-                                        .data('principal', item)
-                                        .html('<span>' + item.name + '</span>')
-                                );
-                            });
-                            $principalResults.removeClass('d-none');
-                        } else {
-                            $principalResults.append(
-                                $('<div class="list-group-item py-2 text-muted">')
-                                    .html('<em>No principals found</em>')
-                            );
-                            $principalResults.removeClass('d-none');
-                        }
-                    },
-                    error: function() {
-                        $principalResults.empty().addClass('d-none');
-                    }
-                });
-            }
-
-            $principalSearch.on('input', function() {
-                clearTimeout(principalSearchTimeout);
-                const searchTerm = $(this).val().trim();
-
-                if (searchTerm.length === 0) {
-                    $principalResults.empty().addClass('d-none');
-                    $principalId.val('');
-                    return;
-                }
-
-                if (searchTerm.length === 1) {
-                    performPrincipalSearch(searchTerm);
-                } else {
-                    principalSearchTimeout = setTimeout(function() {
-                        performPrincipalSearch(searchTerm);
-                    }, 150);
-                }
-            });
-
-            $principalSearch.on('focus', function() {
-                const searchTerm = $(this).val().trim();
-                // Always show all principals on focus (even with empty search)
-                performPrincipalSearch(searchTerm);
-            });
-
-            // Handle selection
-            $principalResults.on('click', 'a', function(e) {
-                e.preventDefault();
-                const principal = $(this).data('principal');
-                $principalSearch.val(principal.name);
-                $principalId.val(principal.value);
-                $principalResults.empty().addClass('d-none');
-            });
-
-            // Keyboard navigation
-            $principalSearch.on('keydown', function(e) {
-                const $items = $principalResults.find('a');
-                const $active = $items.filter('.active');
-
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    if ($active.length === 0) {
-                        $items.first().addClass('active');
-                    } else {
-                        $active.removeClass('active').next().addClass('active');
-                    }
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    if ($active.length === 0) {
-                        $items.last().addClass('active');
-                    } else {
-                        $active.removeClass('active').prev().addClass('active');
-                    }
-                } else if (e.key === 'Enter') {
-                    e.preventDefault();
-                    $active.trigger('click');
-                } else if (e.key === 'Escape') {
-                    $principalResults.addClass('d-none');
-                }
-            });
-
-            // Close on outside click
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('#PrincipalSearch, #PrincipalSearchResults').length) {
-                    $principalResults.empty().addClass('d-none');
-                }
-            });
+        function fillDataOnStartup() {
+            $("#JobOrderSearch").prop('disabled', false);
+            handleDispatchTicketsChange();
         }
 
         function handleUsePrincipalChange() {
-            const $checkbox = $("#UsePrincipalCheckbox");
-            const $principalSection = $("#PrincipalSection");
-            const $principalSearch = $("#PrincipalSearch");
-            const $principalId = $("#PrincipalId");
-            const $billedToContainer = $("#BilledToContainer");
-
-            if ($checkbox.is(":checked")) {
-                $principalSection.removeClass("d-none");
-                $billedToContainer.removeClass("d-none");
-                setTimeout(function() {
-                    $principalSearch.focus();
-                }, 100);
+            const isChecked = $("#UsePrincipalCheckbox").is(":checked");
+            if (isChecked) {
+                $("#PrincipalSection").removeClass("d-none");
+                $("#BilledToContainer").removeClass("d-none");
+                setTimeout(() => $("#PrincipalSearch").focus(), 100);
             } else {
-                $principalSection.addClass("d-none");
-                $principalSearch.val("");
-                $principalId.val("");
-                $billedToContainer.addClass("d-none");
+                $("#PrincipalSection").addClass("d-none");
+                $("#PrincipalSearch").val("");
+                $("#PrincipalId").val("");
+                $("#BilledToContainer").addClass("d-none");
                 $("#billLocal").prop("checked", true);
             }
         }
 
-        function fetchPrincipals(customerId) {
-            $.ajax({
-                url: '@Url.Action("GetPrincipalsJson", "Billing", new { area = "User" })',
-                type: "GET",
-                data: { customerId: customerId },
-                success: function (data) {
-                    const $principalSelect = $("#PrincipalSelect");
-                    $principalSelect.empty().append('<option value="">Select Principal</option>');
-                    if (Array.isArray(data) && data.length > 0) {
-                        $.each(data, function (index, item) {
-                            $principalSelect.append($('<option>', {
-                                value: item.value,
-                                text: item.text
-                            }));
-                        });
-                    }
+        // ── Principal search ─────────────────────────────────────────────
+        let principalSearchTimeout;
+        const $principalSearch = $("#PrincipalSearch");
+        const $principalResults = $("#PrincipalSearchResults");
+        const $principalId = $("#PrincipalId");
+
+        async function performPrincipalSearch(searchTerm) {
+            if (!currentCustomerId) return;
+            try {
+                const params = new URLSearchParams({ customerId: currentCustomerId });
+                if (searchTerm.length) params.set('term', searchTerm);
+                const res = await fetch(`@Url.Action("SearchPrincipals", "Billing", new { area = "User" })?${params}`);
+                const data = await res.json();
+                $principalResults.empty();
+                if (Array.isArray(data) && data.length > 0) {
+                    data.forEach(item => {
+                        $principalResults.append(
+                            $('<a href="#" class="list-group-item list-group-item-action py-2">')
+                                .data('principal', item)
+                                .html(`<span>${item.name}</span>`)
+                        );
+                    });
+                } else {
+                    $principalResults.append($('<div class="list-group-item py-2 text-muted"><em>No principals found</em></div>'));
                 }
+                $principalResults.removeClass('d-none');
+            } catch {
+                $principalResults.empty().addClass('d-none');
+            }
+        }
+
+        $principalSearch.on('input', function () {
+            clearTimeout(principalSearchTimeout);
+            const searchTerm = $(this).val().trim();
+            if (!searchTerm.length) { $principalResults.empty().addClass('d-none'); $principalId.val(''); return; }
+            if (searchTerm.length === 1) performPrincipalSearch(searchTerm);
+            else principalSearchTimeout = setTimeout(() => performPrincipalSearch(searchTerm), 150);
+        });
+
+        $principalSearch.on('focus', function () {
+            performPrincipalSearch($(this).val().trim());
+        });
+
+        $principalSearch.on('keydown', function (e) {
+            const $items = $principalResults.find('a');
+            const $active = $items.filter('.active');
+            if (e.key === 'ArrowDown') { e.preventDefault(); ($active.length ? $active.removeClass('active').next() : $items.first()).addClass('active'); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); ($active.length ? $active.removeClass('active').prev() : $items.last()).addClass('active'); }
+            else if (e.key === 'Enter') { e.preventDefault(); $active.trigger('click'); }
+            else if (e.key === 'Escape') { $principalResults.addClass('d-none'); }
+        });
+
+        $principalResults.on('click', 'a', function (e) {
+            e.preventDefault();
+            const principal = $(this).data('principal');
+            $principalSearch.val(principal.name);
+            $principalId.val(principal.value);
+            $principalResults.empty().addClass('d-none');
+        });
+
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('#PrincipalSearch, #PrincipalSearchResults').length) {
+                $principalResults.empty().addClass('d-none');
+            }
+        });
+
+        // ── Job Order search ─────────────────────────────────────────────
+        let jobOrderSearchTimeout;
+        const $jobOrderSearch = $("#JobOrderSearch");
+        const $jobOrderResults = $("#JobOrderSearchResults");
+        const $jobOrderId = $("#JobOrderId");
+        const $ticketsTableBody = $("#ticketsTable tbody");
+        const $dispatchSelect = $("#DispatchTicketSelect");
+
+        async function performJobOrderSearch(searchTerm) {
+            if (!currentCustomerId) return;
+            try {
+                const res = await fetch(`@Url.Action("SearchJobOrders", "Billing", new { area = "User" })?customerId=${encodeURIComponent(currentCustomerId)}&term=${encodeURIComponent(searchTerm)}`);
+                const data = await res.json();
+                $jobOrderResults.empty();
+                if (Array.isArray(data) && data.length > 0) {
+                    data.forEach(item => {
+                        $jobOrderResults.append(
+                            $('<a href="#" class="list-group-item list-group-item-action py-2">')
+                                .data('jobOrder', item)
+                                .html(`<strong>${item.name}</strong><br><small class="text-muted">${item.description || ''}</small>`)
+                        );
+                    });
+                } else {
+                    $jobOrderResults.append($('<div class="list-group-item py-2 text-muted"><em>No job orders found</em></div>'));
+                }
+                $jobOrderResults.removeClass('d-none');
+            } catch {
+                $jobOrderResults.empty().addClass('d-none');
+            }
+        }
+
+        $jobOrderSearch.on('input', function () {
+            clearTimeout(jobOrderSearchTimeout);
+            const searchTerm = $(this).val().trim();
+            if (!searchTerm.length) { $jobOrderResults.empty().addClass('d-none'); return; }
+            jobOrderSearchTimeout = setTimeout(() => performJobOrderSearch(searchTerm), 150);
+        });
+
+        $jobOrderResults.on('click', 'a', async function (e) {
+            e.preventDefault();
+            const jobOrder = $(this).data('jobOrder');
+            $jobOrderSearch.val(jobOrder.name);
+            $jobOrderId.val(jobOrder.value);
+            $jobOrderResults.empty().addClass('d-none');
+            try {
+                const res = await fetch(`@Url.Action("GetDispatchTicketsByJobOrder", "Billing", new { area = "User" })?jobOrderId=${encodeURIComponent(jobOrder.value)}`);
+                renderTicketsTable(await res.json());
+            } catch {
+                $ticketsTableBody.html('<tr class="text-danger"><td colspan="6" class="text-center py-3"><em>Error loading tickets</em></td></tr>');
+            }
+        });
+
+        function renderTicketsTable(tickets) {
+            $ticketsTableBody.empty();
+            $dispatchSelect.empty();
+            if (!tickets?.length) {
+                $ticketsTableBody.html('<tr class="text-muted"><td colspan="6" class="text-center py-3"><em>No tickets available for billing in this job order</em></td></tr>');
+                updateTotals();
+                return;
+            }
+            tickets.forEach(ticket => {
+                $ticketsTableBody.append(`
+                <tr data-ticket-id="${ticket.dispatchTicketId}">
+                    <td class="text-center"><input type="checkbox" class="form-check-input ticket-checkbox" value="${ticket.dispatchTicketId}" checked></td>
+                    <td class="text-center">${ticket.dispatchNo}</td>
+                    <td class="text-center">${ticket.tugboat}</td>
+                    <td class="text-center">${ticket.service}</td>
+                    <td class="text-center">${ticket.duration}</td>
+                    <td class="text-end">${formatNumber(ticket.totalAmount)}</td>
+                </tr>
+            `);
+                $dispatchSelect.append($('<option>').val(ticket.dispatchTicketId).text(ticket.dispatchNo).prop('selected', true));
             });
+            updateTotals();
         }
 
-        function handlePrincipalChange() {
-            // Principal changed - no additional action needed
+        $ticketsTableBody.on('change', '.ticket-checkbox', function () {
+            const ticketId = $(this).val();
+            const $option = $dispatchSelect.find(`option[value="${ticketId}"]`);
+            if ($(this).is(':checked')) {
+                if (!$option.length) $dispatchSelect.append($('<option>').val(ticketId).prop('selected', true));
+                else $option.prop('selected', true);
+            } else {
+                $option.prop('selected', false);
+            }
+            updateTotals();
+        });
+
+        $('#selectAllTickets').on('change', function () {
+            $ticketsTableBody.find('.ticket-checkbox').prop('checked', $(this).is(':checked')).trigger('change');
+        });
+
+        function updateTotals() {
+            let dispatch = 0, baf = 0;
+            $ticketsTableBody.find('.ticket-checkbox:checked').each(function () {
+                const total = parseFloat($(this).closest('tr').find('td:eq(5)').text().replace(/[^0-9.-]+/g, '')) || 0;
+                dispatch += total * 0.8;
+                baf += total * 0.2;
+            });
+            const count = $ticketsTableBody.find('.ticket-checkbox:checked').length;
+            $('#DispatchAmountTotal').text(formatNumber(dispatch));
+            $('#BAFAmountTotal').text(formatNumber(baf));
+            $('#OverallTotal').text(formatNumber(dispatch + baf));
+            $('#selectedTicketCount').text(`${count} selected`);
         }
 
-        function updateTicketCount(count) {
-            $("#selectedTicketCount").text(count + " selected");
+        // ── Port → Terminal cascade ──────────────────────────────────────
+        async function handlePortChange() {
+            try {
+                const res = await fetch(`@Url.Action("ChangeTerminal", "DispatchTicket", new { area = "User" })?portId=${encodeURIComponent($("#PortSelect").val())}`);
+                const data = await res.json();
+                const $terminalSelect = $("#TerminalSelect");
+                $terminalSelect.empty().append('<option value="">Select Terminal</option>');
+                if (Array.isArray(data)) data.forEach(item => $terminalSelect.append($('<option>').val(item.value).text(item.text)));
+            } catch {
+                console.error('Failed to load terminals');
+            }
         }
 
-        function handleDispatchTicketsChange() {
+        // ── Dispatch tickets change ──────────────────────────────────────
+        async function handleDispatchTicketsChange() {
             const selectedTickets = multiSelectVar.val();
-            updateTicketCount(selectedTickets?.length || 0);
-            $.ajax({
-                url: '@Url.Action("GetDispatchTickets", "Billing", new { area = "User" })',
-                type: 'POST',
-                data: { dispatchTicketIds: selectedTickets },
-                success: function (result) {
-                    updateDispatchTable(result.data);
-                },
-                error: function (xhr, status, error) {
-                    console.error('Error:', error);
-                }
-            });
+            $('#selectedTicketCount').text(`${selectedTickets?.length || 0} selected`);
+            if (!selectedTickets?.length) { updateDispatchTable([]); return; }
+            try {
+                const body = selectedTickets.map(id => `dispatchTicketIds=${encodeURIComponent(id)}`).join('&');
+                const res = await fetch('@Url.Action("GetDispatchTickets", "Billing", new { area = "User" })', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body
+                });
+                updateDispatchTable((await res.json()).data);
+            } catch {
+                console.error('Failed to load dispatch tickets');
+            }
         }
 
         function updateDispatchTable(data) {
-            let totalDispatchAmount = 0;
-            let totalBAFAmount = 0;
-
+            let totalDispatch = 0, totalBAF = 0;
             table.destroy();
             const $tbody = $('#dataTable tbody').empty();
-
-            $.each(data, function (index, value) {
-                totalDispatchAmount += value.dispatchNetRevenue;
-                totalBAFAmount += value.bafNetRevenue;
-                const totalAmount = value.dispatchNetRevenue + value.bafNetRevenue;
+            (data || []).forEach(value => {
+                totalDispatch += value.dispatchNetRevenue;
+                totalBAF += value.bafNetRevenue;
                 $tbody.append(`
-                    <tr>
-                        <td class="text-center">${value.dispatchNumber}</td>
-                        <td class="text-center">${value.tugboat?.tugboatName || '-'}</td>
-                        <td class="text-center">${value.service?.serviceName || '-'}</td>
-                        <td class="text-center">${(value.totalHours || 0).toFixed(2)}</td>
-                        <td class="text-end">₱${formatNumber(totalAmount)}</td>
-                    </tr>
-                `);
+                <tr>
+                    <td class="text-center">${value.dispatchNumber}</td>
+                    <td class="text-center">${value.tugboat?.tugboatName || '-'}</td>
+                    <td class="text-center">${value.service?.serviceName || '-'}</td>
+                    <td class="text-center">${(value.totalHours || 0).toFixed(2)}</td>
+                    <td class="text-end">₱${formatNumber(value.dispatchNetRevenue + value.bafNetRevenue)}</td>
+                </tr>
+            `);
             });
-
-            $("#DispatchAmountTotal").text(formatNumber(totalDispatchAmount));
-            $("#BAFAmountTotal").text(formatNumber(totalBAFAmount));
-            $("#OverallTotal").text(formatNumber(totalDispatchAmount + totalBAFAmount));
-            updateTicketCount(data?.length || 0);
-
+            $("#DispatchAmountTotal").text(formatNumber(totalDispatch));
+            $("#BAFAmountTotal").text(formatNumber(totalBAF));
+            $("#OverallTotal").text(formatNumber(totalDispatch + totalBAF));
+            $('#selectedTicketCount').text(`${data?.length || 0} selected`);
             table = initializeDataTable('#dataTable');
         }
 
-        function fillDataOnStartup() {
-            // Enable Job Order search since customer is already selected
-            $jobOrderSearch.prop('disabled', false);
-            // Ticket data is loaded server-side, just trigger change to update totals
-            handleDispatchTicketsChange();
-        }
-
-        function handlePortChange() {
-            const portId = $("#PortSelect").val();
-            $.ajax({
-                url: '@Url.Action("ChangeTerminal", "DispatchTicket", new { area = "User" })',
-                type: "GET",
-                data: { portId: portId },
-                success: function (data) {
-                    const $terminalSelect = $("#TerminalSelect");
-                    $terminalSelect.empty().append('<option value="">Select Terminal</option>');
-                    if (Array.isArray(data) && data.length > 0) {
-                        $.each(data, function (index, item) {
-                            $terminalSelect.append($('<option>', {
-                                value: item.value,
-                                text: item.text
-                            }));
-                        });
-                    }
-                }
-            });
-        }
-
-
+        // ── Submit ───────────────────────────────────────────────────────
         function areYouSureToBill(event) {
             event.preventDefault();
             const form = document.getElementById("billingEditForm");
-
-            if (!form.checkValidity()) {
-                form.reportValidity();
+            if (!form.checkValidity()) { form.reportValidity(); return; }
+            if (!$("#DispatchTicketSelect").val()?.length) {
+                Swal.fire({ title: "No Tickets Selected", text: "Please select at least one dispatch ticket to bill.", icon: "warning" });
                 return;
             }
-
-            const selectedTickets = $("#DispatchTicketSelect").val();
-            if (!selectedTickets || selectedTickets.length === 0) {
-                Swal.fire({
-                    title: "No Tickets Selected",
-                    text: "Please select at least one dispatch ticket to bill.",
-                    icon: "warning"
-                });
-                return;
-            }
-
-            Swal.fire({
-                title: "Save changes to this billing?",
-                text: "You can edit this again before posting.",
-                showCancelButton: true,
-                confirmButtonText: "Yes",
-                cancelButtonText: "No"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    submitEditForm();
-                }
-            });
+            Swal.fire({ title: "Save changes to this billing?", text: "You can edit this again before posting.", showCancelButton: true, confirmButtonText: "Yes", cancelButtonText: "No" })
+                .then(result => { if (result.isConfirmed) submitEditForm(); });
         }
 
-        function submitEditForm() {
-            const form = $('#billingEditForm');
-            const formData = form.serialize();
-
-            $.ajax({
-                url: '@Url.Action("Edit", "Billing", new { area = "User" })',
-                type: 'POST',
-                data: formData,
-                success: function (response) {
-                    if (response.success) {
-                        $('#billingModal').modal('hide');
-                        Swal.fire({
-                            title: "Success!",
-                            text: response.message,
-                            icon: "success"
-                        }).then(() => {
-                            if (response.redirectUrl) {
-                                window.location.href = response.redirectUrl;
-                            } else {
-                                location.reload();
-                            }
-                        });
-                    } else {
-                        Swal.fire({
-                            title: "Error",
-                            text: response.message || "Failed to update billing.",
-                            icon: "error"
-                        });
-                    }
-                },
-                error: function (xhr) {
-                    Swal.fire({
-                        title: "Error",
-                        text: "An error occurred while updating the billing.",
-                        icon: "error"
-                    });
+        async function submitEditForm() {
+            try {
+                const res = await fetch('@Url.Action("Edit", "Billing", new { area = "User" })', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(new FormData(document.getElementById('billingEditForm'))).toString()
+                });
+                const response = await res.json();
+                if (response.success) {
+                    $('#billingModal').modal('hide');
+                    Swal.fire({ title: "Success!", text: response.message, icon: "success" })
+                        .then(() => response.redirectUrl ? window.location.href = response.redirectUrl : location.reload());
+                } else {
+                    Swal.fire({ title: "Error", text: response.message || "Failed to update billing.", icon: "error" });
                 }
-            });
+            } catch {
+                Swal.fire({ title: "Error", text: "An error occurred while updating the billing.", icon: "error" });
+            }
         }
     });
 </script>
