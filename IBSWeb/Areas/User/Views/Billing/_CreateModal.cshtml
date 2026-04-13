@@ -19,7 +19,7 @@
     @Html.AntiForgeryToken()
     <div class="modal-body p-4">
         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-        
+
         <!-- Customer Selection (Full Width) -->
         <div class="mb-3 position-relative">
             <label asp-for="CustomerId" class="form-label fw-bold">Customer <span class="text-danger">*</span></label>
@@ -48,15 +48,13 @@
                 <div id="PrincipalSearchResults" class="list-group position-absolute w-100 shadow-sm border" style="z-index: 1050; max-height: 200px; overflow-y: auto; top: 100%;"></div>
             </div>
             <div class="col-md-5 d-flex align-items-end">
-                <div class="d-none" id="BilledToContainer">
+                <div class="d-none w-100" id="BilledToContainer">
                     <label class="form-label fw-bold small d-block">Billed To</label>
-                    <div class="form-check form-check-inline">
-                        <input asp-for="BilledTo" class="form-check-input" value="LOCAL" type="radio" id="billLocal" checked>
-                        <label class="form-check-label small" for="billLocal">Local</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input asp-for="BilledTo" class="form-check-input" value="PRINCIPAL" type="radio" id="billPrincipal">
-                        <label class="form-check-label small" for="billPrincipal">Principal</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" asp-for="BilledTo" value="LOCAL" id="billLocal" checked autocomplete="off">
+                        <label class="btn btn-outline-primary" for="billLocal">Local</label>
+                        <input type="radio" class="btn-check" asp-for="BilledTo" value="PRINCIPAL" id="billPrincipal" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="billPrincipal">Principal</label>
                     </div>
                 </div>
             </div>
@@ -75,7 +73,7 @@
                             <div class="col-12">
                                 <label asp-for="MMSIBillingNumber" class="form-label fw-bold">Billing Number <span class="text-danger" id="billingNumberRequired">*</span></label>
                                 <div class="input-group">
-                                    <input asp-for="MMSIBillingNumber" type="text" class="form-control" id="billingNumber" placeholder="BL-XXXX-XXXXXX">
+                                    <input asp-for="MMSIBillingNumber" type="text" class="form-control" id="billingNumber" placeholder="B000000">
                                     <div class="input-group-text">
                                         <input type="hidden" asp-for="IsUndocumented" />
                                         <input class="form-check-input mt-0" type="checkbox" id="isUndocumentedCheckbox" title="Undocumented">
@@ -236,7 +234,7 @@
                 $inputField.val("");
             } else {
                 $required.show();
-                $inputField.prop("required", true).prop("disabled", false).attr("placeholder", "BL-XXXX-XXXXXX");
+                $inputField.prop("required", true).prop("disabled", false).attr("placeholder", "B000000");
             }
         }
 

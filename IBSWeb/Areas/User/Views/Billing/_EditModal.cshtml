@@ -49,15 +49,13 @@
                 <div id="PrincipalSearchResults" class="list-group position-absolute w-100 shadow-sm border" style="z-index: 1050; max-height: 200px; overflow-y: auto; top: 100%;"></div>
             </div>
             <div class="col-md-5 d-flex align-items-end">
-                <div class="@(Model.PrincipalId.HasValue ? "" : "d-none")" id="BilledToContainer">
+                <div class="@(Model.PrincipalId.HasValue ? "" : "d-none") w-100" id="BilledToContainer">
                     <label class="form-label fw-bold small d-block">Billed To</label>
-                    <div class="form-check form-check-inline">
-                        <input asp-for="BilledTo" class="form-check-input" value="LOCAL" type="radio" id="billLocal" checked>
-                        <label class="form-check-label small" for="billLocal">Local</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                        <input asp-for="BilledTo" class="form-check-input" value="PRINCIPAL" type="radio" id="billPrincipal">
-                        <label class="form-check-label small" for="billPrincipal">Principal</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" asp-for="BilledTo" value="LOCAL" id="billLocal" checked autocomplete="off">
+                        <label class="btn btn-outline-primary" for="billLocal">Local</label>
+                        <input type="radio" class="btn-check" asp-for="BilledTo" value="PRINCIPAL" id="billPrincipal" autocomplete="off">
+                        <label class="btn btn-outline-primary" for="billPrincipal">Principal</label>
                     </div>
                 </div>
             </div>
