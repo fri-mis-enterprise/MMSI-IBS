@@ -350,7 +350,6 @@ namespace IBSWeb.Areas.User.Controllers
                 newCustomer.IsActive = ParseBool(record, "active");
                 newCustomer.Company = await GetCompanyClaimAsync() ?? "MMSI";
                 newCustomer.ZipCode = "0000";
-                newCustomer.IsMMSI = true;
                 newCustomer.Type = "Documented";
 
                 customerList.Add(newCustomer);
@@ -415,7 +414,7 @@ namespace IBSWeb.Areas.User.Controllers
                 if (terminalComposite.Length < 6) { continue; }
                 var portPart = terminalComposite.Substring(0, 3);
                 var terminalPart = terminalComposite.Substring(terminalComposite.Length - 3, 3);
-                
+
                 string paddedPortNumber = PadNumber(portPart, 3);
                 string paddedTerminalNumber = PadNumber(terminalPart, 3);
 
@@ -480,7 +479,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 string padded = PadNumber(GetString(record, "number"), 4);
                 string paddedCustomerNumber = PadNumber(GetString(record, "agent"), 4);
-                
+
                 var agent = customersList.FirstOrDefault(c => c?.CustomerNumber == paddedCustomerNumber);
                 if (agent == null)
                 {
@@ -586,7 +585,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 string padded = PadNumber(GetString(record, "number"), 3);
                 string paddedOwnerNumber = PadNumber(GetString(record, "owner"), 3);
-                
+
                 var owner = existingTugboatOwners.FirstOrDefault(t => t.TugboatOwnerNumber == paddedOwnerNumber);
 
                 if (string.IsNullOrEmpty(padded) || existingIdentifier.Contains(padded) || currentBatch.Contains(padded))
@@ -879,7 +878,7 @@ namespace IBSWeb.Areas.User.Controllers
                 .AsNoTracking()
                 .ToListAsync(cancellationToken);
 
-            var existingBilling = await dbContext.MMSIBillings
+            var existingBilling = await dbContext.Billings
                 .AsNoTracking()
                 .Select(b => new { MMSIBillingNumber = b.MMSIBillingNumber, MMSIBillingId = b.MMSIBillingId, CustomerId = (int?)b.CustomerId })
                 .ToListAsync(cancellationToken);
@@ -958,16 +957,16 @@ namespace IBSWeb.Areas.User.Controllers
                 newRecord.COSNumber = GetString(record, "cosno") == string.Empty ? null : GetString(record, "cosno");
                 newRecord.DateLeft = ParseDateOnly(record, "dateleft");
                 newRecord.DateArrived = ParseDateOnly(record, "datearrive");
-                
+
                 string? timeLeftStr = GetString(record, "timeleft");
                 string? timeArriveStr = GetString(record, "timearrive");
-                if (!string.IsNullOrEmpty(timeLeftStr) && !string.IsNullOrEmpty(timeArriveStr) && 
+                if (!string.IsNullOrEmpty(timeLeftStr) && !string.IsNullOrEmpty(timeArriveStr) &&
                     int.TryParse(timeLeftStr, out int timeLeftInt) && int.TryParse(timeArriveStr, out int timeArriveInt))
                 {
                     newRecord.TimeLeft = TimeOnly.ParseExact(timeLeftInt.ToString("D4"), "HHmm", CultureInfo.InvariantCulture);
                     newRecord.TimeArrived = TimeOnly.ParseExact(timeArriveInt.ToString("D4"), "HHmm", CultureInfo.InvariantCulture);
                 }
-                
+
                 newRecord.BaseOrStation = GetString(record, "@base") == string.Empty ? null : GetString(record, "@base");
                 newRecord.VoyageNumber = GetString(record, "voyage") == string.Empty ? null : GetString(record, "voyage");
                 newRecord.DispatchRate = ParseDecimal(record, "dispatchra");
@@ -978,13 +977,13 @@ namespace IBSWeb.Areas.User.Controllers
                 newRecord.BAFNetRevenue = ParseDecimal(record, "bafnetamt");
                 newRecord.TotalBilling = newRecord.DispatchBillingAmount + newRecord.BAFBillingAmount;
                 newRecord.TotalNetRevenue = newRecord.DispatchNetRevenue + newRecord.BAFNetRevenue;
-                
+
                 newRecord.TugBoatId = existingTugboats.FirstOrDefault(tb => tb.TugboatNumber == paddedTugboatNum)?.TugboatId;
                 newRecord.TugMasterId = existingTugMasters.FirstOrDefault(tm => tm.TugMasterNumber == GetString(record, "masterno"))?.TugMasterId;
                 newRecord.VesselId = existingVessels.FirstOrDefault(v => v.VesselNumber == paddedVesselNum)?.VesselId;
                 newRecord.ServiceId = existingServices.FirstOrDefault(s => s.ServiceNumber == paddedServiceNum)?.ServiceId;
                 newRecord.TerminalId = string.IsNullOrEmpty(portTerminalOriginal) ? null : existingTerminals.FirstOrDefault(t => t.PortNumber == portNumber && t.TerminalNumber == terminalNumber)?.TerminalId;
-                
+
                 newRecord.CreatedBy = GetString(record, "entryby") ?? "IMPORT";
                 newRecord.CreatedDate = entryDate;
                 newRecord.ApOtherTugs = ParseDecimal(record, "apothertug");
@@ -1053,7 +1052,7 @@ namespace IBSWeb.Areas.User.Controllers
             var records = csv.GetRecords<dynamic>().ToList();
             var newRecords = new List<Billing>();
 
-            var existingIdentifier = await dbContext.MMSIBillings
+            var existingIdentifier = await dbContext.Billings
                 .AsNoTracking()
                 .Select(b => b.MMSIBillingNumber)
                 .ToHashSetAsync(cancellationToken);
@@ -1137,7 +1136,7 @@ namespace IBSWeb.Areas.User.Controllers
                     newRecord.Date = DateOnly.FromDateTime(DateTime.Today);
                     newRecord.DueDate = DateOnly.FromDateTime(DateTime.Today);
                 }
-                
+
                 string terminalRaw = GetString(record, "terminal") ?? string.Empty;
                 if (terminalRaw.Length >= 6)
                 {
@@ -1145,7 +1144,7 @@ namespace IBSWeb.Areas.User.Controllers
                     var terminalPart = terminalRaw.Substring(terminalRaw.Length - 3, 3);
                     string paddedPortNum = PadNumber(portPart, 3);
                     string paddedTerminalNum = PadNumber(terminalPart, 3);
-                    
+
                     newRecord.PortId = existingPorts.FirstOrDefault(p => p.PortNumber == paddedPortNum)?.PortId;
                     newRecord.TerminalId = existingTerminals.FirstOrDefault(t => t.TerminalNumber == paddedTerminalNum && t.PortNumber == paddedPortNum)?.TerminalId;
                 }
@@ -1210,7 +1209,7 @@ namespace IBSWeb.Areas.User.Controllers
                 currentBatch.Add(billingNumber);
             }
 
-            await dbContext.MMSIBillings.AddRangeAsync(newRecords, cancellationToken);
+            await dbContext.Billings.AddRangeAsync(newRecords, cancellationToken);
             await dbContext.SaveChangesAsync(cancellationToken);
             return $"Billings imported successfully, {newRecords.Count} new records";
         }

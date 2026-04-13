@@ -3,7 +3,6 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.MMSI;
-using IBS.Services.Attributes;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +11,6 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace IBSWeb.Areas.User.Controllers
 {
     [Area("User")]
-    [CompanyAuthorize(SD.Company_MMSI)]
     public class TariffRateController(
         ApplicationDbContext dbContext,
         IUnitOfWork unitOfWork,

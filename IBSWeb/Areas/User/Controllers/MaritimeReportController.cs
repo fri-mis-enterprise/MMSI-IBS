@@ -4,7 +4,6 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.ViewModels;
-using IBS.Services.Attributes;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +13,6 @@ using OfficeOpenXml.Style;
 namespace IBSWeb.Areas.User.Controllers
 {
     [Area("User")]
-    [CompanyAuthorize(SD.Company_MMSI)]
     public class MaritimeReportController(
         ApplicationDbContext dbContext,
         UserManager<ApplicationUser> userManager,
@@ -121,7 +119,6 @@ namespace IBSWeb.Areas.User.Controllers
                     .ToListAsync(cancellationToken);
 
                 var mmsiCustomers = await dbContext.Customers
-                    .Where(t => t.IsActive && t.IsMMSI)
                     .OrderBy(t => t.CustomerName)
                     .ToListAsync(cancellationToken);
 
@@ -205,7 +202,6 @@ namespace IBSWeb.Areas.User.Controllers
 
                 var arLedgerColStart = col + 1;
                 var customers = await dbContext.Customers
-                    .Where(c => c.IsMMSI && c.IsActive)
                     .OrderBy(t => t.CustomerName)
                     .ToListAsync(cancellationToken);
                 foreach (var customer in customers)

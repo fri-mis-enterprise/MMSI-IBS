@@ -8,7 +8,6 @@ using IBS.Models.Enums;
 using IBS.Models.MMSI;
 using IBS.Services;
 using IBS.Models.MMSI.ViewModels;
-using IBS.Services.Attributes;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +19,6 @@ using OfficeOpenXml.Style;
 namespace IBSWeb.Areas.User.Controllers
 {
     [Area("User")]
-    [CompanyAuthorize(SD.Company_MMSI)]
     public class BillingController(
         IUnitOfWork unitOfWork,
         ApplicationDbContext dbContext,
@@ -316,7 +314,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 var filterTypeClaim = await GetCurrentFilterType();
 
-                var queried = dbContext.MMSIBillings
+                var queried = dbContext.Billings
                     .Include(b => b.Customer)
                     .Include(b => b.Terminal)
                     .ThenInclude(b => b!.Port)

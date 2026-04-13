@@ -8,7 +8,6 @@ using IBS.Models.Enums;
 using IBS.Models.MMSI;
 using IBS.Models.MMSI.ViewModels;
 using IBS.Services;
-using IBS.Services.Attributes;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -20,7 +19,6 @@ using Newtonsoft.Json;
 namespace IBSWeb.Areas.User.Controllers
 {
     [Area("User")]
-    [CompanyAuthorize(SD.Company_MMSI)]
     public class ServiceRequestController(
         ApplicationDbContext dbContext,
         IUnitOfWork unitOfWork,

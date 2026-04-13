@@ -25,7 +25,7 @@
             <input asp-for="CustomerId" hidden/>
             <div class="border p-3">
                 <div asp-validation-summary="ModelOnly"></div>
-                <input type="hidden" asp-for="CustomerCode" /> 
+                <input type="hidden" asp-for="CustomerCode" />
                 <div class="form-group mb-3">
                     <label class="control-label">Type<span class="required">*</span></label>
                     <select asp-for="Type" class="form-select js-select2 border-0 shadow" style="width:100%; max-height: 200px;">
@@ -85,7 +85,7 @@
                     </select>
                     <span asp-validation-for="CommissioneeId" class="text-danger"></span>
                 </div>
-                
+
                 <div class="form-group py-2 col-12">
                     <label class="control-label">Cluster Area</label>
                     <select asp-for="ClusterCode" class="form-select js-select2 border-0 shadow" style="width:100%; max-height: 200px;">
@@ -115,7 +115,7 @@
                     <label asp-for="StationCode" class="ms-2">Station Code<span class="required">*</span></label>
                     <span asp-validation-for="StationCode" class="text-danger"></span>
                 </div>
-                
+
                 <div class="form-group mb-3">
                     <label class="control-label">Customer Terms</label><span class="required">*</span>
                     <select asp-for="CustomerTerms" asp-items="@Model.PaymentTerms" class="form-select js-select2" style="width:100%">
@@ -160,17 +160,6 @@
                 <div class="form-check pb-2">
                     <label class="form-check-label">
                         <input class="form-check-input" asp-for="RequiresPriceAdjustment" /> @Html.DisplayNameFor(model => model.RequiresPriceAdjustment)
-                    </label>
-                </div>
-                <label class="control-label">Please select where the record will be added:</label>
-                <div class="form-check">
-                    <label class="form-check-label">
-                        <input class="form-check-input" asp-for="IsFilpride" /> FILPRIDE
-                    </label>
-                </div>
-                <div class="form-check">
-                    <label class="form-check-label">
-                        <input class="form-check-input" asp-for="IsMMSI" /> MMSI
                     </label>
                 </div>
                 <div class="row pt-2">

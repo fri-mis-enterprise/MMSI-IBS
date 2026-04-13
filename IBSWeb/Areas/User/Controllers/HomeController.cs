@@ -121,7 +121,7 @@ namespace IBSWeb.Areas.User.Controllers
                         .Where(po => po.Status == "For Billing")
                         .CountAsync(),
 
-                MMSIBillingForCollection = await dbContext.MMSIBillings
+                MMSIBillingForCollection = await dbContext.Billings
                         .Where(po => po.Status == "For Collection")
                         .CountAsync(),
 

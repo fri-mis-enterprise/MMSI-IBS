@@ -75,7 +75,7 @@ namespace IBS.DataAccess.Data
         #endregion
 
         #region --MMSI
-        public DbSet<Billing> MMSIBillings { get; set; }
+        public DbSet<Billing> Billings { get; set; }
         public DbSet<Collection> MMSICollections { get; set; }
         public DbSet<DispatchTicket> MMSIDispatchTickets { get; set; }
         public DbSet<JobOrder> MMSIJobOrders { get; set; }

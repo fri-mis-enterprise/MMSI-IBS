@@ -33,7 +33,7 @@ namespace IBS.DataAccess.Repository.MMSI
             {
                 if (dispatchTicket.BillingId != null)
                 {
-                    dispatchTicket.Billing = await db.MMSIBillings
+                    dispatchTicket.Billing = await db.Billings
                         .Where(b => b.MMSIBillingId == dispatchTicket.BillingId)
                         .Include(b => b.Customer)
                         .Include(b => b.Principal)

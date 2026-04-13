@@ -4,7 +4,6 @@ using IBS.Models;
 using IBS.Models.Enums;
 using IBS.Models.ViewModels;
 using IBS.Services;
-using IBS.Services.Attributes;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +13,6 @@ using Enum = System.Enum;
 namespace IBSWeb.Areas.User.Controllers
 {
     [Area("User")]
-    [CompanyAuthorize(SD.Company_MMSI)]
     public class PostedPeriodController(
         ApplicationDbContext dbContext,
         UserManager<ApplicationUser> userManager,

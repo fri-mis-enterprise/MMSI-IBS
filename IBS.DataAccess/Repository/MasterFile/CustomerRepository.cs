@@ -74,8 +74,6 @@ namespace IBS.DataAccess.Repository.MasterFile
             existingCustomer.CreditLimitAsOfToday = model.CreditLimitAsOfToday;
             existingCustomer.ZipCode = model.ZipCode;
             existingCustomer.RetentionRate = model.RetentionRate;
-            existingCustomer.IsFilpride = model.IsFilpride;
-            existingCustomer.IsMMSI = model.IsMMSI;
             existingCustomer.VatType = model.VatType;
             existingCustomer.Type = model.Type;
             existingCustomer.RequiresPriceAdjustment = model.RequiresPriceAdjustment;

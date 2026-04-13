@@ -4,7 +4,6 @@ using IBS.Models.MMSI;
 using IBS.Models.MMSI.ViewModels;
 using IBS.Models;
 using IBS.Services.AccessControl;
-using IBS.Services.Attributes;
 using IBS.Utility.Constants;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Authorization;
@@ -15,7 +14,6 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace IBSWeb.Areas.User.Controllers
 {
     [Area("User")]
-    [CompanyAuthorize(SD.Company_MMSI)]
     public class JobOrderController(
         IAccessControlService accessControl,
         UserManager<ApplicationUser> userManager,

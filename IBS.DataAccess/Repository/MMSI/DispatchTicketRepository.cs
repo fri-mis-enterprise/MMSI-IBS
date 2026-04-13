@@ -156,7 +156,6 @@ namespace IBS.DataAccess.Repository.MMSI
         private async Task<List<SelectListItem>> GetMMSICustomersById(CancellationToken cancellationToken = default)
         {
             return await _db.Customers
-                .Where(c => c.IsMMSI == true)
                 .OrderBy(s => s.CustomerName)
                 .Select(s => new SelectListItem
                 {

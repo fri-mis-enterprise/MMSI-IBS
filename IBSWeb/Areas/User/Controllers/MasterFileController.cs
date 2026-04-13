@@ -1,7 +1,6 @@
 using IBS.Models.MasterFile;
 using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
-using IBS.Services.Attributes;
 using IBS.Utility.Constants;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Identity;
@@ -14,7 +13,6 @@ using System.Security.Claims;
 namespace IBSWeb.Areas.User.Controllers
 {
     [Area("User")]
-    [CompanyAuthorize(SD.Company_MMSI)]
     public class MasterFileController(
         UserManager<ApplicationUser> userManager,
         IUnitOfWork unitOfWork,

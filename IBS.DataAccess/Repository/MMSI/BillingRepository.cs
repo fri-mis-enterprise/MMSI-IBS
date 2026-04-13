@@ -148,7 +148,7 @@ namespace IBS.DataAccess.Repository.MMSI
                 .ToList();
 
             return await _db.Customers
-                .Where(c => c.IsMMSI == true && listOfCustomerWithBillableTickets.Contains(c.CustomerId) &&
+                .Where(c => listOfCustomerWithBillableTickets.Contains(c.CustomerId) &&
                             (string.IsNullOrEmpty(type) || c.Type == type))
                 .OrderBy(s => s.CustomerName)
                 .Select(s => new SelectListItem
@@ -206,7 +206,7 @@ namespace IBS.DataAccess.Repository.MMSI
         public async Task<string> GenerateBillingNumber(CancellationToken cancellationToken = default)
         {
             // Get the highest BL-prefixed billing number across all billings
-            var lastRecord = await _db.MMSIBillings
+            var lastRecord = await _db.Billings
                 .Where(b => !string.IsNullOrEmpty(b.MMSIBillingNumber) && b.MMSIBillingNumber.StartsWith("BL"))
                 .OrderByDescending(b => b.MMSIBillingNumber)
                 .FirstOrDefaultAsync(cancellationToken);

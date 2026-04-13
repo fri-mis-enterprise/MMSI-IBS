@@ -4,16 +4,23 @@ using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.MMSI.IRepository;
 using IBS.Models.Enums;
 using IBS.Models;
+using IBS.Models.Integrated;
 using IBS.Models.MMSI;
+using IBS.Utility.Constants;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace IBS.DataAccess.Repository.MMSI
 {
-    public class CollectionRepository(ApplicationDbContext db): Repository<Collection>(db), ICollectionRepository
+    public class CollectionRepository : Repository<Collection>, ICollectionRepository
     {
-        private readonly ApplicationDbContext _db = db;
+        private readonly ApplicationDbContext _db;
+
+        public CollectionRepository(ApplicationDbContext db) : base(db)
+        {
+            _db = db;
+        }
 
         public async Task SaveAsync(CancellationToken cancellationToken)
         {
@@ -46,7 +53,6 @@ namespace IBS.DataAccess.Repository.MMSI
         public async Task<List<SelectListItem>> GetMMSICustomersById(CancellationToken cancellationToken = default)
         {
             return await _db.Customers
-                .Where(c => c.IsMMSI == true)
                 .OrderBy(s => s.CustomerName)
                 .Select(s => new SelectListItem
                 {
@@ -57,7 +63,7 @@ namespace IBS.DataAccess.Repository.MMSI
 
         public async Task<List<SelectListItem>> GetMMSICustomersWithCollectiblesSelectList(int collectionId, string type, CancellationToken cancellationToken = default)
         {
-            var billingsToBeCollected = await _db.MMSIBillings
+            var billingsToBeCollected = await _db.Billings
                 .Where(t => t.Status == "For Collection" || (collectionId != 0 && t.CollectionId == collectionId))
                 .Include(t => t.Customer)
                 .ToListAsync(cancellationToken);
@@ -68,7 +74,7 @@ namespace IBS.DataAccess.Repository.MMSI
                 .ToList();
 
             return await _db.Customers
-                .Where(c => c.IsMMSI == true && listOfCustomerWithCollectibleBillings.Contains(c.CustomerId) &&
+                .Where(c => listOfCustomerWithCollectibleBillings.Contains(c.CustomerId) &&
                             (string.IsNullOrEmpty(type) || c.Type == type))
                 .OrderBy(s => s.CustomerName)
                 .Select(s => new SelectListItem
@@ -80,7 +86,7 @@ namespace IBS.DataAccess.Repository.MMSI
 
         public async Task<List<SelectListItem>> GetMMSIUncollectedBillingsById(CancellationToken cancellationToken = default)
         {
-            var billingsList = await _db.MMSIBillings
+            var billingsList = await _db.Billings
                 .Where(dt => dt.Status == "For Collection")
                 .OrderBy(dt => dt.MMSIBillingNumber).Select(s => new SelectListItem
                 {
@@ -93,7 +99,7 @@ namespace IBS.DataAccess.Repository.MMSI
 
         public async Task<List<SelectListItem>> GetMMSICollectedBillsById(int collectionId, CancellationToken cancellationToken = default)
         {
-            var billingsList = await _db.MMSIBillings
+            var billingsList = await _db.Billings
                 .Where(dt => dt.CollectionId == collectionId)
                 .OrderBy(dt => dt.MMSIBillingNumber).Select(b => new SelectListItem
                 {
@@ -107,7 +113,7 @@ namespace IBS.DataAccess.Repository.MMSI
         public async Task<List<SelectListItem>?> GetMMSIUncollectedBillingsByCustomer(int? customerId, CancellationToken cancellationToken)
         {
             var billings = await _db
-                .MMSIBillings
+                .Billings
                 .Where(b => b.CustomerId == customerId && b.Status == "For Collection")
                 .Include(b => b.Customer)
                 .OrderBy(b => b.MMSIBillingNumber)
@@ -541,7 +547,7 @@ namespace IBS.DataAccess.Repository.MMSI
         public async Task RedepositAsync(Collection collection, CancellationToken cancellationToken = default)
         {
             // Similar logic to PostAsync but focused on redepositing a previously returned check
-            // For now, let's mirror Filpride's RedepositAsync logic
+
             var ledgers = new List<GeneralLedgerBook>();
             var accountTitlesDto = await GetListOfAccountTitleDto(cancellationToken);
             var cashInBankTitle = accountTitlesDto.Find(c => c.AccountNumber == "101010100") ?? throw new ArgumentException("Account title '101010100' not found.");
@@ -607,7 +613,7 @@ namespace IBS.DataAccess.Repository.MMSI
 
         public async Task UpdateBillingPayment(int billingId, decimal paidAmount, CancellationToken cancellationToken = default)
         {
-            var billing = await _db.MMSIBillings.FirstOrDefaultAsync(b => b.MMSIBillingId == billingId, cancellationToken);
+            var billing = await _db.Billings.FirstOrDefaultAsync(b => b.MMSIBillingId == billingId, cancellationToken);
             if (billing != null)
             {
                 billing.AmountPaid += paidAmount;
@@ -624,7 +630,7 @@ namespace IBS.DataAccess.Repository.MMSI
 
         public async Task RemoveBillingPayment(int billingId, decimal paidAmount, decimal offsetAmount, CancellationToken cancellationToken = default)
         {
-            var billing = await _db.MMSIBillings.FirstOrDefaultAsync(b => b.MMSIBillingId == billingId, cancellationToken);
+            var billing = await _db.Billings.FirstOrDefaultAsync(b => b.MMSIBillingId == billingId, cancellationToken);
             if (billing != null)
             {
                 var total = paidAmount + offsetAmount;

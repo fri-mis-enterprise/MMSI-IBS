@@ -197,21 +197,10 @@ namespace IBS.DataAccess.Repository
 
         #region--Master Files
 
-        // Make the function generic
+        // Make the function generic - always returns true (no company filtering)
         Expression<Func<T, bool>> GetCompanyFilter<T>(string companyName) where T : class
         {
-            // Use reflection or property pattern matching to dynamically access properties
-            var param = Expression.Parameter(typeof(T), "x");
-
-            // Build the appropriate expression based on the company name
-            Expression propertyAccess = companyName switch
-            {
-                SD.Company_Filpride => Expression.Property(param, "IsFilpride"),
-                SD.Company_MMSI => Expression.OrElse(Expression.Property(param, "IsFilpride"), Expression.Property(param, "IsMMSI")),
-                _ => Expression.Constant(false)
-            };
-
-            return Expression.Lambda<Func<T, bool>>(propertyAccess, param);
+            return x => true;
         }
 
         public async Task<List<SelectListItem>> GetCustomerListAsyncById(string company, CancellationToken cancellationToken = default)
