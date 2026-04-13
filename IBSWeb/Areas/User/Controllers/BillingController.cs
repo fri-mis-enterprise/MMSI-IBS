@@ -462,6 +462,17 @@ namespace IBSWeb.Areas.User.Controllers
                 ViewData["HasPrincipal"] = true;
             }
 
+            // Customer Details for display
+            if (model.Customer != null)
+            {
+                ViewData["CustomerAddress"] = model.Customer.CustomerAddress ?? "-";
+                ViewData["CustomerTIN"] = model.Customer.CustomerTin ?? "-";
+                ViewData["CustomerTerms"] = model.Customer.CustomerTerms ?? "-";
+                ViewData["CustomerBusinessStyle"] = model.Customer.BusinessStyle ?? "-";
+                ViewData["CustomerVatType"] = model.Customer.VatType ?? "-";
+                ViewData["CustomerType"] = model.Customer.Type ?? "-";
+            }
+
             return View(viewModel);
         }
 
@@ -920,6 +931,53 @@ namespace IBSWeb.Areas.User.Controllers
             };
 
             return Json(customerDetailsJson);
+        }
+
+        [HttpGet]
+        public async Task<JsonResult> SearchJobOrders(string term, int customerId, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(term) || term.Length < 1)
+            {
+                return Json(new List<object>());
+            }
+
+            var jobOrders = await unitOfWork.JobOrder
+                .GetAllAsync(j => j.CustomerId == customerId &&
+                    j.JobOrderNumber.ToLower().Contains(term.ToLower()),
+                    cancellationToken);
+
+            var result = jobOrders.Select(j => new
+            {
+                value = j.JobOrderId,
+                name = j.JobOrderNumber,
+                description = j.Remarks ?? ""
+            }).ToList();
+
+            return Json(result);
+        }
+
+        [HttpGet]
+        public async Task<JsonResult> GetDispatchTicketsByJobOrder(int jobOrderId, CancellationToken cancellationToken)
+        {
+            var tickets = await unitOfWork.DispatchTicket
+                .GetAllAsync(t => t.JobOrderId == jobOrderId &&
+                    t.Status == "For Billing" &&
+                    t.BillingId == null,
+                    cancellationToken);
+
+            var result = tickets.Select(t => new
+            {
+                dispatchTicketId = t.DispatchTicketId,
+                dispatchNo = t.DispatchNumber,
+                tugboat = t.Tugboat?.TugboatName ?? "N/A",
+                service = t.Service?.ServiceName ?? "N/A",
+                duration = t.TotalHours,
+                dispatchAmount = t.DispatchBillingAmount,
+                bafAmount = t.BAFBillingAmount,
+                totalAmount = t.TotalBilling
+            }).ToList();
+
+            return Json(result);
         }
 
         private async Task<string?> GetCompanyClaimAsync()

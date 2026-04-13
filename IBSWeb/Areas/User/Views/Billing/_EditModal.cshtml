@@ -4,9 +4,17 @@
     #billingModal .modal-dialog {
         max-width: 95% !important;
         width: 95% !important;
+        max-height: 95vh;
+        margin: 2.5vh auto;
     }
     #billingModal .modal-content {
-        min-height: 85vh;
+        max-height: 95vh;
+        display: flex;
+        flex-direction: column;
+    }
+    #billingModal .modal-body {
+        overflow-y: auto;
+        max-height: calc(95vh - 140px);
     }
 </style>
 
@@ -33,6 +41,40 @@
                 <div class="input-group-text @(ViewData["HasPrincipal"] as bool? == true ? "" : "d-none") bg-light" id="PrincipalCheckboxContainer">
                     <input class="form-check-input mt-0 me-1" type="checkbox" id="UsePrincipalCheckbox" @(Model.PrincipalId.HasValue ? "checked" : "")>
                     <label class="small mb-0" for="UsePrincipalCheckbox" style="white-space: nowrap;">Bill to Principal</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Details Display -->
+        <div id="CustomerDetailsSection" class="mb-3">
+            <div class="card border-0 bg-light">
+                <div class="card-body py-2">
+                    <div class="row g-2 small">
+                        <div class="col-md-6">
+                            <span class="text-muted">Address:</span>
+                            <span id="CustomerAddress" class="fw-semibold ms-1">@(ViewData["CustomerAddress"] ?? "-")</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">TIN:</span>
+                            <span id="CustomerTIN" class="fw-semibold ms-1">@(ViewData["CustomerTIN"] ?? "-")</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">Terms:</span>
+                            <span id="CustomerTerms" class="fw-semibold ms-1">@(ViewData["CustomerTerms"] ?? "-")</span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="text-muted">Business Style:</span>
+                            <span id="CustomerBusinessStyle" class="fw-semibold ms-1">@(ViewData["CustomerBusinessStyle"] ?? "-")</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">VAT Type:</span>
+                            <span id="CustomerVatType" class="fw-semibold ms-1">@(ViewData["CustomerVatType"] ?? "-")</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">Type:</span>
+                            <span id="CustomerType" class="fw-semibold ms-1">@(ViewData["CustomerType"] ?? "-")</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -117,22 +159,33 @@
                 </div>
             </div>
 
-            <!-- Right Column: Ticket Selection -->
+            <!-- Right Column: Job Order & Ticket Selection -->
             <div class="col-12 col-lg-8">
                 <div class="card h-100 border-0">
                     <div class="card-header bg-transparent border-0 py-2 d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 fw-bold text-secondary"><i class="bi bi-list-check me-2"></i>Dispatch Tickets</h6>
+                        <h6 class="mb-0 fw-bold text-secondary"><i class="bi bi-briefcase me-2"></i>Job Order & Dispatch Tickets</h6>
                         <span class="badge bg-info" id="selectedTicketCount">0 selected</span>
                     </div>
                     <div class="card-body pt-0">
-                        <div class="mb-2">
-                            <select asp-for="ToBillDispatchTickets" id="DispatchTicketSelect" asp-items="@Model.UnbilledDispatchTickets" class="form-select js-example-basic-multiple" name="ToBillDispatchTickets" multiple="multiple" style="width: 100%; min-height: 100px;">
-                            </select>
+                        <!-- Job Order Search -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Select Job Order</label>
+                            <div class="position-relative">
+                                <input type="text" id="JobOrderSearch" class="form-control form-control-sm" placeholder="Search job order number..." autocomplete="off" disabled>
+                                <input type="hidden" asp-for="JobOrderId" id="JobOrderId" />
+                                <div id="JobOrderSearchResults" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1000; max-height: 200px; overflow-y: auto;"></div>
+                            </div>
+                            <small class="text-muted">Select a job order to load its dispatch tickets</small>
                         </div>
-                        <div class="table-responsive" style="max-height: 300px;">
-                            <table id="dataTable" class="table table-sm table-hover mb-0" style="font-size: 0.75rem;">
+
+                        <!-- Tickets Table with Checkboxes -->
+                        <div class="table-responsive" style="max-height: 250px;">
+                            <table id="ticketsTable" class="table table-sm table-hover mb-0" style="font-size: 0.75rem;">
                                 <thead class="table-light">
                                     <tr>
+                                        <th class="text-center" style="width: 30px;">
+                                            <input type="checkbox" id="selectAllTickets" class="form-check-input">
+                                        </th>
                                         <th class="text-center">Dispatch#</th>
                                         <th class="text-center">Tugboat</th>
                                         <th class="text-center">Service</th>
@@ -141,9 +194,19 @@
                                     </tr>
                                 </thead>
                                 <tbody>
+                                    <tr class="text-muted">
+                                        <td colspan="6" class="text-center py-3">
+                                            <em>Select a customer and job order to view tickets</em>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Hidden select for form submission -->
+                        <select asp-for="ToBillDispatchTickets" id="DispatchTicketSelect" name="ToBillDispatchTickets" multiple="multiple" class="d-none">
+                        </select>
+
                         <div class="alert alert-light border mt-2 mb-0 py-2">
                             <div class="row text-center small">
                                 <div class="col-4">
@@ -194,6 +257,186 @@
         // Initialize data on startup
         fillDataOnStartup();
         handleDispatchTicketsChange();
+
+        // Job Order typeahead search
+        let jobOrderSearchTimeout;
+        const $jobOrderSearch = $("#JobOrderSearch");
+        const $jobOrderResults = $("#JobOrderSearchResults");
+        const $jobOrderId = $("#JobOrderId");
+        const $ticketsTableBody = $("#ticketsTable tbody");
+        const $dispatchSelect = $("#DispatchTicketSelect");
+        let currentCustomerId = $("#CustomerId").val();
+
+        function performJobOrderSearch(searchTerm) {
+            if (!currentCustomerId) {
+                $jobOrderResults.empty().addClass('d-none');
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("SearchJobOrders", "Billing", new { area = "User" })',
+                type: 'GET',
+                data: { customerId: currentCustomerId, term: searchTerm },
+                success: function(data) {
+                    $jobOrderResults.empty();
+                    if (Array.isArray(data) && data.length > 0) {
+                        $.each(data, function(index, item) {
+                            $jobOrderResults.append(
+                                $('<a href="#" class="list-group-item list-group-item-action py-2">')
+                                    .data('jobOrder', item)
+                                    .html('<div class="d-flex justify-content-between"><strong>' + item.name + '</strong></div><small class="text-muted">' + (item.description || '') + '</small>')
+                            );
+                        });
+                        $jobOrderResults.removeClass('d-none');
+                    } else {
+                        $jobOrderResults.append(
+                            $('<div class="list-group-item py-2 text-muted">')
+                                .html('<em>No job orders found</em>')
+                        );
+                        $jobOrderResults.removeClass('d-none');
+                    }
+                },
+                error: function() {
+                    $jobOrderResults.empty().addClass('d-none');
+                }
+            });
+        }
+
+        $jobOrderSearch.on('input', function() {
+            clearTimeout(jobOrderSearchTimeout);
+            const searchTerm = $(this).val().trim();
+
+            if (searchTerm.length === 0) {
+                $jobOrderResults.empty().addClass('d-none');
+                return;
+            }
+
+            jobOrderSearchTimeout = setTimeout(function() {
+                performJobOrderSearch(searchTerm);
+            }, 150);
+        });
+
+        // Handle Job Order selection
+        $jobOrderResults.on('click', 'a', function(e) {
+            e.preventDefault();
+            const jobOrder = $(this).data('jobOrder');
+            $jobOrderSearch.val(jobOrder.name);
+            $jobOrderId.val(jobOrder.value);
+            $jobOrderResults.empty().addClass('d-none');
+
+            // Load dispatch tickets for this job order
+            loadJobOrderTickets(jobOrder.value);
+        });
+
+        function loadJobOrderTickets(jobOrderId) {
+            $.ajax({
+                url: '@Url.Action("GetDispatchTicketsByJobOrder", "Billing", new { area = "User" })',
+                type: 'GET',
+                data: { jobOrderId: jobOrderId },
+                success: function(data) {
+                    renderTicketsTable(data);
+                },
+                error: function() {
+                    $ticketsTableBody.html(`
+                        <tr class="text-danger">
+                            <td colspan="6" class="text-center py-3">
+                                <em>Error loading tickets</em>
+                            </td>
+                        </tr>
+                    `);
+                }
+            });
+        }
+
+        function renderTicketsTable(tickets) {
+            $ticketsTableBody.empty();
+            $dispatchSelect.empty();
+
+            if (!tickets || tickets.length === 0) {
+                $ticketsTableBody.html(`
+                    <tr class="text-muted">
+                        <td colspan="6" class="text-center py-3">
+                            <em>No tickets available for billing in this job order</em>
+                        </td>
+                    </tr>
+                `);
+                updateTotals([]);
+                return;
+            }
+
+            $.each(tickets, function(index, ticket) {
+                const row = $(`
+                    <tr data-ticket-id="${ticket.dispatchTicketId}">
+                        <td class="text-center">
+                            <input type="checkbox" class="form-check-input ticket-checkbox" value="${ticket.dispatchTicketId}" checked>
+                        </td>
+                        <td class="text-center">${ticket.dispatchNo}</td>
+                        <td class="text-center">${ticket.tugboat}</td>
+                        <td class="text-center">${ticket.service}</td>
+                        <td class="text-center">${ticket.duration}</td>
+                        <td class="text-end">${formatNumber(ticket.totalAmount)}</td>
+                    </tr>
+                `);
+                $ticketsTableBody.append(row);
+
+                // Add to hidden select for form submission
+                $dispatchSelect.append($('<option></option>')
+                    .val(ticket.dispatchTicketId)
+                    .text(ticket.dispatchNo)
+                    .prop('selected', true));
+            });
+
+            updateTotals(tickets);
+        }
+
+        // Handle individual ticket checkbox changes
+        $ticketsTableBody.on('change', '.ticket-checkbox', function() {
+            const ticketId = $(this).val();
+            const isChecked = $(this).is(':checked');
+
+            // Update hidden select
+            const $option = $dispatchSelect.find('option[value="' + ticketId + '"]');
+            if (isChecked) {
+                if ($option.length === 0) {
+                    $dispatchSelect.append($('<option></option>')
+                        .val(ticketId)
+                        .prop('selected', true));
+                } else {
+                    $option.prop('selected', true);
+                }
+            } else {
+                $option.prop('selected', false);
+            }
+
+            updateTicketCount($ticketsTableBody.find('.ticket-checkbox:checked').length);
+        });
+
+        // Handle select all checkbox
+        $('#selectAllTickets').on('change', function() {
+            const isChecked = $(this).is(':checked');
+            $ticketsTableBody.find('.ticket-checkbox').prop('checked', isChecked).trigger('change');
+        });
+
+        function updateTotals(tickets) {
+            let dispatchAmount = 0;
+            let bafAmount = 0;
+
+            $ticketsTableBody.find('.ticket-checkbox:checked').each(function() {
+                const row = $(this).closest('tr');
+                const total = parseFloat(row.find('td:eq(5)').text().replace(/[^0-9.-]+/g, '')) || 0;
+                dispatchAmount += total * 0.8;
+                bafAmount += total * 0.2;
+            });
+
+            $('#DispatchAmountTotal').text(formatNumber(dispatchAmount));
+            $('#BAFAmountTotal').text(formatNumber(bafAmount));
+            $('#OverallTotal').text(formatNumber(dispatchAmount + bafAmount));
+            updateTicketCount($ticketsTableBody.find('.ticket-checkbox:checked').length);
+        }
+
+        function updateTicketCount(count) {
+            $('#selectedTicketCount').text(count + ' selected');
+        }
 
         function initializeDataTable(selector) {
             if ($.fn.DataTable.isDataTable(selector)) {
@@ -432,6 +675,8 @@
         }
 
         function fillDataOnStartup() {
+            // Enable Job Order search since customer is already selected
+            $jobOrderSearch.prop('disabled', false);
             // Ticket data is loaded server-side, just trigger change to update totals
             handleDispatchTicketsChange();
         }

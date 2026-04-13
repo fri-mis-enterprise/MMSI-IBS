@@ -73,6 +73,11 @@ namespace IBS.Models.MMSI.ViewModels
         [NotMapped]
         public Collection? Collection { get; set; }
 
+        public int? JobOrderId { get; set; }
+
+        [NotMapped]
+        public JobOrder? JobOrder { get; set; }
+
         [NotMapped]
         public List<SelectListItem>? CustomerPrincipal { get; set; }
 

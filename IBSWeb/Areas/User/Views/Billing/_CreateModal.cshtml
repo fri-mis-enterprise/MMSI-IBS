@@ -4,9 +4,17 @@
     #billingModal .modal-dialog {
         max-width: 95% !important;
         width: 95% !important;
+        max-height: 95vh;
+        margin: 2.5vh auto;
     }
     #billingModal .modal-content {
-        min-height: 85vh;
+        max-height: 95vh;
+        display: flex;
+        flex-direction: column;
+    }
+    #billingModal .modal-body {
+        overflow-y: auto;
+        max-height: calc(95vh - 140px);
     }
 </style>
 
@@ -34,6 +42,40 @@
             </div>
             <div id="CustomerSearchResults" class="list-group position-absolute w-100 shadow-sm border" style="z-index: 1050; max-height: 200px; overflow-y: auto; top: 100%;"></div>
             <span asp-validation-for="CustomerId" class="text-danger small"></span>
+        </div>
+
+        <!-- Customer Details Display -->
+        <div id="CustomerDetailsSection" class="d-none mb-3">
+            <div class="card border-0 bg-light">
+                <div class="card-body py-2">
+                    <div class="row g-2 small">
+                        <div class="col-md-6">
+                            <span class="text-muted">Address:</span>
+                            <span id="CustomerAddress" class="fw-semibold ms-1">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">TIN:</span>
+                            <span id="CustomerTIN" class="fw-semibold ms-1">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">Terms:</span>
+                            <span id="CustomerTerms" class="fw-semibold ms-1">-</span>
+                        </div>
+                        <div class="col-md-6">
+                            <span class="text-muted">Business Style:</span>
+                            <span id="CustomerBusinessStyle" class="fw-semibold ms-1">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">VAT Type:</span>
+                            <span id="CustomerVatType" class="fw-semibold ms-1">-</span>
+                        </div>
+                        <div class="col-md-3">
+                            <span class="text-muted">Type:</span>
+                            <span id="CustomerType" class="fw-semibold ms-1">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Principal Section (Inline) -->
@@ -123,33 +165,54 @@
                 </div>
             </div>
 
-            <!-- Right Column: Ticket Selection -->
+            <!-- Right Column: Job Order & Ticket Selection -->
             <div class="col-12 col-lg-8">
                 <div class="card h-100 border-0">
                     <div class="card-header bg-transparent border-0 py-2 d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0 fw-bold text-secondary"><i class="bi bi-list-check me-2"></i>Dispatch Tickets</h6>
+                        <h6 class="mb-0 fw-bold text-secondary"><i class="bi bi-briefcase me-2"></i>Job Order & Dispatch Tickets</h6>
                         <span class="badge bg-info" id="selectedTicketCount">0 selected</span>
                     </div>
                     <div class="card-body pt-0">
-                        <div class="mb-2">
-                            <select asp-for="ToBillDispatchTickets" id="DispatchTicketSelect" class="form-select js-example-basic-multiple" name="ToBillDispatchTickets" multiple="multiple" disabled style="width: 100%; min-height: 100px;">
-                            </select>
+                        <!-- Job Order Search -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Select Job Order</label>
+                            <div class="position-relative">
+                                <input type="text" id="JobOrderSearch" class="form-control form-control-sm" placeholder="Search job order number..." autocomplete="off" disabled>
+                                <input type="hidden" asp-for="JobOrderId" id="JobOrderId" />
+                                <div id="JobOrderSearchResults" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index: 1000; max-height: 200px; overflow-y: auto;"></div>
+                            </div>
+                            <small class="text-muted">Select a job order to load its dispatch tickets</small>
                         </div>
-                        <div class="table-responsive" style="max-height: 300px;">
-                            <table id="dataTable" class="table table-sm table-hover mb-0" style="font-size: 0.75rem;">
+
+                        <!-- Tickets Table with Checkboxes -->
+                        <div class="table-responsive" style="max-height: 250px;">
+                            <table id="ticketsTable" class="table table-sm table-hover mb-0" style="font-size: 0.75rem;">
                                 <thead class="table-light">
-                                    <tr>
-                                        <th class="text-center">Dispatch#</th>
-                                        <th class="text-center">Tugboat</th>
-                                        <th class="text-center">Service</th>
-                                        <th class="text-center">Hours</th>
-                                        <th class="text-end">Amount</th>
-                                    </tr>
+                                <tr>
+                                    <th class="text-center" style="width: 30px;">
+                                        <input type="checkbox" id="selectAllTickets" class="form-check-input">
+                                    </th>
+                                    <th class="text-center">Dispatch#</th>
+                                    <th class="text-center">Tugboat</th>
+                                    <th class="text-center">Service</th>
+                                    <th class="text-center">Hours</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
                                 </thead>
                                 <tbody>
+                                <tr class="text-muted">
+                                    <td colspan="6" class="text-center py-3">
+                                        <em>Select a customer and job order to view tickets</em>
+                                    </td>
+                                </tr>
                                 </tbody>
                             </table>
                         </div>
+
+                        <!-- Hidden select for form submission -->
+                        <select asp-for="ToBillDispatchTickets" id="DispatchTicketSelect" name="ToBillDispatchTickets" multiple="multiple" class="d-none">
+                        </select>
+
                         <div class="alert alert-light border mt-2 mb-0 py-2">
                             <div class="row text-center small">
                                 <div class="col-4">
@@ -185,16 +248,11 @@
 <script>
     $(document).ready(function () {
         let multiSelectVariable = $('.js-example-basic-multiple');
-        multiSelectVariable.select2({
-            dropdownParent: $('#billingModal')
-        });
-
-        // Initialize select2 for all dropdowns within modal
-        $('#billingModal .js-select2').select2({
-            dropdownParent: $('#billingModal')
-        });
+        multiSelectVariable.select2({ dropdownParent: $('#billingModal') });
+        $('#billingModal .js-select2').select2({ dropdownParent: $('#billingModal') });
 
         let table = initializeDataTable('#dataTable');
+        let currentCustomerId = null;
         setupEventListeners();
         handleCheckboxChange();
 
@@ -203,18 +261,14 @@
                 $(selector).DataTable().destroy();
             }
             return $(selector).DataTable({
-                paging: false,
-                info: false,
-                order: [[0, 'asc']],
-                lengthChange: false,
-                searching: false
+                paging: false, info: false, order: [[0, 'asc']],
+                lengthChange: false, searching: false
             });
         }
 
         function setupEventListeners() {
             $("#isUndocumentedCheckbox").on("change", handleCheckboxChange);
             $("#UsePrincipalCheckbox").on("change", handleUsePrincipalChange);
-            $("#PrincipalSelect").on("change.select2", handlePrincipalChange);
             $("#PortSelect").on("change", handlePortChange);
             $("#submitCreateBilling").on("click", areYouSureToBill);
             multiSelectVariable.on('change', handleDispatchTicketsChange);
@@ -239,152 +293,92 @@
         }
 
         function handleUsePrincipalChange() {
-            const $checkbox = $("#UsePrincipalCheckbox");
-            const $principalSection = $("#PrincipalSection");
-            const $principalSearch = $("#PrincipalSearch");
-            const $principalId = $("#PrincipalId");
-            const $billedToContainer = $("#BilledToContainer");
-
-            if ($checkbox.is(":checked")) {
-                $principalSection.removeClass("d-none");
-                $billedToContainer.removeClass("d-none");
-                setTimeout(function() {
-                    $principalSearch.focus();
-                }, 100);
+            const isChecked = $("#UsePrincipalCheckbox").is(":checked");
+            if (isChecked) {
+                $("#PrincipalSection").removeClass("d-none");
+                $("#BilledToContainer").removeClass("d-none");
+                setTimeout(() => $("#PrincipalSearch").focus(), 100);
             } else {
-                $principalSection.addClass("d-none");
-                $principalSearch.val("");
-                $principalId.val("");
-                $billedToContainer.addClass("d-none");
+                $("#PrincipalSection").addClass("d-none");
+                $("#PrincipalSearch").val("");
+                $("#PrincipalId").val("");
+                $("#BilledToContainer").addClass("d-none");
                 $("#billLocal").prop("checked", true);
             }
         }
 
-        function handlePrincipalChange() {
-            const principalId = $("#PrincipalSelect").val();
-            if (!principalId) return;
-            $.ajax({
-                url: '@Url.Action("GetPrincipalDetails", "Billing", new { area = "User" })',
-                method: "GET",
-                data: { principalId: principalId },
-                success: function (data) {
-                    updateFields(data);
-                }
-            });
-        }
-
-        // Customer typeahead search - instant suggestions
+        // ── Customer search ──────────────────────────────────────────────
         let customerSearchTimeout;
         const $customerSearch = $("#CustomerSearch");
         const $customerResults = $("#CustomerSearchResults");
         const $customerId = $("#CustomerId");
 
-        function performCustomerSearch(searchTerm) {
-            if (searchTerm.length < 1) {
-                $customerResults.empty().addClass('d-none');
-                return;
-            }
-
-            $.ajax({
-                url: '@Url.Action("SearchCustomers", "Billing", new { area = "User" })',
-                type: 'GET',
-                data: { term: searchTerm },
-                success: function(data) {
-                    $customerResults.empty();
-                    if (Array.isArray(data) && data.length > 0) {
-                        $.each(data, function(index, item) {
-                            $customerResults.append(
-                                $('<a href="#" class="list-group-item list-group-item-action py-2">')
-                                    .data('customer', item)
-                                    .html('<span>' + item.name + '</span>' +
-                                          (item.hasPrincipal ? ' <span class="badge bg-info ms-1">Has Principal</span>' : ''))
-                            );
-                        });
-                        $customerResults.removeClass('d-none');
-                    } else {
+        async function performCustomerSearch(searchTerm) {
+            if (!searchTerm.length) { $customerResults.empty().addClass('d-none'); return; }
+            try {
+                const res = await fetch(`@Url.Action("SearchCustomers", "Billing", new { area = "User" })?term=${encodeURIComponent(searchTerm)}`);
+                const data = await res.json();
+                $customerResults.empty();
+                if (Array.isArray(data) && data.length > 0) {
+                    data.forEach(item => {
                         $customerResults.append(
-                            $('<div class="list-group-item py-2 text-muted">')
-                                .html('<em>No customers found</em>')
+                            $('<a href="#" class="list-group-item list-group-item-action py-2">')
+                                .data('customer', item)
+                                .html(`<span>${item.name}</span>${item.hasPrincipal ? ' <span class="badge bg-info ms-1">Has Principal</span>' : ''}`)
                         );
-                        $customerResults.removeClass('d-none');
-                    }
-                },
-                error: function() {
-                    $customerResults.empty().addClass('d-none');
+                    });
+                } else {
+                    $customerResults.append($('<div class="list-group-item py-2 text-muted"><em>No customers found</em></div>'));
                 }
-            });
+                $customerResults.removeClass('d-none');
+            } catch {
+                $customerResults.empty().addClass('d-none');
+            }
         }
 
-        // Search on input (with small debounce)
-        $customerSearch.on('input', function() {
+        $customerSearch.on('input', function () {
             clearTimeout(customerSearchTimeout);
             const searchTerm = $(this).val().trim();
-
-            if (searchTerm.length === 0) {
-                $customerResults.empty().addClass('d-none');
-                $customerId.val('');
-                return;
-            }
-
-            // Immediate search for first character, debounce for subsequent
-            if (searchTerm.length === 1) {
-                performCustomerSearch(searchTerm);
-            } else {
-                customerSearchTimeout = setTimeout(function() {
-                    performCustomerSearch(searchTerm);
-                }, 150);
-            }
+            if (!searchTerm.length) { $customerResults.empty().addClass('d-none'); $customerId.val(''); return; }
+            if (searchTerm.length === 1) performCustomerSearch(searchTerm);
+            else customerSearchTimeout = setTimeout(() => performCustomerSearch(searchTerm), 150);
         });
 
-        // Show results on focus if has value
-        $customerSearch.on('focus', function() {
+        $customerSearch.on('focus', function () {
             const searchTerm = $(this).val().trim();
-            if (searchTerm.length > 0 && $customerResults.children().length === 0) {
-                performCustomerSearch(searchTerm);
-            } else if ($customerResults.children().length > 0) {
-                $customerResults.removeClass('d-none');
-            }
+            if (searchTerm.length > 0 && !$customerResults.children().length) performCustomerSearch(searchTerm);
+            else if ($customerResults.children().length) $customerResults.removeClass('d-none');
         });
 
-        // Keyboard navigation
-        $customerSearch.on('keydown', function(e) {
+        $customerSearch.on('keydown', function (e) {
             const $items = $customerResults.find('a');
             const $active = $items.filter('.active');
-
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                if ($active.length === 0) {
-                    $items.first().addClass('active');
-                } else {
-                    $active.removeClass('active').next().addClass('active');
-                }
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                if ($active.length === 0) {
-                    $items.last().addClass('active');
-                } else {
-                    $active.removeClass('active').prev().addClass('active');
-                }
-            } else if (e.key === 'Enter') {
-                e.preventDefault();
-                $active.trigger('click');
-            } else if (e.key === 'Escape') {
-                $customerResults.addClass('d-none');
-            }
+            if (e.key === 'ArrowDown') { e.preventDefault(); ($active.length ? $active.removeClass('active').next() : $items.first()).addClass('active'); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); ($active.length ? $active.removeClass('active').prev() : $items.last()).addClass('active'); }
+            else if (e.key === 'Enter') { e.preventDefault(); $active.trigger('click'); }
+            else if (e.key === 'Escape') { $customerResults.addClass('d-none'); }
         });
 
-        // Handle customer selection from search results
-        $customerResults.on('click', 'a', function(e) {
+        $customerResults.on('click', 'a', async function (e) {
             e.preventDefault();
             const customer = $(this).data('customer');
             $customerSearch.val(customer.name);
             $customerId.val(customer.value);
             $customerResults.empty().addClass('d-none');
-            handleCustomerSelected(customer);
+            currentCustomerId = customer.value;
+            try {
+                const res = await fetch('@Url.Action("GetCustomerDetails", "Billing", new { area = "User" })', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `customerId=${encodeURIComponent(customer.value)}`
+                });
+                handleCustomerSelected(await res.json());
+            } catch {
+                console.error('Failed to load customer details');
+            }
         });
 
-        // Close search results when clicking outside
-        $(document).on('click', function(e) {
+        $(document).on('click', function (e) {
             if (!$(e.target).closest('#CustomerSearch, #CustomerSearchResults, #PrincipalSearch, #PrincipalSearchResults').length) {
                 $customerResults.empty().addClass('d-none');
                 $principalResults.empty().addClass('d-none');
@@ -392,122 +386,196 @@
         });
 
         function handleCustomerSelected(customer) {
-            const $principalCheckboxContainer = $("#PrincipalCheckboxContainer");
-            const $principalSection = $("#PrincipalSection");
-            const $principalSearch = $("#PrincipalSearch");
-            const $principalId = $("#PrincipalId");
-            const $billedToContainer = $("#BilledToContainer");
-            const $dispatchSelect = $("#DispatchTicketSelect");
-            const $isUndocCheckbox = $("#isUndocumentedCheckbox");
-
-            // Reset principal section
             $("#UsePrincipalCheckbox").prop("checked", false);
-            $principalSection.addClass("d-none");
-            $principalSearch.val("");
-            $principalId.val("");
-            $billedToContainer.addClass("d-none");
+            $("#PrincipalSection, #BilledToContainer").addClass("d-none");
+            $("#PrincipalSearch").val("");
+            $("#PrincipalId").val("");
+            $("#DispatchTicketSelect").prop("disabled", false).val(null).trigger("change");
 
-            $dispatchSelect.prop("disabled", false);
-            $dispatchSelect.val(null).trigger("change");
+            $("#CustomerDetailsSection").removeClass("d-none");
+            $("#CustomerAddress").text(customer.address || '-');
+            $("#CustomerTIN").text(customer.tinNo || '-');
+            $("#CustomerTerms").text(customer.terms || '-');
+            $("#CustomerBusinessStyle").text(customer.businessStyle || '-');
+            $("#CustomerVatType").text(customer.vatType || '-');
+            $("#CustomerType").text(customer.type || '-');
 
-            // Check if customer has principal
-            if (customer.hasPrincipal) {
-                $principalCheckboxContainer.removeClass("d-none");
-            } else {
-                $principalCheckboxContainer.addClass("d-none");
-                $principalSection.addClass("d-none");
-            }
+            $("#PrincipalCheckboxContainer").toggleClass("d-none", !customer.hasPrincipal);
+            if (!customer.hasPrincipal) $("#PrincipalSection").addClass("d-none");
 
-            // Set VAT type defaults
-            if (customer.vatType === "Vatable") {
-                $("#billLocal").prop("checked", true);
-            } else {
-                $("#billPrincipal").prop("checked", true);
-            }
-
-            $isUndocCheckbox.prop("checked", customer.isUndoc === "Undocumented");
+            $(customer.vatType === "Vatable" ? "#billLocal" : "#billPrincipal").prop("checked", true);
+            $("#isUndocumentedCheckbox").prop("checked", customer.isUndoc === "Undocumented");
             handleCheckboxChange();
 
-            fetchDispatchTickets(customer.value);
+            $jobOrderSearch.val('').prop('disabled', false);
+            $jobOrderId.val('');
+            $jobOrderResults.empty().addClass('d-none');
+            $ticketsTableBody.html('<tr class="text-muted"><td colspan="6" class="text-center py-3"><em>Select a job order to view tickets</em></td></tr>');
+            $dispatchSelect.empty();
+            updateTotals();
         }
 
-        // Principal typeahead search
+        // ── Job Order search ─────────────────────────────────────────────
+        let jobOrderSearchTimeout;
+        const $jobOrderSearch = $("#JobOrderSearch");
+        const $jobOrderResults = $("#JobOrderSearchResults");
+        const $jobOrderId = $("#JobOrderId");
+        const $ticketsTableBody = $("#ticketsTable tbody");
+        const $dispatchSelect = $("#DispatchTicketSelect");
+
+        async function performJobOrderSearch(searchTerm) {
+            if (!currentCustomerId) return;
+            try {
+                const res = await fetch(`@Url.Action("SearchJobOrders", "Billing", new { area = "User" })?customerId=${encodeURIComponent(currentCustomerId)}&term=${encodeURIComponent(searchTerm)}`);
+                const data = await res.json();
+                $jobOrderResults.empty();
+                if (Array.isArray(data) && data.length > 0) {
+                    data.forEach(item => {
+                        $jobOrderResults.append(
+                            $('<a href="#" class="list-group-item list-group-item-action py-2">')
+                                .data('jobOrder', item)
+                                .html(`<strong>${item.name}</strong><br><small class="text-muted">${item.description || ''}</small>`)
+                        );
+                    });
+                } else {
+                    $jobOrderResults.append($('<div class="list-group-item py-2 text-muted"><em>No job orders found</em></div>'));
+                }
+                $jobOrderResults.removeClass('d-none');
+            } catch {
+                $jobOrderResults.empty().addClass('d-none');
+            }
+        }
+
+        $jobOrderSearch.on('input', function () {
+            clearTimeout(jobOrderSearchTimeout);
+            const searchTerm = $(this).val().trim();
+            if (!searchTerm.length) { $jobOrderResults.empty().addClass('d-none'); return; }
+            jobOrderSearchTimeout = setTimeout(() => performJobOrderSearch(searchTerm), 150);
+        });
+
+        $jobOrderResults.on('click', 'a', async function (e) {
+            e.preventDefault();
+            const jobOrder = $(this).data('jobOrder');
+            $jobOrderSearch.val(jobOrder.name);
+            $jobOrderId.val(jobOrder.value);
+            $jobOrderResults.empty().addClass('d-none');
+            try {
+                const res = await fetch(`@Url.Action("GetDispatchTicketsByJobOrder", "Billing", new { area = "User" })?jobOrderId=${encodeURIComponent(jobOrder.value)}`);
+                renderTicketsTable(await res.json());
+            } catch {
+                $ticketsTableBody.html('<tr class="text-danger"><td colspan="6" class="text-center py-3"><em>Error loading tickets</em></td></tr>');
+            }
+        });
+
+        function renderTicketsTable(tickets) {
+            $ticketsTableBody.empty();
+            $dispatchSelect.empty();
+            if (!tickets?.length) {
+                $ticketsTableBody.html('<tr class="text-muted"><td colspan="6" class="text-center py-3"><em>No tickets available for billing in this job order</em></td></tr>');
+                updateTotals();
+                return;
+            }
+            tickets.forEach(ticket => {
+                $ticketsTableBody.append(`
+                <tr data-ticket-id="${ticket.dispatchTicketId}">
+                    <td class="text-center"><input type="checkbox" class="form-check-input ticket-checkbox" value="${ticket.dispatchTicketId}" checked></td>
+                    <td class="text-center">${ticket.dispatchNo}</td>
+                    <td class="text-center">${ticket.tugboat}</td>
+                    <td class="text-center">${ticket.service}</td>
+                    <td class="text-center">${ticket.duration}</td>
+                    <td class="text-end">${formatNumber(ticket.totalAmount)}</td>
+                </tr>
+            `);
+                $dispatchSelect.append($('<option>').val(ticket.dispatchTicketId).text(ticket.dispatchNo).prop('selected', true));
+            });
+            updateTotals();
+        }
+
+        $ticketsTableBody.on('change', '.ticket-checkbox', function () {
+            const ticketId = $(this).val();
+            const $option = $dispatchSelect.find(`option[value="${ticketId}"]`);
+            if ($(this).is(':checked')) {
+                if (!$option.length) $dispatchSelect.append($('<option>').val(ticketId).prop('selected', true));
+                else $option.prop('selected', true);
+            } else {
+                $option.prop('selected', false);
+            }
+            updateTotals();
+        });
+
+        $('#selectAllTickets').on('change', function () {
+            $ticketsTableBody.find('.ticket-checkbox').prop('checked', $(this).is(':checked')).trigger('change');
+        });
+
+        function updateTotals() {
+            let dispatch = 0, baf = 0;
+            $ticketsTableBody.find('.ticket-checkbox:checked').each(function () {
+                const total = parseFloat($(this).closest('tr').find('td:eq(5)').text().replace(/[^0-9.-]+/g, '')) || 0;
+                dispatch += total * 0.8;
+                baf += total * 0.2;
+            });
+            const count = $ticketsTableBody.find('.ticket-checkbox:checked').length;
+            $('#DispatchAmountTotal').text(formatNumber(dispatch));
+            $('#BAFAmountTotal').text(formatNumber(baf));
+            $('#OverallTotal').text(formatNumber(dispatch + baf));
+            $('#selectedTicketCount').text(`${count} selected`);
+        }
+
+        // ── Principal search ─────────────────────────────────────────────
         let principalSearchTimeout;
         const $principalSearch = $("#PrincipalSearch");
         const $principalResults = $("#PrincipalSearchResults");
         const $principalId = $("#PrincipalId");
-        let currentCustomerId = null;
 
-        function performPrincipalSearch(searchTerm) {
-            if (!currentCustomerId) {
-                $principalResults.empty().addClass('d-none');
-                return;
-            }
-
-            // Allow empty search term to show all principals
-            var requestData = { customerId: currentCustomerId };
-            if (searchTerm.length > 0) {
-                requestData.term = searchTerm;
-            }
-
-            $.ajax({
-                url: '@Url.Action("SearchPrincipals", "Billing", new { area = "User" })',
-                type: 'GET',
-                data: requestData,
-                success: function(data) {
-                    $principalResults.empty();
-                    if (Array.isArray(data) && data.length > 0) {
-                        $.each(data, function(index, item) {
-                            $principalResults.append(
-                                $('<a href="#" class="list-group-item list-group-item-action py-2">')
-                                    .data('principal', item)
-                                    .html('<span>' + item.name + '</span>')
-                            );
-                        });
-                        $principalResults.removeClass('d-none');
-                    } else {
+        async function performPrincipalSearch(searchTerm) {
+            if (!currentCustomerId) return;
+            try {
+                const params = new URLSearchParams({ customerId: currentCustomerId });
+                if (searchTerm.length) params.set('term', searchTerm);
+                const res = await fetch(`@Url.Action("SearchPrincipals", "Billing", new { area = "User" })?${params}`);
+                const data = await res.json();
+                $principalResults.empty();
+                if (Array.isArray(data) && data.length > 0) {
+                    data.forEach(item => {
                         $principalResults.append(
-                            $('<div class="list-group-item py-2 text-muted">')
-                                .html('<em>No principals found</em>')
+                            $('<a href="#" class="list-group-item list-group-item-action py-2">')
+                                .data('principal', item)
+                                .html(`<span>${item.name}</span>`)
                         );
-                        $principalResults.removeClass('d-none');
-                    }
-                },
-                error: function() {
-                    $principalResults.empty().addClass('d-none');
+                    });
+                } else {
+                    $principalResults.append($('<div class="list-group-item py-2 text-muted"><em>No principals found</em></div>'));
                 }
-            });
+                $principalResults.removeClass('d-none');
+            } catch {
+                $principalResults.empty().addClass('d-none');
+            }
         }
 
-        $principalSearch.on('input', function() {
+        $principalSearch.on('input', function () {
             clearTimeout(principalSearchTimeout);
             const searchTerm = $(this).val().trim();
             currentCustomerId = $("#CustomerId").val();
-
-            if (searchTerm.length === 0) {
-                $principalResults.empty().addClass('d-none');
-                $principalId.val('');
-                return;
-            }
-
-            if (searchTerm.length === 1) {
-                performPrincipalSearch(searchTerm);
-            } else {
-                principalSearchTimeout = setTimeout(function() {
-                    performPrincipalSearch(searchTerm);
-                }, 150);
-            }
+            if (!searchTerm.length) { $principalResults.empty().addClass('d-none'); $principalId.val(''); return; }
+            if (searchTerm.length === 1) performPrincipalSearch(searchTerm);
+            else principalSearchTimeout = setTimeout(() => performPrincipalSearch(searchTerm), 150);
         });
 
-        $principalSearch.on('focus', function() {
-            const searchTerm = $(this).val().trim();
+        $principalSearch.on('focus', function () {
             currentCustomerId = $("#CustomerId").val();
-            // Always show all principals on focus (even with empty search)
-            performPrincipalSearch(searchTerm);
+            performPrincipalSearch($(this).val().trim());
         });
 
-        // Handle principal selection
-        $principalResults.on('click', 'a', function(e) {
+        $principalSearch.on('keydown', function (e) {
+            const $items = $principalResults.find('a');
+            const $active = $items.filter('.active');
+            if (e.key === 'ArrowDown') { e.preventDefault(); ($active.length ? $active.removeClass('active').next() : $items.first()).addClass('active'); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); ($active.length ? $active.removeClass('active').prev() : $items.last()).addClass('active'); }
+            else if (e.key === 'Enter') { e.preventDefault(); $active.trigger('click'); }
+            else if (e.key === 'Escape') { $principalResults.addClass('d-none'); }
+        });
+
+        $principalResults.on('click', 'a', function (e) {
             e.preventDefault();
             const principal = $(this).data('principal');
             $principalSearch.val(principal.name);
@@ -515,194 +583,92 @@
             $principalResults.empty().addClass('d-none');
         });
 
-        // Keyboard navigation for principal
-        $principalSearch.on('keydown', function(e) {
-            const $items = $principalResults.find('a');
-            const $active = $items.filter('.active');
-
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                if ($active.length === 0) {
-                    $items.first().addClass('active');
-                } else {
-                    $active.removeClass('active').next().addClass('active');
-                }
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                if ($active.length === 0) {
-                    $items.last().addClass('active');
-                } else {
-                    $active.removeClass('active').prev().addClass('active');
-                }
-            } else if (e.key === 'Enter') {
-                e.preventDefault();
-                $active.trigger('click');
-            } else if (e.key === 'Escape') {
-                $principalResults.addClass('d-none');
+        // ── Port → Terminal cascade ──────────────────────────────────────
+        async function handlePortChange() {
+            try {
+                const res = await fetch(`@Url.Action("ChangeTerminal", "DispatchTicket", new { area = "User" })?portId=${encodeURIComponent($("#PortSelect").val())}`);
+                const data = await res.json();
+                const $terminalSelect = $("#TerminalSelect");
+                $terminalSelect.empty().append('<option value="">Select Terminal</option>');
+                if (Array.isArray(data)) data.forEach(item => $terminalSelect.append($('<option>').val(item.value).text(item.text)));
+            } catch {
+                console.error('Failed to load terminals');
             }
-        });
-
-        function fetchDispatchTickets(customerId, selectedIds = null) {
-            return $.ajax({
-                url: '@Url.Action("GetDispatchTicketsByCustomer", "Billing", new { area = "User" })',
-                method: "GET",
-                data: { customerId: customerId },
-                success: function (data) {
-                    const $dispatchSelect = $("#DispatchTicketSelect");
-                    $dispatchSelect.empty();
-                    if (Array.isArray(data) && data.length > 0) {
-                        $.each(data, function (index, item) {
-                            let selected = selectedIds && selectedIds.includes(parseInt(item.value));
-                            $dispatchSelect.append($('<option>', {
-                                value: item.value,
-                                text: item.text,
-                                selected: selected
-                            }));
-                        });
-                    }
-                    $dispatchSelect.trigger("change");
-                }
-            });
         }
 
-        function updateTicketCount(count) {
-            $("#selectedTicketCount").text(count + " selected");
-        }
-
-        function handlePortChange() {
-            const portId = $("#PortSelect").val();
-            $.ajax({
-                url: '@Url.Action("ChangeTerminal", "DispatchTicket", new { area = "User" })',
-                type: "GET",
-                data: { portId: portId },
-                success: function (data) {
-                    const $terminalSelect = $("#TerminalSelect");
-                    $terminalSelect.empty().append('<option value="">Select Terminal</option>');
-                    if (Array.isArray(data)) {
-                        $.each(data, function (index, item) {
-                            $terminalSelect.append($('<option>', { value: item.value, text: item.text }));
-                        });
-                    }
-                }
-            });
-        }
-
-        function handleDispatchTicketsChange() {
+        // ── Dispatch tickets change ──────────────────────────────────────
+        async function handleDispatchTicketsChange() {
             const selectedTickets = $("#DispatchTicketSelect").val();
-            updateTicketCount(selectedTickets?.length || 0);
-            if (!selectedTickets || selectedTickets.length === 0) {
-                updateDispatchTable([]);
-                return;
+            $('#selectedTicketCount').text(`${selectedTickets?.length || 0} selected`);
+            if (!selectedTickets?.length) { updateDispatchTable([]); return; }
+            try {
+                const body = selectedTickets.map(id => `dispatchTicketIds=${encodeURIComponent(id)}`).join('&');
+                const res = await fetch('@Url.Action("GetDispatchTickets", "Billing", new { area = "User" })', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body
+                });
+                updateDispatchTable((await res.json()).data);
+            } catch {
+                console.error('Failed to load dispatch tickets');
             }
-            $.ajax({
-                url: '@Url.Action("GetDispatchTickets", "Billing", new { area = "User" })',
-                type: 'POST',
-                data: { dispatchTicketIds: selectedTickets },
-                success: function (result) {
-                    updateDispatchTable(result.data);
-                }
-            });
         }
 
         function updateDispatchTable(data) {
-            let totalDispatchAmount = 0;
-            let totalBAFAmount = 0;
-
+            let totalDispatch = 0, totalBAF = 0;
             table.destroy();
             const $tbody = $('#dataTable tbody').empty();
-
-            $.each(data || [], function (index, value) {
-                totalDispatchAmount += value.dispatchNetRevenue;
-                totalBAFAmount += value.bafNetRevenue;
-                const totalAmount = value.dispatchNetRevenue + value.bafNetRevenue;
+            (data || []).forEach(value => {
+                totalDispatch += value.dispatchNetRevenue;
+                totalBAF += value.bafNetRevenue;
                 $tbody.append(`
-                    <tr>
-                        <td class="text-center">${value.dispatchNumber}</td>
-                        <td class="text-center">${value.tugboat?.tugboatName || '-'}</td>
-                        <td class="text-center">${value.service?.serviceName || '-'}</td>
-                        <td class="text-center">${(value.totalHours || 0).toFixed(2)}</td>
-                        <td class="text-end">₱${formatNumber(totalAmount)}</td>
-                    </tr>
-                `);
+                <tr>
+                    <td class="text-center">${value.dispatchNumber}</td>
+                    <td class="text-center">${value.tugboat?.tugboatName || '-'}</td>
+                    <td class="text-center">${value.service?.serviceName || '-'}</td>
+                    <td class="text-center">${(value.totalHours || 0).toFixed(2)}</td>
+                    <td class="text-end">₱${formatNumber(value.dispatchNetRevenue + value.bafNetRevenue)}</td>
+                </tr>
+            `);
             });
-
-            $("#DispatchAmountTotal").text(formatNumber(totalDispatchAmount));
-            $("#BAFAmountTotal").text(formatNumber(totalBAFAmount));
-            $("#OverallTotal").text(formatNumber(totalDispatchAmount + totalBAFAmount));
-            updateTicketCount(data?.length || 0);
-
+            $("#DispatchAmountTotal").text(formatNumber(totalDispatch));
+            $("#BAFAmountTotal").text(formatNumber(totalBAF));
+            $("#OverallTotal").text(formatNumber(totalDispatch + totalBAF));
+            $('#selectedTicketCount').text(`${data?.length || 0} selected`);
             table = initializeDataTable('#dataTable');
         }
 
+        // ── Submit ───────────────────────────────────────────────────────
         function areYouSureToBill(event) {
             event.preventDefault();
             const form = document.getElementById("billingCreateForm");
-            if (!form.checkValidity()) {
-                form.reportValidity();
+            if (!form.checkValidity()) { form.reportValidity(); return; }
+            if (!$("#DispatchTicketSelect").val()?.length) {
+                Swal.fire({ title: "No Tickets Selected", text: "Please select at least one dispatch ticket to bill.", icon: "warning" });
                 return;
             }
-
-            const selectedTickets = $("#DispatchTicketSelect").val();
-            if (!selectedTickets || selectedTickets.length === 0) {
-                Swal.fire({
-                    title: "No Tickets Selected",
-                    text: "Please select at least one dispatch ticket to bill.",
-                    icon: "warning"
-                });
-                return;
-            }
-
-            Swal.fire({
-                title: "Submit Billing?",
-                text: "Review all details before proceeding.",
-                icon: "question",
-                showCancelButton: true,
-                confirmButtonText: "Yes, submit"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    submitCreateForm();
-                }
-            });
+            Swal.fire({ title: "Submit Billing?", text: "Review all details before proceeding.", icon: "question", showCancelButton: true, confirmButtonText: "Yes, submit" })
+                .then(result => { if (result.isConfirmed) submitCreateForm(); });
         }
 
-        function submitCreateForm() {
-            const form = $('#billingCreateForm');
-            const formData = form.serialize();
-
-            $.ajax({
-                url: '@Url.Action("Create", "Billing", new { area = "User" })',
-                type: 'POST',
-                data: formData,
-                success: function (response) {
-                    if (response.success) {
-                        $('#billingModal').modal('hide');
-                        Swal.fire({
-                            title: "Success!",
-                            text: response.message,
-                            icon: "success"
-                        }).then(() => {
-                            if (response.redirectUrl) {
-                                window.location.href = response.redirectUrl;
-                            } else {
-                                location.reload();
-                            }
-                        });
-                    } else {
-                        Swal.fire({
-                            title: "Error",
-                            text: response.message || "Failed to create billing.",
-                            icon: "error"
-                        });
-                    }
-                },
-                error: function (xhr) {
-                    Swal.fire({
-                        title: "Error",
-                        text: "An error occurred while creating the billing.",
-                        icon: "error"
-                    });
+        async function submitCreateForm() {
+            try {
+                const res = await fetch('@Url.Action("Create", "Billing", new { area = "User" })', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams(new FormData(document.getElementById('billingCreateForm'))).toString()
+                });
+                const response = await res.json();
+                if (response.success) {
+                    $('#billingModal').modal('hide');
+                    Swal.fire({ title: "Success!", text: response.message, icon: "success" })
+                        .then(() => response.redirectUrl ? window.location.href = response.redirectUrl : location.reload());
+                } else {
+                    Swal.fire({ title: "Error", text: response.message || "Failed to create billing.", icon: "error" });
                 }
-            });
+            } catch {
+                Swal.fire({ title: "Error", text: "An error occurred while creating the billing.", icon: "error" });
+            }
         }
     });
 </script>
