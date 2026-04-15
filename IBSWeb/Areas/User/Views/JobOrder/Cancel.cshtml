@@ -10,7 +10,16 @@
             <h3 class="card-title m-0"><i class="bi bi-slash-circle"></i> Cancel Job Order</h3>
         </div>
         <div class="card-body">
-            @if (ViewData["HasTickets"] as bool? == true)
+            @if (TempData["warning"] != null)
+            {
+                <div class="alert alert-warning d-flex align-items-start" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2 fs-4 flex-shrink-0"></i>
+                    <div>
+                        @Html.Raw(TempData["warning"])
+                    </div>
+                </div>
+            }
+            else if (ViewData["HasTickets"] as bool? == true)
             {
                 <div class="alert alert-warning d-flex align-items-start" role="alert">
                     <i class="bi bi-exclamation-triangle-fill me-2 fs-4 flex-shrink-0"></i>

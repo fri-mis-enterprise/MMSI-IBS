@@ -53,6 +53,25 @@ namespace IBS.DataAccess.Repository.MMSI
             return model;
         }
 
+        public async Task<DispatchTicket?> GetDispatchTicketWithDetailsAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var model = await dbSet.Where(dt => dt.DispatchTicketId == id)
+                .Include(a => a.Service)
+                .Include(a => a.Terminal).ThenInclude(t => t!.Port)
+                .Include(a => a.Tugboat).ThenInclude(t => t!.TugboatOwner)
+                .Include(a => a.TugMaster)
+                .Include(a => a.Vessel)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (model != null && model.CustomerId != 0 && model.CustomerId != null)
+            {
+                model.Customer = await _db.Customers
+                    .FirstOrDefaultAsync(x => x.CustomerId == model.CustomerId, cancellationToken);
+            }
+
+            return model;
+        }
+
         public async Task<DispatchTicket> GetDispatchTicketLists(DispatchTicket model, CancellationToken cancellationToken = default)
         {
             model.Services = await GetMMSIActivitiesServicesById(cancellationToken);

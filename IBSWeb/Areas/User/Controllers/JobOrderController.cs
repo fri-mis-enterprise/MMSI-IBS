@@ -457,16 +457,15 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             // FIX #1/#6: Server-side confirmation gate.
-            // On first POST, store the pending ID in TempData and redirect back to
-            // the Cancel GET view (which will render the confirm button). Only proceed
-            // on the second POST where TempData matches — no client-supplied flag trusted.
+            // On first POST, store the pending ID in TempData and redirect to Details with warning.
+            // Only proceed on the second POST where TempData matches.
             if (ticketsForApproval > 0 || ticketsDisapproved > 0)
             {
                 var pendingId = TempData[_cancelConfirmKey] as int?;
 
                 if (pendingId != id)
                 {
-                    // First visit — set the pending confirmation and send back to Cancel view.
+                    // First visit — set the pending confirmation and redirect to Details with warning.
                     TempData[_cancelConfirmKey] = id;
 
                     var warnings = new List<string>();
@@ -489,9 +488,7 @@ namespace IBSWeb.Areas.User.Controllers
                                           string.Join("<br/>• ", warnings) +
                                           "<br/><br/>Please review and confirm below.";
 
-                    // FIX #6: Redirect to Cancel GET view (not Details) so the confirm
-                    // button is available to the user.
-                    return RedirectToAction(nameof(Cancel), new { id });
+                    return RedirectToAction(nameof(Details), new { id });
                 }
 
                 // Second visit — TempData matched, clear it and proceed.

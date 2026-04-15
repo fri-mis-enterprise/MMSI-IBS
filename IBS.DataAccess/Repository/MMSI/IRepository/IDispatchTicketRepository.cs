@@ -8,5 +8,7 @@ namespace IBS.DataAccess.Repository.MMSI.IRepository
         Task SaveAsync(CancellationToken cancellationToken);
 
         Task<DispatchTicket> GetDispatchTicketLists(DispatchTicket model, CancellationToken cancellationToken = default);
+
+        Task<DispatchTicket?> GetDispatchTicketWithDetailsAsync(int id, CancellationToken cancellationToken = default);
     }
 }

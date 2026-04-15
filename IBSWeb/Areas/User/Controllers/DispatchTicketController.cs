@@ -75,6 +75,13 @@ namespace IBSWeb.Areas.User.Controllers
                     return PartialView("_PermissionDeniedModal");
                 }
 
+                // Guard: Check if parent JobOrder is editable
+                if (!await IsTicketJobOrderEditableAsync(id.Value, cancellationToken))
+                {
+                    ViewData["message"] = "Cannot edit ticket — parent Job Order is cancelled or closed.";
+                    return PartialView("_PermissionDeniedModal");
+                }
+
                 var model = await unitOfWork.DispatchTicket
                     .GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
                 if (model == null)
@@ -115,6 +122,13 @@ namespace IBSWeb.Areas.User.Controllers
                         userManager.GetUserId(User)!, ProcedureEnum.CreateDispatchTicket, cancellationToken))
                 {
                     ViewData["message"] = "You don't have permission to create dispatch tickets.";
+                    return PartialView("_PermissionDeniedModal");
+                }
+
+                // Guard: Check if JobOrder is editable (if creating under a JO)
+                if (jobOrderId.HasValue && !await IsJobOrderEditableAsync(jobOrderId, cancellationToken))
+                {
+                    ViewData["message"] = "Cannot add ticket — parent Job Order is cancelled or closed.";
                     return PartialView("_PermissionDeniedModal");
                 }
 
@@ -193,6 +207,13 @@ namespace IBSWeb.Areas.User.Controllers
             CancellationToken cancellationToken = default)
         {
             var companyClaims = await GetCompanyClaimAsync();
+
+            // Guard: Check if JobOrder is editable (if creating under a JO)
+            if (viewModel.JobOrderId.HasValue && !await IsJobOrderEditableAsync(viewModel.JobOrderId, cancellationToken))
+            {
+                TempData["error"] = "Cannot add ticket — parent Job Order is cancelled or closed.";
+                return RedirectToAction("Index", "JobOrder", new { area = "User" });
+            }
 
             if (!ModelState.IsValid)
             {
@@ -355,6 +376,13 @@ namespace IBSWeb.Areas.User.Controllers
                 return RedirectToAction(nameof(SetTariff), new { id = vm.DispatchTicketId });
             }
 
+            // Guard: Check if parent JobOrder is editable
+            if (!await IsTicketJobOrderEditableAsync(vm.DispatchTicketId, cancellationToken))
+            {
+                TempData["error"] = "Cannot set tariff — parent Job Order is cancelled or closed.";
+                return RedirectToAction(nameof(SetTariff), new { id = vm.DispatchTicketId });
+            }
+
             // FIX: user is resolved once; UserName is used directly in the audit block below.
             var user = await userManager.GetUserAsync(User)
                 ?? throw new InvalidOperationException("Current user could not be resolved.");
@@ -450,6 +478,13 @@ namespace IBSWeb.Areas.User.Controllers
             if (!ModelState.IsValid)
             {
                 TempData["warning"] = "The submitted information is invalid.";
+                return RedirectToAction(nameof(EditTariff), new { id = viewModel.DispatchTicketId });
+            }
+
+            // Guard: Check if parent JobOrder is editable
+            if (!await IsTicketJobOrderEditableAsync(viewModel.DispatchTicketId, cancellationToken))
+            {
+                TempData["error"] = "Cannot edit tariff — parent Job Order is cancelled or closed.";
                 return RedirectToAction(nameof(EditTariff), new { id = viewModel.DispatchTicketId });
             }
 
@@ -609,6 +644,13 @@ namespace IBSWeb.Areas.User.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            // Guard: Check if parent JobOrder is editable
+            if (!await IsTicketJobOrderEditableAsync(id, cancellationToken))
+            {
+                TempData["error"] = "Cannot edit ticket — parent Job Order is cancelled or closed.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var model = await unitOfWork.DispatchTicket
                 .GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
             if (model == null)
@@ -652,6 +694,13 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 TempData["error"] = "Access denied.";
                 return RedirectToAction(nameof(Index));
+            }
+
+            // Guard: Check if parent JobOrder is editable
+            if (!await IsTicketJobOrderEditableAsync(viewModel.DispatchTicketId!.Value, cancellationToken))
+            {
+                TempData["error"] = "Cannot edit ticket — parent Job Order is cancelled or closed.";
+                return RedirectToAction("EditTicket", new { id = viewModel.DispatchTicketId, jobOrderId = viewModel.JobOrderId });
             }
 
             if (!ModelState.IsValid)
@@ -1225,6 +1274,13 @@ namespace IBSWeb.Areas.User.Controllers
                 return PartialView("_PermissionDeniedModal");
             }
 
+            // Guard: Check if parent JobOrder is editable
+            if (!await IsTicketJobOrderEditableAsync(id, cancellationToken))
+            {
+                ViewData["message"] = "Cannot set tariff — parent Job Order is cancelled or closed.";
+                return PartialView("_PermissionDeniedModal");
+            }
+
             var model = await unitOfWork.DispatchTicket
                 .GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
             if (model == null)
@@ -1248,6 +1304,13 @@ namespace IBSWeb.Areas.User.Controllers
                     userManager.GetUserId(User)!, ProcedureEnum.SetTariff, cancellationToken))
             {
                 ViewData["message"] = "You don't have permission to edit tariff rates.";
+                return PartialView("_PermissionDeniedModal");
+            }
+
+            // Guard: Check if parent JobOrder is editable
+            if (!await IsTicketJobOrderEditableAsync(id, cancellationToken))
+            {
+                ViewData["message"] = "Cannot edit tariff — parent Job Order is cancelled or closed.";
                 return PartialView("_PermissionDeniedModal");
             }
 
@@ -1277,6 +1340,13 @@ namespace IBSWeb.Areas.User.Controllers
                 return PartialView("_PermissionDeniedModal");
             }
 
+            // Guard: Check if parent JobOrder is editable
+            if (!await IsTicketJobOrderEditableAsync(id, cancellationToken))
+            {
+                ViewData["message"] = "Cannot approve tariff — parent Job Order is cancelled or closed.";
+                return PartialView("_PermissionDeniedModal");
+            }
+
             var model = await unitOfWork.DispatchTicket
                 .GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
             if (model == null)
@@ -1301,6 +1371,12 @@ namespace IBSWeb.Areas.User.Controllers
                     userManager.GetUserId(User)!, ProcedureEnum.SetTariff, cancellationToken))
             {
                 return Json(new { success = false, message = "Access denied" });
+            }
+
+            // Guard: Check if parent JobOrder is editable
+            if (!await IsTicketJobOrderEditableAsync(vm.DispatchTicketId, cancellationToken))
+            {
+                return Json(new { success = false, message = "Cannot save tariff — parent Job Order is cancelled or closed." });
             }
 
             if (!ModelState.IsValid)
@@ -1372,6 +1448,12 @@ namespace IBSWeb.Areas.User.Controllers
                 return Json(new { success = false, message = "Access denied" });
             }
 
+            // Guard: Check if parent JobOrder is editable
+            if (!await IsTicketJobOrderEditableAsync(id, cancellationToken))
+            {
+                return Json(new { success = false, message = "Cannot approve tariff — parent Job Order is cancelled or closed." });
+            }
+
             var model = await unitOfWork.DispatchTicket
                 .GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
             if (model == null)
@@ -1414,6 +1496,12 @@ namespace IBSWeb.Areas.User.Controllers
                     userManager.GetUserId(User)!, ProcedureEnum.ApproveTariff, cancellationToken))
             {
                 return Json(new { success = false, message = "Access denied" });
+            }
+
+            // Guard: Check if parent JobOrder is editable
+            if (!await IsTicketJobOrderEditableAsync(id, cancellationToken))
+            {
+                return Json(new { success = false, message = "Cannot disapprove tariff — parent Job Order is cancelled or closed." });
             }
 
             if (string.IsNullOrWhiteSpace(reason) || reason.Length < 10)
@@ -1481,6 +1569,13 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 TempData["error"] = "Access denied.";
                 return RedirectToAction(nameof(Index));
+            }
+
+            // Guard: Check if parent JobOrder is editable
+            if (!await IsTicketJobOrderEditableAsync(id, cancellationToken))
+            {
+                TempData["error"] = "Cannot change ticket status — parent Job Order is cancelled or closed.";
+                return RedirectToAction(nameof(Index), new { filterType = await GetCurrentFilterType() });
             }
 
             var model = await unitOfWork.DispatchTicket
@@ -1667,6 +1762,26 @@ namespace IBSWeb.Areas.User.Controllers
                 await userAccessService.CheckAccess(userId, ProcedureEnum.EditDispatchTicket,   cancellationToken),
                 await userAccessService.CheckAccess(userId, ProcedureEnum.CancelDispatchTicket, cancellationToken));
             return hasCreate || hasEdit || hasCancel;
+        }
+
+        // ════════════════════════════════════════════════════════════════════════
+        // JOB ORDER STATUS VALIDATION
+        // Prevents modifications to tickets when parent JobOrder is Cancelled or Closed
+        // ════════════════════════════════════════════════════════════════════════
+
+        private async Task<bool> IsJobOrderEditableAsync(int? jobOrderId, CancellationToken cancellationToken)
+        {
+            if (jobOrderId == null) return true; // Standalone ticket, no JO constraint
+
+            var jobOrder = await unitOfWork.JobOrder.GetAsync(j => j.JobOrderId == jobOrderId.Value, cancellationToken);
+            return jobOrder?.Status == JobOrderStatus.Open;
+        }
+
+        private async Task<bool> IsTicketJobOrderEditableAsync(int ticketId, CancellationToken cancellationToken)
+        {
+            var ticket = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == ticketId, cancellationToken);
+            if (ticket?.JobOrderId == null) return true; // Standalone ticket
+            return await IsJobOrderEditableAsync(ticket.JobOrderId, cancellationToken);
         }
 
         // ════════════════════════════════════════════════════════════════════════
