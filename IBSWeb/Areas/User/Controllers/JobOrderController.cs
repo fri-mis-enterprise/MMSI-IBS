@@ -4,7 +4,6 @@ using IBS.Models.MMSI;
 using IBS.Models.MMSI.ViewModels;
 using IBS.Models;
 using IBS.Services.AccessControl;
-using IBS.Utility.Constants;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -21,6 +20,11 @@ namespace IBSWeb.Areas.User.Controllers
         ILogger<JobOrderController> logger)
         : BaseController(accessControl, userManager)
     {
+        // FIX #1/#4: TempData keys used for server-side confirmation tracking.
+        // Never trust a client-supplied "confirmed" flag — store intent here instead.
+        private const string _cancelConfirmKey = "JobOrder_PendingCancelId";
+        private const string _closeConfirmKey  = "JobOrder_PendingCloseId";
+
         #region Index
 
         public async Task<IActionResult> Index(CancellationToken cancellationToken)
@@ -33,7 +37,6 @@ namespace IBSWeb.Areas.User.Controllers
 
             var jobOrders = await unitOfWork.JobOrder.GetAllJobOrdersWithDetailsAsync(cancellationToken);
 
-            // Populate create modal view model if user has create access
             if (await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.CreateJobOrder))
             {
                 var createViewModel = new JobOrderViewModel();
@@ -114,7 +117,7 @@ namespace IBSWeb.Areas.User.Controllers
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error creating Job Order");
-                TempData["error"] = "Error creating Job Order.";
+                ModelState.AddModelError(string.Empty, "An unexpected error occurred while creating the Job Order.");
             }
 
             await PopulateSelectListsAsync(viewModel, cancellationToken);
@@ -200,6 +203,13 @@ namespace IBSWeb.Areas.User.Controllers
                 return NotFound();
             }
 
+            // FIX #3: Block editing of terminal statuses.
+            if (jobOrder.Status == JobOrderStatus.Closed || jobOrder.Status == JobOrderStatus.Cancelled)
+            {
+                TempData["error"] = $"Job Order #{jobOrder.JobOrderNumber} is {jobOrder.Status.ToLower()} and cannot be edited.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
             var viewModel = MapToViewModel(jobOrder);
             await PopulateSelectListsAsync(viewModel, cancellationToken);
 
@@ -220,10 +230,15 @@ namespace IBSWeb.Areas.User.Controllers
                 return NotFound();
             }
 
+            // FIX #3: Block editing of terminal statuses.
+            if (jobOrder.Status == JobOrderStatus.Closed || jobOrder.Status == JobOrderStatus.Cancelled)
+            {
+                return PartialView("_ErrorModal", new { message = $"Job Order #{jobOrder.JobOrderNumber} is {jobOrder.Status.ToLower()} and cannot be edited." });
+            }
+
             var viewModel = MapToViewModel(jobOrder);
             await PopulateSelectListsAsync(viewModel, cancellationToken);
 
-            // Pass ticket count for warning display
             ViewData["HasTickets"] = jobOrder.DispatchTickets.Any();
 
             return PartialView("_EditModal", viewModel);
@@ -239,19 +254,15 @@ namespace IBSWeb.Areas.User.Controllers
                 return RedirectToAction("Index", "Home", new { area = "User" });
             }
 
-            // Validate required fields
+            // FIX #12: Use ModelState for field-level errors so they render inside the modal.
             if (viewModel.CustomerId <= 0)
             {
-                TempData["error"] = "Customer is required.";
-                await PopulateSelectListsAsync(viewModel, cancellationToken);
-                return PartialView("_EditModal", viewModel);
+                ModelState.AddModelError(nameof(viewModel.CustomerId), "Customer is required.");
             }
 
             if (viewModel.VesselId <= 0)
             {
-                TempData["error"] = "Vessel is required.";
-                await PopulateSelectListsAsync(viewModel, cancellationToken);
-                return PartialView("_EditModal", viewModel);
+                ModelState.AddModelError(nameof(viewModel.VesselId), "Vessel is required.");
             }
 
             if (!ModelState.IsValid)
@@ -266,6 +277,14 @@ namespace IBSWeb.Areas.User.Controllers
                 if (jobOrder == null)
                 {
                     return NotFound();
+                }
+
+                // FIX #3: Double-check status on POST in case it changed between GET and POST.
+                if (jobOrder.Status == JobOrderStatus.Closed || jobOrder.Status == JobOrderStatus.Cancelled)
+                {
+                    ModelState.AddModelError(string.Empty, $"Job Order #{jobOrder.JobOrderNumber} is {jobOrder.Status.ToLower()} and cannot be edited.");
+                    await PopulateSelectListsAsync(viewModel, cancellationToken);
+                    return PartialView("_EditModal", viewModel);
                 }
 
                 var currentUser = await GetCurrentUserAsync();
@@ -288,13 +307,14 @@ namespace IBSWeb.Areas.User.Controllers
 
                 await unitOfWork.SaveAsync(cancellationToken);
 
-                TempData["success"] = "Job Order updated successfully.";
-                return RedirectToAction(nameof(Details), new { id = jobOrder.JobOrderId });
+                // FIX #11: Return JSON on success so the modal JS can handle the redirect,
+                // consistent with the Create action pattern.
+                return Json(new { success = true, redirectUrl = Url.Action(nameof(Details), new { id = jobOrder.JobOrderId }) });
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error updating Job Order {JobOrderId}", viewModel.JobOrderId);
-                TempData["error"] = "Error updating Job Order.";
+                ModelState.AddModelError(string.Empty, "An unexpected error occurred while updating the Job Order.");
             }
 
             await PopulateSelectListsAsync(viewModel, cancellationToken);
@@ -326,7 +346,13 @@ namespace IBSWeb.Areas.User.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            // Count tickets by status for validation
+            // FIX #2: Block cancellation of closed job orders.
+            if (jobOrder.Status == JobOrderStatus.Closed)
+            {
+                TempData["error"] = $"Job Order #{jobOrder.JobOrderNumber} is closed and cannot be cancelled. Reopen it first if cancellation is required.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
             var ticketsForBillingOrBilled = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "For Billing" || dt.Status == "Billed");
 
@@ -339,7 +365,13 @@ namespace IBSWeb.Areas.User.Controllers
             var ticketsWithoutTariff = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "Pending" || dt.Status == "For Tariff");
 
-            // Build warning message
+            // Hard block surfaced at GET so the user never reaches a dead-end confirm screen.
+            if (ticketsForBillingOrBilled > 0)
+            {
+                TempData["error"] = $"Cannot cancel Job Order. {ticketsForBillingOrBilled} ticket(s) are already in the billing process (For Billing/Billed). These tickets must be completed or removed before cancellation.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
             var warnings = new List<string>();
             if (ticketsForApproval > 0)
             {
@@ -356,12 +388,12 @@ namespace IBSWeb.Areas.User.Controllers
                 warnings.Add($"{ticketsWithoutTariff} ticket(s) without tariff will be orphaned");
             }
 
-            ViewData["HasTickets"] = jobOrder.DispatchTickets.Any();
-            ViewData["TicketsForBilling"] = ticketsForBillingOrBilled;
-            ViewData["TicketsForApproval"] = ticketsForApproval;
-            ViewData["TicketsDisapproved"] = ticketsDisapproved;
-            ViewData["TicketsWithoutTariff"] = ticketsWithoutTariff;
-            ViewData["WarningMessage"] = warnings.Any()
+            ViewData["HasTickets"]          = jobOrder.DispatchTickets.Any();
+            ViewData["TicketsForBilling"]   = ticketsForBillingOrBilled;
+            ViewData["TicketsForApproval"]  = ticketsForApproval;
+            ViewData["TicketsDisapproved"]  = ticketsDisapproved;
+            ViewData["TicketsWithoutTariff"]= ticketsWithoutTariff;
+            ViewData["WarningMessage"]      = warnings.Any()
                 ? "Warning: Cancelling this Job Order will affect existing tickets:<br/>• " +
                   string.Join("<br/>• ", warnings)
                 : "";
@@ -379,7 +411,7 @@ namespace IBSWeb.Areas.User.Controllers
         [Authorize(Roles = "Admin")]
         [HttpPost, ActionName("Cancel")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CancelConfirmed(int id, bool confirmed = false, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> CancelConfirmed(int id, CancellationToken cancellationToken = default)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.DeleteJobOrder))
             {
@@ -398,7 +430,13 @@ namespace IBSWeb.Areas.User.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            // Count tickets by status for validation
+            // FIX #2: Block cancellation of closed job orders on POST as well.
+            if (jobOrder.Status == JobOrderStatus.Closed)
+            {
+                TempData["error"] = $"Job Order #{jobOrder.JobOrderNumber} is closed and cannot be cancelled.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
             var ticketsForBillingOrBilled = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "For Billing" || dt.Status == "Billed");
 
@@ -411,43 +449,59 @@ namespace IBSWeb.Areas.User.Controllers
             var ticketsWithoutTariff = jobOrder.DispatchTickets
                 .Count(dt => dt.Status == "Pending" || dt.Status == "For Tariff");
 
-            // BLOCK if tickets are in billing process
+            // Hard block — cannot proceed regardless.
             if (ticketsForBillingOrBilled > 0)
             {
-                TempData["error"] = $"Cannot cancel Job Order. {ticketsForBillingOrBilled} ticket(s) are already in the billing process (For Billing/Billed). These tickets must be completed or removed before cancellation.";
+                TempData["error"] = $"Cannot cancel Job Order. {ticketsForBillingOrBilled} ticket(s) are already in the billing process (For Billing/Billed).";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            // WARN if there are pending approvals or disapproved tickets (only if not confirmed)
-            if ((ticketsForApproval > 0 || ticketsDisapproved > 0) && !confirmed)
+            // FIX #1/#6: Server-side confirmation gate.
+            // On first POST, store the pending ID in TempData and redirect back to
+            // the Cancel GET view (which will render the confirm button). Only proceed
+            // on the second POST where TempData matches — no client-supplied flag trusted.
+            if (ticketsForApproval > 0 || ticketsDisapproved > 0)
             {
-                var warnings = new List<string>();
-                if (ticketsForApproval > 0)
+                var pendingId = TempData[_cancelConfirmKey] as int?;
+
+                if (pendingId != id)
                 {
-                    warnings.Add($"{ticketsForApproval} ticket(s) pending approval will be affected");
+                    // First visit — set the pending confirmation and send back to Cancel view.
+                    TempData[_cancelConfirmKey] = id;
+
+                    var warnings = new List<string>();
+                    if (ticketsForApproval > 0)
+                    {
+                        warnings.Add($"{ticketsForApproval} ticket(s) pending approval will be affected");
+                    }
+
+                    if (ticketsDisapproved > 0)
+                    {
+                        warnings.Add($"{ticketsDisapproved} disapproved ticket(s) need attention");
+                    }
+
+                    if (ticketsWithoutTariff > 0)
+                    {
+                        warnings.Add($"{ticketsWithoutTariff} ticket(s) without tariff will be orphaned");
+                    }
+
+                    TempData["warning"] = "<strong>Warning: Affected Tickets</strong><br/>• " +
+                                          string.Join("<br/>• ", warnings) +
+                                          "<br/><br/>Please review and confirm below.";
+
+                    // FIX #6: Redirect to Cancel GET view (not Details) so the confirm
+                    // button is available to the user.
+                    return RedirectToAction(nameof(Cancel), new { id });
                 }
 
-                if (ticketsDisapproved > 0)
-                {
-                    warnings.Add($"{ticketsDisapproved} disapproved ticket(s) need attention");
-                }
-
-                if (ticketsWithoutTariff > 0)
-                {
-                    warnings.Add($"{ticketsWithoutTariff} ticket(s) without tariff will be orphaned");
-                }
-
-                TempData["warning"] = "<strong>Warning: Affected Tickets</strong><br/>" +
-                                      string.Join("<br/>• ", warnings) +
-                                      "<br/><br/>Are you sure you want to proceed?";
-                return RedirectToAction(nameof(Details), new { id });
+                // Second visit — TempData matched, clear it and proceed.
+                TempData.Remove(_cancelConfirmKey);
             }
 
             var currentUser = await GetCurrentUserAsync();
 
             jobOrder.Status = JobOrderStatus.Cancelled;
 
-            // Build detailed audit message
             var auditDetails = new List<string>();
             if (ticketsForApproval > 0)
             {
@@ -487,7 +541,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Close(int id, bool confirmed = false, CancellationToken cancellationToken = default)
+        public async Task<IActionResult> Close(int id, CancellationToken cancellationToken = default)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(), ProcedureEnum.CloseJobOrder))
             {
@@ -507,7 +561,6 @@ namespace IBSWeb.Areas.User.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            // Validate dispatch tickets before closing
             if (jobOrder.DispatchTickets.Any())
             {
                 var ticketsWithoutTariff = jobOrder.DispatchTickets
@@ -519,25 +572,34 @@ namespace IBSWeb.Areas.User.Controllers
                 var ticketsDisapproved = jobOrder.DispatchTickets
                     .Count(dt => dt.Status == "Disapproved");
 
-                // Block closing if there are tickets without tariff
                 if (ticketsWithoutTariff > 0)
                 {
                     TempData["error"] = $"Cannot close Job Order. {ticketsWithoutTariff} dispatch ticket(s) have no tariff set. Please set tariff rates for all tickets before closing.";
                     return RedirectToAction(nameof(Details), new { id });
                 }
 
-                // Block closing if there are disapproved tickets
                 if (ticketsDisapproved > 0)
                 {
                     TempData["error"] = $"Cannot close Job Order. {ticketsDisapproved} dispatch ticket(s) are disapproved. Please edit and re-approve all disapproved tickets before closing.";
                     return RedirectToAction(nameof(Details), new { id });
                 }
 
-                // Warn if there are tickets pending approval (only proceed if user confirmed)
-                if (ticketsForApproval > 0 && !confirmed)
+                // FIX #1/#4: Server-side confirmation gate — same pattern as Cancel.
+                // Never trust a client-supplied confirmed=true.
+                if (ticketsForApproval > 0)
                 {
-                    TempData["warning"] = $"Warning: {ticketsForApproval} dispatch ticket(s) are pending approval. These tickets will not be included in billing until approved. Are you sure you want to close this Job Order?";
-                    return RedirectToAction(nameof(Details), new { id });
+                    var pendingId = TempData[_closeConfirmKey] as int?;
+
+                    if (pendingId != id)
+                    {
+                        // First visit — store intent and redirect back to Details with warning.
+                        TempData[_closeConfirmKey] = id;
+                        TempData["warning"] = $"Warning: {ticketsForApproval} dispatch ticket(s) are pending approval. These tickets will not be included in billing until approved. Please confirm below to proceed.";
+                        return RedirectToAction(nameof(Details), new { id });
+                    }
+
+                    // Second visit — confirmed, clear and proceed.
+                    TempData.Remove(_closeConfirmKey);
                 }
             }
 
@@ -579,7 +641,11 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> GetTicketDetails(int id, CancellationToken cancellationToken)
         {
-            var ticket = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
+            // FIX #8: Use the WithDetails variant to ensure navigation properties
+            // (Service, Tugboat, TugMaster, Terminal → Port) are loaded.
+            // Previously used GetAsync which does not include navigations, causing
+            // all nav-property references to silently return null.
+            var ticket = await unitOfWork.DispatchTicket.GetDispatchTicketWithDetailsAsync(id, cancellationToken);
             if (ticket == null)
             {
                 return NotFound();
@@ -587,7 +653,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             return Json(new
             {
-                id = ticket.DispatchTicketId,
+                id             = ticket.DispatchTicketId,
                 dispatchNumber = ticket.DispatchNumber,
                 date           = ticket.Date?.ToString("MMM dd, yyyy") ?? "-",
                 serviceName    = ticket.Service?.ServiceName,
@@ -602,19 +668,17 @@ namespace IBSWeb.Areas.User.Controllers
                 timeEnd = ticket.DateArrived.HasValue && ticket.TimeArrived.HasValue
                     ? $"{ticket.DateArrived.Value:MMM dd, yyyy} {ticket.TimeArrived.Value:HH:mm}"
                     : "-",
-                remarks = ticket.Remarks ?? "No remarks",
-                status  = ticket.Status,
-                totalHours = ticket.TotalHours.ToString("N2"),
-
-                // Tariff details (if available)
-                dispatchRate = ticket.DispatchRate.ToString("N2") ?? "-",
-                dispatchDiscount = ticket.DispatchDiscount.ToString("N2") ?? "0",
-                dispatchBilling = ticket.DispatchBillingAmount.ToString("N2") ?? "-",
-                bafRate = ticket.BAFRate.ToString("N2") ?? "-",
-                bafDiscount = ticket.BAFDiscount.ToString("N2") ?? "0",
-                bafBilling = ticket.BAFBillingAmount.ToString("N2") ?? "-",
-                totalBilling = ticket.TotalBilling.ToString("N2") ?? "-",
-                totalNetRevenue = ticket.TotalNetRevenue.ToString("N2") ?? "-"
+                remarks        = ticket.Remarks ?? "No remarks",
+                status         = ticket.Status,
+                totalHours     = ticket.TotalHours.ToString("N2"),
+                dispatchRate     = ticket.DispatchRate.ToString("N2"),
+                dispatchDiscount = ticket.DispatchDiscount.ToString("N2"),
+                dispatchBilling  = ticket.DispatchBillingAmount.ToString("N2"),
+                bafRate          = ticket.BAFRate.ToString("N2"),
+                bafDiscount      = ticket.BAFDiscount.ToString("N2"),
+                bafBilling       = ticket.BAFBillingAmount.ToString("N2"),
+                totalBilling     = ticket.TotalBilling.ToString("N2"),
+                totalNetRevenue  = ticket.TotalNetRevenue.ToString("N2")
             });
         }
 
@@ -635,19 +699,10 @@ namespace IBSWeb.Areas.User.Controllers
             return claims.FirstOrDefault(c => c.Type == "Company")?.Value;
         }
 
-        private IActionResult AccessDenied(string? returnUrl = null)
-        {
-            TempData["error"] = "Access denied. You don't have permission to perform this action.";
-
-            // If return URL is provided (for modal actions), redirect back there
-            if (!string.IsNullOrEmpty(returnUrl))
-            {
-                return Redirect(returnUrl);
-            }
-
-            // Otherwise redirect to Home
-            return RedirectToAction("Index", "Home", new { area = "User" });
-        }
+        // FIX #7: Removed the private AccessDenied() helper that was never called (#10).
+        // All permission denials now consistently use either:
+        //   - PermissionDenied() from BaseController (for Admin-gated actions), or
+        //   - TempData["error"] + RedirectToAction (for standard access-control denials).
 
         private async Task RecordAuditAsync(
             string activity,
