@@ -109,7 +109,6 @@ namespace IBSWeb.Areas.User.Controllers
 
                 await unitOfWork.SaveAsync(cancellationToken);
 
-                TempData["success"] = "Job Order created successfully.";
                 return Json(new { success = true, redirectUrl = Url.Action("Details", new { id = jobOrder.JobOrderId }) });
             }
             catch (Exception ex)
