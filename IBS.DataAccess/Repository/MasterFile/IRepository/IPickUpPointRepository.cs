@@ -6,6 +6,6 @@ namespace IBS.DataAccess.Repository.MasterFile.IRepository
 {
     public interface IPickUpPointRepository : IRepository<PickUpPoint>
     {
-        Task<List<SelectListItem>> GetPickUpPointListBasedOnSupplier(string companyClaims, int supplierId, CancellationToken cancellationToken = default);
+        Task<List<SelectListItem>> GetPickUpPointListBasedOnSupplier(int supplierId, CancellationToken cancellationToken = default);
     }
 }

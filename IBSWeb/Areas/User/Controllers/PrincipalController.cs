@@ -37,7 +37,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> Create(CancellationToken cancellationToken)
         {
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
             var model = new Principal
             {
                 CustomerSelectList = await unitOfWork.GetCustomerListAsyncById(cancellationToken)
@@ -66,7 +66,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Created new Principal #{model.PrincipalNumber}", "Principal", SD.Company_MMSI);
+                    $"Created new Principal #{model.PrincipalNumber}", "Principal");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
@@ -112,7 +112,7 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
         {
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
             var model = await unitOfWork.Principal.GetAsync(p => p.PrincipalId == id, cancellationToken);
             if (model == null)
             {
@@ -147,7 +147,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Edited Principal #{currentModel.PrincipalNumber} => {model.PrincipalNumber}", "Principal", SD.Company_MMSI);
+                    $"Edited Principal #{currentModel.PrincipalNumber} => {model.PrincipalNumber}", "Principal");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --

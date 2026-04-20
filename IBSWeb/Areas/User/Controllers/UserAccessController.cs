@@ -63,7 +63,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Created User Access for {model.UserName}", "User Access", SD.Company_MMSI);
+                    $"Created User Access for {model.UserName}", "User Access");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
@@ -119,7 +119,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Edited User Access for {model.UserName}", "User Access", SD.Company_MMSI);
+                    $"Edited User Access for {model.UserName}", "User Access");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --

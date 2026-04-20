@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 namespace IBSWeb.Areas.User.Controllers
 {
     [Area("User")]
-    [CompanyAuthorize(SD.Company_MMSI)]
     public class VesselController(
         ApplicationDbContext dbContext,
         ILogger<VesselController> logger,
@@ -48,7 +47,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Created new Vessel #{model.VesselNumber}", "Vessel", SD.Company_MMSI);
+                    $"Created new Vessel #{model.VesselNumber}", "Vessel");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
@@ -119,7 +118,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Edited Vessel #{currentModel.VesselNumber} => {model.VesselNumber}", "Vessel", SD.Company_MMSI);
+                    $"Edited Vessel #{currentModel.VesselNumber} => {model.VesselNumber}", "Vessel");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --

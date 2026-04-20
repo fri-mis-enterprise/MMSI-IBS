@@ -169,7 +169,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(model.CreatedBy!,
-                    $"Create new Supplier #{model.SupplierCode}", "Supplier", model.Company);
+                    $"Create new Supplier #{model.SupplierCode}", "Supplier");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
@@ -337,7 +337,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new (GetUserFullName(),
-                    $"Edited Supplier #{model.SupplierCode}", "Supplier", (await GetCompanyClaimAsync())! );
+                    $"Edited Supplier #{model.SupplierCode}", "Supplier" );
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
@@ -403,7 +403,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region --Audit Trail Recording
 
                 AuditTrail auditTrailBook = new(GetUserFullName(),
-                    $"Activated Supplier #{supplier.SupplierCode}", "Supplier", (await GetCompanyClaimAsync())!);
+                    $"Activated Supplier #{supplier.SupplierCode}", "Supplier");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -470,7 +470,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region --Audit Trail Recording
 
                 AuditTrail auditTrailBook = new (GetUserFullName(),
-                    $"Deactivated Supplier #{supplier.SupplierCode}", "Supplier", (await GetCompanyClaimAsync())! );
+                    $"Deactivated Supplier #{supplier.SupplierCode}", "Supplier" );
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -522,7 +522,7 @@ namespace IBSWeb.Areas.User.Controllers
                 if (!string.IsNullOrEmpty(parameters.Search.Value))
                 {
             var searchValue = parameters.Search.Value.ToLower();
-            
+
             suppliers = suppliers
                 .Where(s =>
                     (s.SupplierCode != null && s.SupplierCode.ToLower().Contains(searchValue)) ||
@@ -558,8 +558,8 @@ namespace IBSWeb.Areas.User.Controllers
             };
 
             // Get the actual property name
-            var actualColumnName = columnMapping.ContainsKey(columnName) 
-                ? columnMapping[columnName] 
+            var actualColumnName = columnMapping.ContainsKey(columnName)
+                ? columnMapping[columnName]
                 : columnName;
 
             suppliers = suppliers
@@ -572,7 +572,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         // Apply pagination - HANDLE -1 FOR "ALL"
         IEnumerable<Supplier> pagedSuppliers;
-        
+
         if (parameters.Length == -1)
         {
             // "All" selected - return all records

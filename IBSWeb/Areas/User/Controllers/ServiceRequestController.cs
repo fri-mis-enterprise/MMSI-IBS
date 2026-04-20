@@ -85,7 +85,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
             var viewModel = new ServiceRequestViewModel();
             viewModel = await unitOfWork.ServiceRequest.GetDispatchTicketSelectLists(viewModel, cancellationToken);
             viewModel.Customers = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
@@ -190,8 +190,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var audit = new AuditTrail(
                     await GetUserNameAsync() ?? throw new InvalidOperationException(),
                     $"Create service request #{model.DispatchNumber}",
-                    "Service Request",
-                    await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                    "Service Request"
                 );
 
                 await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
@@ -220,7 +219,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
             var model = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
 
             if (model == null)
@@ -431,8 +430,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var audit = new AuditTrail(
                     await GetUserNameAsync() ?? throw new InvalidOperationException(),
                     activity,
-                    "Service Request",
-                    await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                    "Service Request"
                 );
 
                 await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
@@ -721,8 +719,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var audit = new AuditTrail(
                     await GetUserNameAsync() ?? throw new InvalidOperationException(),
                     activity,
-                    "Service Request",
-                    await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                    "Service Request"
                 );
 
                 await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
@@ -786,8 +783,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var audit = new AuditTrail(
                     await GetUserNameAsync() ?? throw new InvalidOperationException(),
                     activity,
-                    "ServiceRequest",
-                    await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                    "ServiceRequest"
                 );
 
                 await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);

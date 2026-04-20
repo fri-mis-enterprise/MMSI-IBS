@@ -143,7 +143,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region --Audit Trail Recording
 
                 AuditTrail auditTrailBook = new (GetUserFullName(),
-                    $"Create ServiceMaster #{services.ServiceNo}", "ServiceMaster", (await GetCompanyClaimAsync())! );
+                    $"Create ServiceMaster #{services.ServiceNo}", "ServiceMaster" );
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -263,7 +263,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region --Audit Trail Recording
 
                 AuditTrail auditTrailBook = new (GetUserFullName(),
-                    $"Edited ServiceMaster #{existingModel.ServiceNo}", "ServiceMaster", (await GetCompanyClaimAsync())! );
+                    $"Edited ServiceMaster #{existingModel.ServiceNo}", "ServiceMaster");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording

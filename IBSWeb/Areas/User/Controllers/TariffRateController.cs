@@ -176,7 +176,7 @@ namespace IBSWeb.Areas.User.Controllers
 
         public async Task<TariffRate> GetSelectLists(TariffRate model, CancellationToken cancellationToken = default)
         {
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
             model.Customers = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
             model.Ports = await unitOfWork.Port.GetMMSIPortsSelectList(cancellationToken);
             model.Services = await unitOfWork.Service.GetMMSIActivitiesServicesById(cancellationToken);

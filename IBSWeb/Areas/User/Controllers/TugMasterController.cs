@@ -47,7 +47,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Created new Tug Master #{model.TugMasterNumber}", "Tug Master", SD.Company_MMSI);
+                    $"Created new Tug Master #{model.TugMasterNumber}", "Tug Master");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
@@ -119,7 +119,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Edited Tug Master #{currentModel.TugMasterNumber} => {model.TugMasterNumber}", "Tug Master", SD.Company_MMSI);
+                    $"Edited Tug Master #{currentModel.TugMasterNumber} => {model.TugMasterNumber}", "Tug Master");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --

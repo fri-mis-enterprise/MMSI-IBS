@@ -24,7 +24,7 @@ namespace IBS.DataAccess.Repository.MasterFile
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<SelectListItem>> GetPickUpPointListBasedOnSupplier(string companyClaims, int supplierId, CancellationToken cancellationToken = default)
+        public async Task<List<SelectListItem>> GetPickUpPointListBasedOnSupplier(int supplierId, CancellationToken cancellationToken = default)
         {
             return await _db.PickUpPoints
                 .OrderBy(p => p.Depot)

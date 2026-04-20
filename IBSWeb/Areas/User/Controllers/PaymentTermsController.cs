@@ -139,7 +139,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(getUserFullName,
-                    $"Create new Terms #{model.TermsCode}", "Terms", companyClaims);
+                    $"Create new Terms #{model.TermsCode}", "Terms");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
@@ -203,7 +203,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new (getUserFullName,
-                    $"Edited Terms #{model.TermsCode}", "Terms", companyClaims);
+                    $"Edited Terms #{model.TermsCode}", "Terms");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
@@ -251,7 +251,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new (getUserFullName,
-                    $"Deleted Terms #{code}", "Terms", companyClaims);
+                    $"Deleted Terms #{code}", "Terms");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --

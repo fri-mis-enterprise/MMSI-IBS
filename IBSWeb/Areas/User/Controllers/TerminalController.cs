@@ -51,7 +51,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Create new Terminal #{model.TerminalNumber}", "Terminal", SD.Company_MMSI);
+                    $"Create new Terminal #{model.TerminalNumber}", "Terminal");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
@@ -131,7 +131,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Edited Terminal #{currentModel.TerminalNumber} => {model.TerminalNumber}", "Terminal", SD.Company_MMSI);
+                    $"Edited Terminal #{currentModel.TerminalNumber} => {model.TerminalNumber}", "Terminal");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --

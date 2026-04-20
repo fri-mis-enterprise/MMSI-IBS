@@ -77,8 +77,7 @@ namespace IBSWeb.Areas.User.Controllers
                 AuditTrail auditTrail = new(
                     extractedBy,
                     $"Generate {masterFileType} master file excel",
-                    $"{masterFileType}",
-                    companyClaims
+                    $"{masterFileType}"
                 );
                 await unitOfWork.AuditTrail.AddAsync(auditTrail, cancellationToken);
                 await unitOfWork.SaveAsync(cancellationToken);

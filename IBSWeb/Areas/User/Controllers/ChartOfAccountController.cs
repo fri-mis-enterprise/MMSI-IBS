@@ -108,7 +108,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region --Audit Trail Recording
 
                 AuditTrail auditTrailBook = new (GetUserFullName(),
-                    $"Created new Account #{newAccount.AccountNumber}", "Chart of Accounts", (await GetCompanyClaimAsync())! );
+                    $"Created new Account #{newAccount.AccountNumber}", "Chart of Accounts");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -150,7 +150,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region --Audit Trail Recording
 
                 AuditTrail auditTrailBook = new (GetUserFullName(),
-                    $"Edited Account #{existingAccount.AccountNumber}", "Chart of Accounts", (await GetCompanyClaimAsync())! );
+                    $"Edited Account #{existingAccount.AccountNumber}", "Chart of Accounts");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -220,7 +220,6 @@ namespace IBSWeb.Areas.User.Controllers
                 {
                     var orderColumn = parameters.Order[0];
                     var columnName = parameters.Columns[orderColumn.Column].Data;
-                    var sortDirection = orderColumn.Dir.ToLower() == "asc" ? "ascending" : "descending";
 
                     // Map frontend column names to actual entity property names
                     var columnMapping = new Dictionary<string, string>
@@ -234,9 +233,6 @@ namespace IBSWeb.Areas.User.Controllers
                     };
 
                     // Get the actual property name
-                    var actualColumnName = columnMapping.ContainsKey(columnName)
-                        ? columnMapping[columnName]
-                        : columnName;
 
                     chartOfAccounts = chartOfAccounts
                         .AsQueryable()

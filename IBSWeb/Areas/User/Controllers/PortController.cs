@@ -46,7 +46,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Created new Port #{model.PortNumber}", "Port", SD.Company_MMSI);
+                    $"Created new Port #{model.PortNumber}", "Port");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
@@ -115,7 +115,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(userManager.GetUserName(User)!,
-                    $"Edited Port #{currentModel.PortNumber} => {model.PortNumber}", "Port", SD.Company_MMSI);
+                    $"Edited Port #{currentModel.PortNumber} => {model.PortNumber}", "Port");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --

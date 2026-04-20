@@ -62,7 +62,7 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<IActionResult> GetDispatchTicketPartial(
             int? id, int? jobOrderId, CancellationToken cancellationToken = default)
         {
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
             var viewModel = new ServiceRequestViewModel();
 
             if (id is > 0)
@@ -166,7 +166,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
             var viewModel = new ServiceRequestViewModel();
             ViewData["PortId"] = 0;
 
@@ -294,7 +294,6 @@ namespace IBSWeb.Areas.User.Controllers
 
                 var audit = BuildAudit(
                     user.UserName!,
-                    companyClaims!,
                     $"Create dispatch ticket #{model.DispatchNumber}",
                     "Dispatch Ticket");
                 await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
@@ -360,7 +359,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             var viewModel     = DispatchTicketModelToTariffVm(model);
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
             viewModel.Customers     = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
             ViewBag.FilterType      = await GetCurrentFilterType();
             return View(viewModel);
@@ -416,13 +415,8 @@ namespace IBSWeb.Areas.User.Controllers
                 currentModel.ApOtherTugs           = model.ApOtherTugs;
 
                 await unitOfWork.SaveAsync(cancellationToken);
-
-                // FIX: no second GetUserNameAsync / GetCompanyClaimAsync call needed.
-                var companyClaims = await GetCompanyClaimAsync()
-                    ?? throw new InvalidOperationException("Company claim missing.");
                 var audit = BuildAudit(
                     user.UserName!,
-                    companyClaims,
                     $"Set Tariff #{currentModel.DispatchTicketId}",
                     "Tariff");
                 await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
@@ -465,7 +459,7 @@ namespace IBSWeb.Areas.User.Controllers
             }
 
             var viewModel     = DispatchTicketModelToTariffVm(model);
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
             viewModel.Customers = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
             ViewBag.FilterType  = await GetCurrentFilterType();
             return View(viewModel);
@@ -606,7 +600,6 @@ namespace IBSWeb.Areas.User.Controllers
                     ?? throw new InvalidOperationException("Company claim missing.");
                 var audit = BuildAudit(
                     user.UserName!,
-                    companyClaims,
                     changes.Any()
                         ? $"Edit tariff #{currentModel.DispatchNumber} {string.Join(", ", changes)}"
                         : $"No changes detected for tariff details #{currentModel.DispatchNumber}",
@@ -658,7 +651,7 @@ namespace IBSWeb.Areas.User.Controllers
                 return NotFound();
             }
 
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
             var viewModel     = DispatchTicketModelToServiceRequestVm(model);
             viewModel = await unitOfWork.ServiceRequest
                 .GetDispatchTicketSelectLists(viewModel, cancellationToken);
@@ -925,7 +918,6 @@ namespace IBSWeb.Areas.User.Controllers
                     ?? throw new InvalidOperationException("Company claim missing.");
                 var audit = BuildAudit(
                     user.UserName!,
-                    companyClaims,
                     changes.Any()
                         ? $"Edit dispatch ticket #{currentModel.DispatchNumber}, {string.Join(", ", changes)}"
                         : $"No changes detected for #{currentModel.DispatchNumber}",
@@ -1418,7 +1410,6 @@ namespace IBSWeb.Areas.User.Controllers
                     ?? throw new InvalidOperationException("Company claim missing.");
                 var audit = BuildAudit(
                     user.UserName!,
-                    companyClaims,
                     $"Set tariff for dispatch ticket #{currentModel.DispatchNumber}",
                     "Dispatch Ticket");
                 await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
@@ -1472,7 +1463,6 @@ namespace IBSWeb.Areas.User.Controllers
                     ?? throw new InvalidOperationException("Company claim missing.");
                 var audit = BuildAudit(
                     user!.UserName!,
-                    companyClaims,
                     $"Approved tariff for dispatch ticket #{model.DispatchNumber}",
                     "Dispatch Ticket");
                 await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
@@ -1530,7 +1520,6 @@ namespace IBSWeb.Areas.User.Controllers
                     ?? throw new InvalidOperationException("Company claim missing.");
                 var audit = BuildAudit(
                     user!.UserName!,
-                    companyClaims,
                     $"Disapproved tariff for dispatch ticket #{model.DispatchNumber}. Reason: {reason}",
                     "Dispatch Ticket");
                 await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
@@ -1597,7 +1586,6 @@ namespace IBSWeb.Areas.User.Controllers
                     ?? throw new InvalidOperationException("Company claim missing.");
                 var audit = BuildAudit(
                     user!.UserName!,
-                    companyClaims,
                     $"{activityPrefix} #{model.DispatchTicketId}",
                     documentType);
                 await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
@@ -1675,8 +1663,8 @@ namespace IBSWeb.Areas.User.Controllers
         /// Now built in one place.
         /// </summary>
         private static AuditTrail BuildAudit(
-            string username, string company, string activity, string documentType) =>
-            new AuditTrail(username, activity, documentType, company);
+            string username, string activity, string documentType) =>
+            new AuditTrail(username, activity, documentType);
 
         private async Task GenerateSignedUrl(DispatchTicket model)
         {

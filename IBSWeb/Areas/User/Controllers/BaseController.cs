@@ -16,6 +16,8 @@ namespace IBSWeb.Areas.User.Controllers
 
         protected string GetUserId() => UserManager.GetUserId(User)!;
 
+        protected string GetUsername() => UserManager.GetUserName(User)!;
+
         /// <summary>
         /// Returns a permission denied modal partial view
         /// </summary>

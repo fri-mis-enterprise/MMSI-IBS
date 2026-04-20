@@ -157,8 +157,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var audit = new AuditTrail(
                     await GetUserNameAsync() ?? throw new InvalidOperationException(),
                     $"Create billing #{newModel.MMSIBillingNumber} for tickets #{string.Join(", #", model.ToBillDispatchTickets!)}",
-                    "Billing",
-                    await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                    "Billing"
                 );
 
                 await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
@@ -613,8 +612,7 @@ namespace IBSWeb.Areas.User.Controllers
                     var audit = new AuditTrail(
                         await GetUserNameAsync() ?? throw new InvalidOperationException(),
                         activity,
-                        "Billing",
-                        await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                        "Billing"
                     );
 
                     await unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);

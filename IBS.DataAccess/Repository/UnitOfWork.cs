@@ -287,10 +287,9 @@ namespace IBS.DataAccess.Repository
                 .ToListAsync(cancellationToken);
         }
 
-        public async Task<List<SelectListItem>> GetBankAccountListById(string company, CancellationToken cancellationToken = default)
+        public async Task<List<SelectListItem>> GetBankAccountListById(CancellationToken cancellationToken = default)
         {
             return await _db.BankAccounts
-                .Where(GetCompanyFilter<BankAccount>(company))
                 .Select(ba => new SelectListItem
                 {
                     Value = ba.BankAccountId.ToString(),

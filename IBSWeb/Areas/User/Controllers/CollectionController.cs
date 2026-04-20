@@ -52,12 +52,10 @@ namespace IBSWeb.Areas.User.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var companyClaims = await GetCompanyClaimAsync();
-
             var model = new CreateCollectionViewModel
             {
                 Customers = await _unitOfWork.Collection.GetMMSICustomersWithCollectiblesSelectList(0, String.Empty, cancellationToken),
-                BankAccounts = await _unitOfWork.GetBankAccountListById(companyClaims!, cancellationToken)
+                BankAccounts = await _unitOfWork.GetBankAccountListById(cancellationToken)
             };
 
             return View(model);
@@ -101,8 +99,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var audit = new AuditTrail(
                     await GetUserNameAsync() ?? throw new InvalidOperationException(),
                     $"Create collection #{model.MMSICollectionNumber} for billings #{string.Join(", #", viewModel.ToCollectBillings!)}",
-                    "Collection",
-                    await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                    "Collection"
                 );
 
                 await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);
@@ -365,8 +362,7 @@ namespace IBSWeb.Areas.User.Controllers
                     var audit = new AuditTrail(
                         await GetUserNameAsync() ?? throw new InvalidOperationException(),
                         $"Edit collection #{currentModel.MMSICollectionNumber} {string.Join(", ", changes)}",
-                        "Billing",
-                        await GetCompanyClaimAsync() ?? throw new InvalidOperationException()
+                        "Billing"
                     );
 
                     await _unitOfWork.AuditTrail.AddAsync(audit, cancellationToken);

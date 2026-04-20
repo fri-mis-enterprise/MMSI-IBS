@@ -57,7 +57,7 @@ namespace IBS.DataAccess.Repository.IRepository
 
         Task<List<SelectListItem>> GetHaulerListAsyncById(string company, CancellationToken cancellationToken = default);
 
-        Task<List<SelectListItem>> GetBankAccountListById(string company, CancellationToken cancellationToken = default);
+        Task<List<SelectListItem>> GetBankAccountListById(CancellationToken cancellationToken = default);
 
         Task<List<SelectListItem>> GetEmployeeListById(CancellationToken cancellationToken = default);
 

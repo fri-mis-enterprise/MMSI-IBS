@@ -108,7 +108,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording
 
                 AuditTrail auditTrailBook = new(model.CreatedBy!,
-                    $"Created new Customer #{model.CustomerCode}", "Customer", model.Company);
+                    $"Created new Customer #{model.CustomerCode}", "Customer");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --
@@ -174,7 +174,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region --Audit Trail Recording
 
                 AuditTrail auditTrailBook = new (model.EditedBy,
-                    $"Edited Customer #{model.CustomerCode}", "Customer", model.Company );
+                    $"Edited Customer #{model.CustomerCode}", "Customer" );
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -302,7 +302,7 @@ namespace IBSWeb.Areas.User.Controllers
                 var user = GetUserFullName();
                 AuditTrail auditTrailBook = new(
                     user, $"Activated Customer #{customer.CustomerCode}",
-                    "Customer", customer.Company);
+                    "Customer");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -373,7 +373,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region -- Audit Trail Recording --
 
                 AuditTrail auditTrailBook = new(GetUserFullName(),
-                    $"Deactivated Customer #{customer.CustomerCode}", "Customer", customer.Company);
+                    $"Deactivated Customer #{customer.CustomerCode}", "Customer");
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion -- Audit Trail Recording --

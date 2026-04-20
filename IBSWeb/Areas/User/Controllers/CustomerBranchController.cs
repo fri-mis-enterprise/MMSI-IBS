@@ -31,7 +31,6 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> Create(CancellationToken cancellationToken = default)
         {
-            var companyClaims = await GetCompanyClaimAsync();
 
             var model = new CustomerBranch
             {
@@ -45,8 +44,6 @@ namespace IBSWeb.Areas.User.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CustomerBranch model, CancellationToken cancellationToken)
         {
-            var companyClaims = await GetCompanyClaimAsync();
-
             if (!ModelState.IsValid)
             {
                 ModelState.AddModelError("", "Make sure to fill all the required details.");
@@ -73,7 +70,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region --Audit Trail Recording
 
                 AuditTrail auditTrailBook = new (GetUserFullName(),
-                    $"Created Customer Branch #{model.Id}", "Customer Branch", companyClaims! );
+                    $"Created Customer Branch #{model.Id}", "Customer Branch" );
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
@@ -95,7 +92,6 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int? id, CancellationToken cancellationToken)
         {
-            var companyClaims = await GetCompanyClaimAsync();
             if (id == null || id == 0)
             {
                 return NotFound();
@@ -116,7 +112,7 @@ namespace IBSWeb.Areas.User.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(CustomerBranch model, CancellationToken cancellationToken)
         {
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
 
             if (!ModelState.IsValid)
             {
@@ -135,7 +131,7 @@ namespace IBSWeb.Areas.User.Controllers
                 #region --Audit Trail Recording
 
                 AuditTrail auditTrailBook = new (GetUserFullName(),
-                    $"Edited Customer Branch #{model.Id}", "Customer Branch", companyClaims! );
+                    $"Edited Customer Branch #{model.Id}", "Customer Branch" );
                 await unitOfWork.AuditTrail.AddAsync(auditTrailBook, cancellationToken);
 
                 #endregion --Audit Trail Recording
