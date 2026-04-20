@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace IBS.Models
 {
-    public class AuditTrail(string username, string activity, string documentType, string company)
+    public class AuditTrail(string username, string activity, string documentType)
     {
         public Guid Id { get; set; }
 
@@ -20,7 +20,5 @@ namespace IBS.Models
 
         [Display(Name = "Document Type")]
         public string DocumentType { get; set; } = documentType;
-
-        public string Company { get; set; } = company;
     }
 }

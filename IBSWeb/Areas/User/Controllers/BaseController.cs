@@ -26,6 +26,8 @@ namespace IBSWeb.Areas.User.Controllers
             return PartialView("_PermissionDeniedModal");
         }
 
+        protected string CurrentUsername => User.Identity?.Name ?? "Unknown";
+
         // Module-specific access helpers using extension methods
 
         protected async Task<bool> HasJobOrderAccessAsync()
