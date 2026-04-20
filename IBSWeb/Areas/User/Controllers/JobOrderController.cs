@@ -60,15 +60,17 @@ namespace IBSWeb.Areas.User.Controllers
         #region Create
 
         [HttpGet]
-        public async Task<IActionResult> CreateModal(CancellationToken cancellationToken)
+        public async Task<IActionResult> Create(CancellationToken cancellationToken)
         {
             if (!await AccessControl.HasAccessAsync(GetUserId(),
                     ProcedureEnum.CreateJobOrder))
             {
-                return PartialView("_ErrorModal",
+                TempData["error"] = "Access denied. You don't have permission to create Job Orders.";
+                return RedirectToAction("Index",
+                    "Home",
                     new
                     {
-                        message = "You don't have permission to create Job Orders."
+                        area = "User"
                     });
             }
 
@@ -76,8 +78,7 @@ namespace IBSWeb.Areas.User.Controllers
             await PopulateSelectListsAsync(viewModel,
                 cancellationToken);
 
-            return PartialView("_CreateModal",
-                viewModel);
+            return View(viewModel);
         }
 
         [HttpPost]
@@ -100,8 +101,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 await PopulateSelectListsAsync(viewModel,
                     cancellationToken);
-                return PartialView("_CreateModal",
-                    viewModel);
+                return View(viewModel);
             }
 
             try
@@ -132,11 +132,12 @@ namespace IBSWeb.Areas.User.Controllers
 
                 await unitOfWork.SaveAsync(cancellationToken);
 
-                return Json(new { success = true, redirectUrl = Url.Action("Details",
+                TempData["success"] = $"Job Order #{jobOrder.JobOrderNumber} created successfully.";
+                return RedirectToAction(nameof(Details),
                     new
                     {
                         id = jobOrder.JobOrderId
-                    }) });
+                    });
             }
             catch (Exception ex)
             {
@@ -148,8 +149,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             await PopulateSelectListsAsync(viewModel,
                 cancellationToken);
-            return PartialView("_CreateModal",
-                viewModel);
+            return View(viewModel);
         }
 
         #endregion
@@ -214,7 +214,7 @@ namespace IBSWeb.Areas.User.Controllers
                     });
             }
 
-            var jobOrder = await unitOfWork.JobOrder.GetAsync(j => j.JobOrderId == id,
+            var jobOrder = await unitOfWork.JobOrder.GetJobOrderWithDetailsAsync(id,
                 cancellationToken);
             if (jobOrder == null)
             {
@@ -236,48 +236,9 @@ namespace IBSWeb.Areas.User.Controllers
             await PopulateSelectListsAsync(viewModel,
                 cancellationToken);
 
-            return View(viewModel);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> EditModal(int id, CancellationToken cancellationToken)
-        {
-            if (!await AccessControl.HasAccessAsync(GetUserId(),
-                    ProcedureEnum.EditJobOrder))
-            {
-                return PartialView("_ErrorModal",
-                    new
-                    {
-                        message = "You don't have permission to edit this Job Order."
-                    });
-            }
-
-            var jobOrder = await unitOfWork.JobOrder.GetJobOrderWithDetailsAsync(id,
-                cancellationToken);
-            if (jobOrder == null)
-            {
-                return NotFound();
-            }
-
-            // FIX #3: Block editing of terminal statuses.
-            if (jobOrder.Status == JobOrderStatus.Closed || jobOrder.Status == JobOrderStatus.Cancelled)
-            {
-                return PartialView("_ErrorModal",
-                    new
-                    {
-                        message =
-                            $"Job Order #{jobOrder.JobOrderNumber} is {jobOrder.Status.ToLower()} and cannot be edited."
-                    });
-            }
-
-            var viewModel = MapToViewModel(jobOrder);
-            await PopulateSelectListsAsync(viewModel,
-                cancellationToken);
-
             ViewData["HasTickets"] = jobOrder.DispatchTickets.Any();
 
-            return PartialView("_EditModal",
-                viewModel);
+            return View(viewModel);
         }
 
         [HttpPost]
@@ -300,8 +261,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 await PopulateSelectListsAsync(viewModel,
                     cancellationToken);
-                return PartialView("_EditModal",
-                    viewModel);
+                return View(viewModel);
             }
 
             try
@@ -331,13 +291,12 @@ namespace IBSWeb.Areas.User.Controllers
 
                 await unitOfWork.SaveAsync(cancellationToken);
 
-                // FIX #11: Return JSON on success so the modal JS can handle the redirect,
-                // consistent with the Create action pattern.
-                return Json(new { success = true, redirectUrl = Url.Action(nameof(Details),
+                TempData["success"] = $"Job Order #{jobOrder.JobOrderNumber} updated successfully.";
+                return RedirectToAction(nameof(Details),
                     new
                     {
                         id = jobOrder.JobOrderId
-                    }) });
+                    });
             }
             catch (Exception ex)
             {
@@ -350,8 +309,7 @@ namespace IBSWeb.Areas.User.Controllers
 
             await PopulateSelectListsAsync(viewModel,
                 cancellationToken);
-            return PartialView("_EditModal",
-                viewModel);
+            return View(viewModel);
         }
 
         #endregion

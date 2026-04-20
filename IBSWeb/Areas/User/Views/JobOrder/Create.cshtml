@@ -1,0 +1,136 @@
+@model IBS.Models.MMSI.ViewModels.JobOrderViewModel
+
+@{
+    ViewData["Title"] = "Create Job Order";
+}
+
+<link rel="stylesheet" href="~/css/index-style.css">
+
+<div class="container mt-4">
+    <div class="card shadow border-0">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center p-3">
+            <h5 class="m-0"><i class="bi bi-plus-circle"></i> Create New Job Order</h5>
+            <a asp-action="Index" class="btn btn-outline-light">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+        <div class="card-body p-4">
+            <form asp-action="Create" method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                <div class="row g-3">
+                    <!-- Date -->
+                    <div class="col-12 col-md-6">
+                        <label asp-for="Date" class="form-label fw-bold"></label>
+                        <input asp-for="Date" type="date" class="form-control" />
+                        <span asp-validation-for="Date" class="text-danger"></span>
+                    </div>
+
+                    <!-- Customer -->
+                    <div class="col-12 col-md-6">
+                        <label asp-for="CustomerId" class="form-label fw-bold"></label>
+                        <select asp-for="CustomerId" asp-items="@Model.Customers" class="form-select js-select2" required>
+                            <option value="">-- Select Customer --</option>
+                        </select>
+                        <span asp-validation-for="CustomerId" class="text-danger"></span>
+                    </div>
+
+                    <!-- Vessel -->
+                    <div class="col-12 col-md-6">
+                        <label asp-for="VesselId" class="form-label fw-bold"></label>
+                        <select asp-for="VesselId" asp-items="@Model.Vessels" class="form-select js-select2" required>
+                            <option value="">-- Select Vessel --</option>
+                        </select>
+                        <span asp-validation-for="VesselId" class="text-danger"></span>
+                    </div>
+
+                    <!-- Port & Terminal -->
+                    <div class="col-12 col-md-6">
+                        <label asp-for="PortId" class="form-label fw-bold"></label>
+                        <select asp-for="PortId" asp-items="@Model.Ports" class="form-select js-select2" id="PortId">
+                            <option value="">-- Select Port --</option>
+                        </select>
+                        <span asp-validation-for="PortId" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label asp-for="TerminalId" class="form-label fw-bold"></label>
+                        <select asp-for="TerminalId" asp-items="@Model.Terminals" class="form-select js-select2" id="TerminalId">
+                            <option value="">-- Select Terminal --</option>
+                        </select>
+                        <span asp-validation-for="TerminalId" class="text-danger"></span>
+                    </div>
+
+                    <!-- References -->
+                    <div class="col-12 col-md-6">
+                        <label asp-for="COSNumber" class="form-label fw-bold"></label>
+                        <input asp-for="COSNumber" class="form-control" placeholder="Optional" />
+                        <span asp-validation-for="COSNumber" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-12 col-md-6">
+                        <label asp-for="VoyageNumber" class="form-label fw-bold"></label>
+                        <input asp-for="VoyageNumber" class="form-control" placeholder="Optional" />
+                        <span asp-validation-for="VoyageNumber" class="text-danger"></span>
+                    </div>
+
+                    <!-- Remarks -->
+                    <div class="col-12">
+                        <label asp-for="Remarks" class="form-label fw-bold"></label>
+                        <textarea asp-for="Remarks" class="form-control" rows="3"></textarea>
+                        <span asp-validation-for="Remarks" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-1"></i> Create Job Order
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="bi bi-x-circle me-1"></i> Cancel
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('.js-select2').select2({
+                width: '100%'
+            });
+
+            $('#PortId').on('change', function () {
+                var portId = $(this).val();
+                var terminalSelect = $('#TerminalId');
+
+                terminalSelect.empty().append('<option value="">-- Select Terminal --</option>');
+                terminalSelect.trigger('change');
+
+                if (!portId) return;
+
+                $.ajax({
+                    url: '@Url.Action("ChangeTerminal", "JobOrder")',
+                    type: 'GET',
+                    data: { portId: portId },
+                    success: function (data) {
+                        $.each(data, function (i, item) {
+                            terminalSelect.append($('<option>', {
+                                value: item.Value || item.value,
+                                text: item.Text || item.text
+                            }));
+                        });
+                        terminalSelect.trigger('change');
+                    }
+                });
+            });
+        });
+    </script>
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

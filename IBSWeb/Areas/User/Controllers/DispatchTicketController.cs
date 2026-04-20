@@ -59,116 +59,6 @@ namespace IBSWeb.Areas.User.Controllers
             return View(Enumerable.Empty<DispatchTicket>());
         }
 
-        // ════════════════════════════════════════════════════════════════════════
-        // GET DISPATCH TICKET PARTIAL (modal create/edit from Job Order page)
-        // ════════════════════════════════════════════════════════════════════════
-
-        [HttpGet]
-        public async Task<IActionResult> GetDispatchTicketPartial(
-            int? id, int? jobOrderId, CancellationToken cancellationToken = default)
-        {
-            await GetCompanyClaimAsync();
-            var viewModel = new ServiceRequestViewModel();
-
-            if (id is > 0)
-            {
-                // ── Edit mode ──────────────────────────────────────────────────
-                if (!await userAccessService.CheckAccess(
-                        userManager.GetUserId(User)!,
-                        ProcedureEnum.EditDispatchTicket,
-                        cancellationToken))
-                {
-                    ViewData["message"] = "You don't have permission to edit dispatch tickets.";
-                    return PartialView("_PermissionDeniedModal");
-                }
-
-                // Guard: Check if parent JobOrder is editable
-                if (!await IsTicketJobOrderEditableAsync(id.Value,
-                        cancellationToken))
-                {
-                    ViewData["message"] = "Cannot edit ticket — parent Job Order is cancelled or closed.";
-                    return PartialView("_PermissionDeniedModal");
-                }
-
-                var model = await unitOfWork.DispatchTicket
-                    .GetAsync(dt => dt.DispatchTicketId == id,
-                        cancellationToken);
-                if (model == null)
-                {
-                    return NotFound();
-                }
-
-                if (model.TerminalId.HasValue)
-                {
-                    model.Terminal = await unitOfWork.Terminal
-                        .GetAsync(t => t.TerminalId == model.TerminalId,
-                            cancellationToken);
-                    if (model.Terminal != null)
-                    {
-                        model.Terminal.Port = await unitOfWork.Port
-                            .GetAsync(p => p.PortId == model.Terminal.PortId,
-                                cancellationToken);
-                    }
-                }
-
-                viewModel = DispatchTicketModelToServiceRequestVm(model);
-
-                if (!string.IsNullOrEmpty(model.ImageName))
-                {
-                    viewModel.ImageSignedUrl = await GenerateSignedUrl(model.ImageName);
-                }
-
-                if (!string.IsNullOrEmpty(model.VideoName))
-                {
-                    viewModel.VideoSignedUrl = await GenerateSignedUrl(model.VideoName);
-                }
-
-                ViewData["Title"]      = "Edit Dispatch Ticket";
-                ViewData["JobOrderId"] = viewModel.JobOrderId;
-            }
-            else
-            {
-                // ── Create mode ────────────────────────────────────────────────
-                if (!await userAccessService.CheckAccess(
-                        userManager.GetUserId(User)!,
-                        ProcedureEnum.CreateDispatchTicket,
-                        cancellationToken))
-                {
-                    ViewData["message"] = "You don't have permission to create dispatch tickets.";
-                    return PartialView("_PermissionDeniedModal");
-                }
-
-                // Guard: Check if JobOrder is editable (if creating under a JO)
-                if (jobOrderId.HasValue && !await IsJobOrderEditableAsync(jobOrderId,
-                        cancellationToken))
-                {
-                    ViewData["message"] = "Cannot add ticket — parent Job Order is cancelled or closed.";
-                    return PartialView("_PermissionDeniedModal");
-                }
-
-                ViewData["Title"] = "Create Dispatch Ticket";
-
-                if (jobOrderId.HasValue)
-                {
-                    viewModel = await PreFillFromJobOrderAsync(viewModel,
-                        jobOrderId.Value,
-                        cancellationToken);
-                    ViewData["JobOrderId"] = jobOrderId;
-                }
-            }
-
-            viewModel = await unitOfWork.ServiceRequest
-                .GetDispatchTicketSelectLists(viewModel,
-                    cancellationToken);
-            viewModel.Customers = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
-
-            ViewData["PortId"] = viewModel.Terminal?.Port?.PortId > 0
-                ? viewModel.Terminal.Port.PortId
-                : (viewModel.PortId > 0 ? viewModel.PortId : 0);
-
-            return PartialView("_CreateTicketPartial",
-                viewModel);
-        }
 
         // ════════════════════════════════════════════════════════════════════════
         // CREATE
@@ -231,7 +121,7 @@ namespace IBSWeb.Areas.User.Controllers
             IFormFile? videoFile,
             CancellationToken cancellationToken = default)
         {
-            var companyClaims = await GetCompanyClaimAsync();
+            await GetCompanyClaimAsync();
 
             // Guard: Check if JobOrder is editable (if creating under a JO)
             if (viewModel.JobOrderId.HasValue && !await IsJobOrderEditableAsync(viewModel.JobOrderId,
@@ -319,8 +209,7 @@ namespace IBSWeb.Areas.User.Controllers
                         model.VideoName!);
                 }
 
-                if (model.DateLeft != null && model.DateArrived != null &&
-                    model.TimeLeft != null && model.TimeArrived != null)
+                if (model is { DateLeft: not null, DateArrived: not null, TimeLeft: not null, TimeArrived: not null })
                 {
                     model.Status     = _statusForTariff;
                     model.TotalHours = CalculateTotalHours(model);
@@ -691,9 +580,6 @@ namespace IBSWeb.Areas.User.Controllers
 
                 await unitOfWork.SaveAsync(cancellationToken);
 
-                // FIX: no redundant identity lookups.
-                var companyClaims = await GetCompanyClaimAsync()
-                    ?? throw new InvalidOperationException("Company claim missing.");
                 var audit = BuildAudit(
                     user.UserName!,
                     changes.Any()
@@ -859,8 +745,7 @@ namespace IBSWeb.Areas.User.Controllers
                 model.Customer = await unitOfWork.Customer.GetAsync(t => t.CustomerId == model.CustomerId,
                     cancellationToken);
 
-                if (model.DateLeft != null && model.DateArrived != null &&
-                    model.TimeLeft != null && model.TimeArrived != null)
+                if (model is { DateLeft: not null, DateArrived: not null, TimeLeft: not null, TimeArrived: not null })
                 {
                     var totalHours = CalculateTotalHours(model);
                     if (totalHours == 0)
@@ -1049,7 +934,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 await unitOfWork.SaveAsync(cancellationToken);
 
-                var companyClaims = await GetCompanyClaimAsync()
+                _ = await GetCompanyClaimAsync()
                     ?? throw new InvalidOperationException("Company claim missing.");
                 var audit = BuildAudit(
                     user.UserName!,
@@ -1421,203 +1306,8 @@ namespace IBSWeb.Areas.User.Controllers
         }
 
         // ════════════════════════════════════════════════════════════════════════
-        // MODAL ACTIONS  (Job Order-centric workflow)
+        // APPROVE/DISAPPROVE TARIFF (POST actions for modal)
         // ════════════════════════════════════════════════════════════════════════
-
-        [HttpGet]
-        public async Task<IActionResult> SetTariffModal(int id, CancellationToken cancellationToken)
-        {
-            if (!await userAccessService.CheckAccess(
-                    userManager.GetUserId(User)!,
-                    ProcedureEnum.SetTariff,
-                    cancellationToken))
-            {
-                ViewData["message"] = "You don't have permission to set tariff rates.";
-                return PartialView("_PermissionDeniedModal");
-            }
-
-            // Guard: Check if parent JobOrder is editable
-            if (!await IsTicketJobOrderEditableAsync(id,
-                    cancellationToken))
-            {
-                ViewData["message"] = "Cannot set tariff — parent Job Order is cancelled or closed.";
-                return PartialView("_PermissionDeniedModal");
-            }
-
-            var model = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == id,
-                    cancellationToken);
-            if (model == null)
-            {
-                return NotFound();
-            }
-
-            var viewModel = DispatchTicketModelToTariffVm(model);
-            if (!string.IsNullOrEmpty(model.ImageName))
-            {
-                viewModel.ImageSignedUrl = await GenerateSignedUrl(model.ImageName);
-            }
-
-            return PartialView("_SetTariffModal",
-                viewModel);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> EditTariffModal(int id, CancellationToken cancellationToken)
-        {
-            if (!await userAccessService.CheckAccess(
-                    userManager.GetUserId(User)!,
-                    ProcedureEnum.SetTariff,
-                    cancellationToken))
-            {
-                ViewData["message"] = "You don't have permission to edit tariff rates.";
-                return PartialView("_PermissionDeniedModal");
-            }
-
-            // Guard: Check if parent JobOrder is editable
-            if (!await IsTicketJobOrderEditableAsync(id,
-                    cancellationToken))
-            {
-                ViewData["message"] = "Cannot edit tariff — parent Job Order is cancelled or closed.";
-                return PartialView("_PermissionDeniedModal");
-            }
-
-            var model = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == id,
-                    cancellationToken);
-            if (model == null)
-            {
-                return NotFound();
-            }
-
-            var viewModel = DispatchTicketModelToTariffVm(model);
-            if (!string.IsNullOrEmpty(model.ImageName))
-            {
-                viewModel.ImageSignedUrl = await GenerateSignedUrl(model.ImageName);
-            }
-
-            return PartialView("_EditTariffModal",
-                viewModel);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> TariffApprovalModal(int id, CancellationToken cancellationToken)
-        {
-            if (!await userAccessService.CheckAccess(
-                    userManager.GetUserId(User)!,
-                    ProcedureEnum.ApproveTariff,
-                    cancellationToken))
-            {
-                ViewData["message"] = "You don't have permission to approve tariffs.";
-                return PartialView("_PermissionDeniedModal");
-            }
-
-            // Guard: Check if parent JobOrder is editable
-            if (!await IsTicketJobOrderEditableAsync(id,
-                    cancellationToken))
-            {
-                ViewData["message"] = "Cannot approve tariff — parent Job Order is cancelled or closed.";
-                return PartialView("_PermissionDeniedModal");
-            }
-
-            var model = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == id,
-                    cancellationToken);
-            if (model == null)
-            {
-                return NotFound();
-            }
-
-            var viewModel = DispatchTicketModelToTariffVm(model);
-            if (!string.IsNullOrEmpty(model.ImageName))
-            {
-                viewModel.ImageSignedUrl = await GenerateSignedUrl(model.ImageName);
-            }
-
-            return PartialView("_TariffApprovalModal",
-                viewModel);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> SaveTariff(
-            TariffViewModel vm, string? chargeType, CancellationToken cancellationToken)
-        {
-            if (!await userAccessService.CheckAccess(
-                    userManager.GetUserId(User)!,
-                    ProcedureEnum.SetTariff,
-                    cancellationToken))
-            {
-                return Json(new { success = false, message = "Access denied" });
-            }
-
-            // Guard: Check if parent JobOrder is editable
-            if (!await IsTicketJobOrderEditableAsync(vm.DispatchTicketId,
-                    cancellationToken))
-            {
-                return Json(new { success = false, message = "Cannot save tariff — parent Job Order is cancelled or closed." });
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return Json(new { success = false, message = "Invalid tariff data" });
-            }
-
-            var user = await userManager.GetUserAsync(User);
-            var currentModel = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == vm.DispatchTicketId,
-                    cancellationToken);
-            if (currentModel == null)
-            {
-                return Json(new { success = false, message = "Ticket not found" });
-            }
-
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
-            {
-                currentModel.Status                = _statusForApproval;
-                currentModel.TariffBy              = user!.UserName!;
-                currentModel.TariffDate            = DateTimeHelper.GetCurrentPhilippineTime();
-                currentModel.DispatchChargeType    = chargeType ?? "Per hour";
-                currentModel.BAFChargeType         = chargeType ?? "Per hour";
-                currentModel.DispatchRate          = vm.DispatchRate ?? 0;
-                currentModel.DispatchDiscount      = vm.DispatchDiscount ?? 0;
-                currentModel.BAFRate               = vm.BAFRate ?? 0;
-                currentModel.BAFDiscount           = vm.BAFDiscount ?? 0;
-                currentModel.DispatchBillingAmount = vm.DispatchBillingAmount;
-                currentModel.DispatchNetRevenue    = vm.DispatchNetRevenue;
-                currentModel.BAFBillingAmount      = vm.BAFBillingAmount;
-                currentModel.BAFNetRevenue         = vm.BAFNetRevenue;
-                currentModel.TotalBilling          = vm.TotalBilling;
-                currentModel.TotalNetRevenue       = vm.TotalNetRevenue;
-                currentModel.ApOtherTugs           = vm.ApOtherTugs ?? 0;
-
-                await unitOfWork.SaveAsync(cancellationToken);
-
-                var companyClaims = await GetCompanyClaimAsync()
-                    ?? throw new InvalidOperationException("Company claim missing.");
-                var audit = BuildAudit(
-                    user.UserName!,
-                    $"Set tariff for dispatch ticket #{currentModel.DispatchNumber}",
-                    "Dispatch Ticket");
-                await unitOfWork.AuditTrail.AddAsync(audit,
-                    cancellationToken);
-
-                await transaction.CommitAsync(cancellationToken);
-                return Json(new
-                {
-                    success    = true,
-                    message    = "Tariff saved successfully",
-                    jobOrderId = currentModel.JobOrderId
-                });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                logger.LogError(ex,
-                    "Failed to save tariff");
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
 
         [HttpPost]
         public async Task<IActionResult> ApproveTariff(int id, CancellationToken cancellationToken)
@@ -1652,8 +1342,7 @@ namespace IBSWeb.Areas.User.Controllers
                 await unitOfWork.SaveAsync(cancellationToken);
 
                 var user          = await userManager.GetUserAsync(User);
-                var companyClaims = await GetCompanyClaimAsync()
-                    ?? throw new InvalidOperationException("Company claim missing.");
+
                 var audit = BuildAudit(
                     user!.UserName!,
                     $"Approved tariff for dispatch ticket #{model.DispatchNumber}",
@@ -1715,8 +1404,6 @@ namespace IBSWeb.Areas.User.Controllers
                 await unitOfWork.SaveAsync(cancellationToken);
 
                 var user          = await userManager.GetUserAsync(User);
-                var companyClaims = await GetCompanyClaimAsync()
-                    ?? throw new InvalidOperationException("Company claim missing.");
                 var audit = BuildAudit(
                     user!.UserName!,
                     $"Disapproved tariff for dispatch ticket #{model.DispatchNumber}. Reason: {reason}",
@@ -1795,7 +1482,7 @@ namespace IBSWeb.Areas.User.Controllers
                 await unitOfWork.SaveAsync(cancellationToken);
 
                 var user          = await userManager.GetUserAsync(User);
-                var companyClaims = await GetCompanyClaimAsync()
+                _ = await GetCompanyClaimAsync()
                     ?? throw new InvalidOperationException("Company claim missing.");
                 var audit = BuildAudit(
                     user!.UserName!,
@@ -1806,6 +1493,17 @@ namespace IBSWeb.Areas.User.Controllers
 
                 await transaction.CommitAsync(cancellationToken);
                 TempData["success"] = successMessage;
+
+                if (model.JobOrderId.HasValue)
+                {
+                    return RedirectToAction("Details",
+                        "JobOrder",
+                        new
+                        {
+                            id = model.JobOrderId.Value
+                        });
+                }
+
                 return RedirectToAction(nameof(Index),
                     new
                     {
@@ -1819,6 +1517,7 @@ namespace IBSWeb.Areas.User.Controllers
                     "Failed to change ticket status to {Status}.",
                     newStatus);
                 TempData["error"] = ex.Message;
+
                 return RedirectToAction(nameof(Index),
                     new
                     {
@@ -1991,12 +1690,15 @@ namespace IBSWeb.Areas.User.Controllers
 
         // ════════════════════════════════════════════════════════════════════════
         // JOB ORDER STATUS VALIDATION
-        // Prevents modifications to tickets when parent JobOrder is Cancelled or Closed
+        // Prevents modifications to tickets when parent JobOrder is Canceled or Closed
         // ════════════════════════════════════════════════════════════════════════
 
         private async Task<bool> IsJobOrderEditableAsync(int? jobOrderId, CancellationToken cancellationToken)
         {
-            if (jobOrderId == null) return true; // Standalone ticket, no JO constraint
+            if (jobOrderId == null)
+            {
+                return true; // Standalone ticket, no JO constraint
+            }
 
             var jobOrder = await unitOfWork.JobOrder.GetAsync(j => j.JobOrderId == jobOrderId.Value,
                 cancellationToken);
@@ -2007,7 +1709,11 @@ namespace IBSWeb.Areas.User.Controllers
         {
             var ticket = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == ticketId,
                 cancellationToken);
-            if (ticket?.JobOrderId == null) return true; // Standalone ticket
+            if (ticket?.JobOrderId == null)
+            {
+                return true; // Standalone ticket
+            }
+
             return await IsJobOrderEditableAsync(ticket.JobOrderId,
                 cancellationToken);
         }

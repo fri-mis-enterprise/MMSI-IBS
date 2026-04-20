@@ -6,11 +6,6 @@
 }
 
 <style>
-    .container {
-        max-width: 100% !important;
-        width: 100% !important;
-    }
-
     .section-header {
         font-size: 1rem;
         font-weight: 600;
@@ -28,7 +23,7 @@
         .btn{
             width: 100px !important;
         }
-        
+
         label {
             font-size: .8em !important
         }
@@ -96,9 +91,9 @@
             }
         </div>
     </div>
-    
+
     <div class="card-body">
-        
+
         <form id="myForm" method="post" class="row" enctype="multipart/form-data">
             <input asp-for="DispatchTicketId" type="hidden">
             <input asp-for="JobOrderId" type="hidden">
@@ -181,7 +176,7 @@
                     </div>
                     <div class="form-group col-md-3 col-6 my-2">
                         <label class="control-label ps-1 pb-1">Port<span class="required text-danger">*</span></label>
-                        <select asp-for="@Model.Terminal!.Port!.PortId" id="PortSelect" asp-items="@Model.Ports" class="port-select form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
+                        <select asp-for="PortId" id="PortSelect" asp-items="@Model.Ports" class="port-select form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
                             <option value="">Select Port</option>
                         </select>
                         <span class="text-danger"></span>
@@ -242,7 +237,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="row col-12 justify-content-end my-4">
                 @if (!string.IsNullOrEmpty(Model.ImageName))
                 {
@@ -324,7 +319,7 @@
             const port = $("#PortSelect");
             const terminalSelectVar = $("#TerminalSelect");
             const terminalLoading = $("#terminalLoading");
-            
+
             function HandlePortChange() {
                 let portId = port.val();
                 if (!portId) return;

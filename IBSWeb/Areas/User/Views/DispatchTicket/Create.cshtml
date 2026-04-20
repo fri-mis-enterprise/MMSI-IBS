@@ -5,11 +5,6 @@
 }
 
 <style>
-    .container {
-        max-width: 100% !important;
-        width: 100% !important;
-    }
-
     .section-header {
         font-size: 1rem;
         font-weight: 600;
@@ -27,7 +22,7 @@
         .btn{
             width: 100px !important;
         }
-        
+
         label {
             font-size: .8em !important
         }
@@ -178,7 +173,7 @@
                     </div>
                     <div class="form-group col-md-3 col-6 my-2">
                         <label class="control-label ps-1 pb-1">Port<span class="required text-danger">*</span></label>
-                        <select asp-for="@Model.Terminal!.Port!.PortId" id="PortSelect" asp-items="@Model.Ports" class="port-select form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
+                        <select asp-for="PortId" id="PortSelect" asp-items="@Model.Ports" class="port-select form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
                             <option value="">Select Port</option>
                         </select>
                         <span class="text-danger"></span>
@@ -239,15 +234,10 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="row col-12 justify-content-end my-4">
                 <div class="text-center" style="width: 150px">
                     <button class="btn btn-primary custom-btn col-12 align-content-center selected-options shadow" type="submit" id="submitButton"><i class="bi bi-pencil-square"></i> Submit</button>
-                </div>
-                <div class="text-center" style="width: 150px">
-                    <a class="btn btn-outline-primary col-12 align-content-center selected-options shadow" asp-controller="DispatchTicket" asp-action="Index">
-                        <i class="bi bi-arrow-90deg-left"></i> Go Back
-                    </a>
                 </div>
             </div>
         </form>
@@ -260,7 +250,7 @@
             const port = $("#PortSelect");
             const terminalSelectVar = $("#TerminalSelect");
             const terminalLoading = $("#terminalLoading");
-            
+
             // Port Change Logic
             function HandlePortChange() {
                 let portId = port.val();
@@ -309,11 +299,11 @@
             function calculateDuration() {
                 const startStr = `${dateLeft.val()}T${timeLeft.val()}`;
                 const endStr = `${dateArrived.val()}T${timeArrived.val()}`;
-                
+
                 if (dateLeft.val() && timeLeft.val() && dateArrived.val() && timeArrived.val()) {
                     const start = new Date(startStr);
                     const end = new Date(endStr);
-                    
+
                     if (!isNaN(start) && !isNaN(end)) {
                         const diffMs = end - start;
                         if (diffMs < 0) {
@@ -338,7 +328,7 @@
             });
 
             $(".timeline-input").on("input change", calculateDuration);
-            
+
             // Initial calculation
             dateLeft.data('previous-val', dateLeft.val());
             calculateDuration();
