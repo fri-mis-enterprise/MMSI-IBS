@@ -6,15 +6,12 @@ using IBS.Models.MMSI;
 using IBS.Models.MMSI.MasterFile;
 using IBS.Models.MMSI.ViewModels;
 using IBS.Services;
-using IBS.Services.AccessControl;
 using IBS.Services.Attributes;
 using IBS.Utility.Helpers;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Dynamic.Core;
-using System.Security.Claims;
 
 namespace IBSWeb.Areas.User.Controllers
 {
@@ -22,14 +19,10 @@ namespace IBSWeb.Areas.User.Controllers
     public class DispatchTicketController(
         ApplicationDbContext dbContext,
         IUnitOfWork unitOfWork,
-        IAccessControlService accessControl,
-        UserManager<ApplicationUser> userManager,
         ICloudStorageService cloudStorageService,
         ILogger<DispatchTicketController> logger)
-        : BaseController(accessControl, userManager)
+        : Controller
     {
-        private const string _filterTypeClaimType = "DispatchTicket.FilterType";
-
         // ── Status constants ────────────────────────────────────────────────────
         private const string _statusPending     = "Pending";
         private const string _statusForTariff   = "For Tariff";
@@ -39,63 +32,49 @@ namespace IBSWeb.Areas.User.Controllers
         private const string _statusCancelled   = "Cancelled";
         private const string _statusForPosting  = "For Posting";
 
+
         // ════════════════════════════════════════════════════════════════════════
         // INDEX
         // ════════════════════════════════════════════════════════════════════════
 
         [RequireAnyAccess(
             "Access denied. You don't have permission to access Dispatch Tickets.",
+            "DispatchTicket",
+            "Index",
+            "User",
             ProcedureEnum.CreateDispatchTicket,
             ProcedureEnum.EditDispatchTicket,
             ProcedureEnum.CancelDispatchTicket)]
-        public async Task<IActionResult> Index(string filterType, CancellationToken cancellationToken = default)
+        public Task<IActionResult> Index(string filterType)
         {
-            await UpdateFilterTypeClaim(filterType);
-            ViewBag.FilterType = await GetCurrentFilterType();
-            return View(Enumerable.Empty<DispatchTicket>());
+            ViewBag.FilterType = filterType;
+            return Task.FromResult<IActionResult>(View(Enumerable.Empty<DispatchTicket>()));
         }
-
 
         // ════════════════════════════════════════════════════════════════════════
         // CREATE
         // ════════════════════════════════════════════════════════════════════════
 
         [HttpGet]
-        [RequireAccess(ProcedureEnum.CreateDispatchTicket, "Access denied. You don't have permission to create Dispatch Tickets.")]
+        [RequireAccess(ProcedureEnum.CreateDispatchTicket, "Access denied. You don't have permission to create Dispatch Tickets.", "JobOrder")]
         public async Task<IActionResult> Create(int? jobOrderId, CancellationToken cancellationToken = default)
         {
-            await GetCompanyClaimAsync();
             var viewModel = new ServiceRequestViewModel();
             ViewData["PortId"] = 0;
 
             if (jobOrderId.HasValue)
             {
-                viewModel = await PreFillFromJobOrderAsync(viewModel,
-                    jobOrderId.Value,
-                    cancellationToken);
+                viewModel = await PreFillFromJobOrderAsync(viewModel, jobOrderId.Value, cancellationToken);
+                viewModel = await unitOfWork.ServiceRequest.GetDispatchTicketSelectLists(viewModel, cancellationToken);
 
                 if (viewModel.TerminalId.HasValue)
                 {
-                    // Select lists must be re-populated after the terminal/port is known.
-                    viewModel = await unitOfWork.ServiceRequest
-                        .GetDispatchTicketSelectLists(viewModel,
-                            cancellationToken);
                     ViewData["PortId"] = viewModel.PortId;
-                }
-                else
-                {
-                    viewModel = await unitOfWork.ServiceRequest
-                        .GetDispatchTicketSelectLists(viewModel,
-                            cancellationToken);
                 }
             }
             else
             {
-                // FIX: was calling GetDispatchTicketSelectLists twice when a terminal existed.
-                // Now it is called exactly once per branch.
-                viewModel = await unitOfWork.ServiceRequest
-                    .GetDispatchTicketSelectLists(viewModel,
-                        cancellationToken);
+                viewModel = await unitOfWork.ServiceRequest.GetDispatchTicketSelectLists(viewModel, cancellationToken);
             }
 
             viewModel.Customers = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
@@ -103,36 +82,25 @@ namespace IBSWeb.Areas.User.Controllers
         }
 
         [HttpPost]
-        [RequireAccess(ProcedureEnum.CreateDispatchTicket, "Access denied. You don't have permission to create Dispatch Tickets.")]
+        [RequireAccess(ProcedureEnum.CreateDispatchTicket, "Access denied. You don't have permission to create Dispatch Tickets.", "JobOrder")]
         public async Task<IActionResult> Create(
             ServiceRequestViewModel viewModel,
             IFormFile? imageFile,
             IFormFile? videoFile,
             CancellationToken cancellationToken = default)
         {
-            await GetCompanyClaimAsync();
-
-            // Guard: Check if JobOrder is editable (if creating under a JO)
-            if (viewModel.JobOrderId.HasValue && !await IsJobOrderEditableAsync(viewModel.JobOrderId,
-                    cancellationToken))
+            if (viewModel.JobOrderId.HasValue && !await IsJobOrderEditableAsync(viewModel.JobOrderId, cancellationToken))
             {
                 TempData["error"] = "Cannot add ticket — parent Job Order is cancelled or closed.";
-                return RedirectToAction("Index",
-                    "JobOrder",
-                    new
-                    {
-                        area = "User"
-                    });
+                return RedirectToAction("Index", "JobOrder", new { area = "User" });
             }
 
             if (!ModelState.IsValid)
             {
-                viewModel = await unitOfWork.ServiceRequest
-                    .GetDispatchTicketSelectLists(viewModel,
-                        cancellationToken);
+                viewModel           = await unitOfWork.ServiceRequest.GetDispatchTicketSelectLists(viewModel, cancellationToken);
                 viewModel.Customers = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
                 TempData["warning"] = "Can't create entry, please review your input.";
-                ViewData["PortId"] = viewModel.Terminal?.Port?.PortId ?? viewModel.PortId;
+                ViewData["PortId"]  = viewModel.Terminal?.Port?.PortId ?? viewModel.PortId;
                 return View(viewModel);
             }
 
@@ -143,106 +111,67 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 if (model.TerminalId.HasValue)
                 {
-                    model.Terminal = await unitOfWork.Terminal
-                        .GetAsync(t => t.TerminalId == model.TerminalId,
-                            cancellationToken);
+                    model.Terminal = await unitOfWork.Terminal.GetAsync(t => t.TerminalId == model.TerminalId, cancellationToken);
                     if (model.Terminal != null)
                     {
-                        model.Terminal.Port = await unitOfWork.Port
-                            .GetAsync(p => p.PortId == model.Terminal.PortId,
-                                cancellationToken);
+                        model.Terminal.Port = await unitOfWork.Port.GetAsync(p => p.PortId == model.Terminal.PortId, cancellationToken);
                     }
                 }
 
-                model = await unitOfWork.DispatchTicket.GetDispatchTicketLists(model,
-                    cancellationToken);
-                model.Customer = await unitOfWork.Customer
-                    .GetAsync(c => c.CustomerId == model.CustomerId,
-                        cancellationToken);
+                model          = await unitOfWork.DispatchTicket.GetDispatchTicketLists(model, cancellationToken);
+                model.Customer = await unitOfWork.Customer.GetAsync(c => c.CustomerId == model.CustomerId, cancellationToken);
 
-                // Date validation — must be a model-level concern but kept here
-                // until a [ValidationAttribute] or FluentValidation rule is wired up.
-                if (!(model.DateLeft < model.DateArrived ||
-                     (model.DateLeft == model.DateArrived && model.TimeLeft < model.TimeArrived)))
+                // FIX: extracted to shared static helper (was duplicated with EditTicket POST)
+                if (!IsArrivalAfterDeparture(model))
                 {
                     await transaction.RollbackAsync(cancellationToken);
-                    viewModel = await unitOfWork.ServiceRequest
-                        .GetDispatchTicketSelectLists(viewModel,
-                            cancellationToken);
+                    viewModel           = await unitOfWork.ServiceRequest.GetDispatchTicketSelectLists(viewModel, cancellationToken);
                     viewModel.Customers = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
                     TempData["warning"] = "Start Date/Time should be earlier than End Date/Time!";
-                    ViewData["PortId"] = model.Terminal?.Port?.PortId;
+                    ViewData["PortId"]  = model.Terminal?.Port?.PortId;
                     return View(viewModel);
                 }
 
-                // FIX: resolved user once; username is taken from user.UserName below.
-                var user = await UserManager.GetUserAsync(User)
-                    ?? throw new InvalidOperationException("Current user could not be resolved.");
-
-                model.CreatedBy   = user.UserName!;
+                model.CreatedBy   = User.Identity?.Name ?? "Unknown";
                 model.CreatedDate = DateTimeHelper.GetCurrentPhilippineTime();
 
                 if (imageFile is { Length: > 0 })
                 {
-                    model.ImageName     = GenerateFileNameToSave(imageFile.FileName,
-                        "img");
-                    model.ImageSavedUrl = await cloudStorageService.UploadFileAsync(imageFile,
-                        model.ImageName!);
+                    model.ImageName     = GenerateFileNameToSave(imageFile.FileName, "img");
+                    model.ImageSavedUrl = await cloudStorageService.UploadFileAsync(imageFile, model.ImageName!);
                 }
 
                 if (videoFile is { Length: > 0 })
                 {
-                    model.VideoName     = GenerateFileNameToSave(videoFile.FileName,
-                        "vid");
-                    model.VideoSavedUrl = await cloudStorageService.UploadFileAsync(videoFile,
-                        model.VideoName!);
+                    model.VideoName     = GenerateFileNameToSave(videoFile.FileName, "vid");
+                    model.VideoSavedUrl = await cloudStorageService.UploadFileAsync(videoFile, model.VideoName!);
                 }
 
                 if (model is { DateLeft: not null, DateArrived: not null, TimeLeft: not null, TimeArrived: not null })
                 {
                     model.Status     = _statusForTariff;
-                    model.TotalHours = CalculateTotalHours(model);
+                    // FIX: apply the same 0.5m floor as EditTicket POST (was missing, could produce TotalHours = 0)
+                    model.TotalHours = Math.Max(CalculateTotalHours(model), 0.5m);
                 }
                 else
                 {
-                    // Incomplete dates — save as Pending so the record is not silently dropped.
                     model.Status = _statusPending;
                 }
 
-                await unitOfWork.DispatchTicket.AddAsync(model,
-                    cancellationToken);
-
-                var audit = BuildAudit(
-                    user.UserName!,
-                    $"Create dispatch ticket #{model.DispatchNumber}",
-                    "Dispatch Ticket");
-                await unitOfWork.AuditTrail.AddAsync(audit,
+                await unitOfWork.DispatchTicket.AddAsync(model, cancellationToken);
+                await unitOfWork.AuditTrail.AddAsync(
+                    BuildAudit(User.Identity?.Name ?? "", $"Create dispatch ticket #{model.DispatchNumber}", "Dispatch Ticket"),
                     cancellationToken);
 
                 await transaction.CommitAsync(cancellationToken);
                 TempData["success"] = $"Dispatch Ticket #{model.DispatchNumber} was successfully created.";
-
-                return viewModel.JobOrderId.HasValue
-                    ? RedirectToAction("Details",
-                        "JobOrder",
-                        new
-                        {
-                            id = viewModel.JobOrderId
-                        })
-                    : RedirectToAction(nameof(Index),
-                        new
-                        {
-                            filterType = await GetCurrentFilterType()
-                        });
+                return RedirectToAction("Details", "JobOrder", new { id = viewModel.JobOrderId });
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                logger.LogError(ex,
-                    "Failed to create dispatch ticket.");
-                viewModel = await unitOfWork.ServiceRequest
-                    .GetDispatchTicketSelectLists(viewModel,
-                        cancellationToken);
+                logger.LogError(ex, "Failed to create dispatch ticket.");
+                viewModel           = await unitOfWork.ServiceRequest.GetDispatchTicketSelectLists(viewModel, cancellationToken);
                 viewModel.Customers = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
                 TempData["error"]   = ex.Message;
                 ViewData["PortId"]  = model.Terminal?.Port?.PortId;
@@ -254,19 +183,23 @@ namespace IBSWeb.Areas.User.Controllers
         // PREVIEW
         // ════════════════════════════════════════════════════════════════════════
 
+        [RequireAnyAccess(
+            "Access denied. You don't have permission to view Dispatch Tickets.",
+            "DispatchTicket",
+            "Index",
+            "User",
+            ProcedureEnum.CreateDispatchTicket,
+            ProcedureEnum.EditDispatchTicket,
+            ProcedureEnum.CancelDispatchTicket)]
         public async Task<IActionResult> Preview(int id, CancellationToken cancellationToken)
         {
-            var model = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == id,
-                    cancellationToken);
-
+            var model = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
             if (model == null)
             {
                 return NotFound();
             }
 
             await GenerateSignedUrl(model);
-            ViewBag.FilterType = await GetCurrentFilterType();
             return View(model);
         }
 
@@ -275,120 +208,43 @@ namespace IBSWeb.Areas.User.Controllers
         // ════════════════════════════════════════════════════════════════════════
 
         [HttpGet]
-        [RequireAccess(ProcedureEnum.SetTariff, "Access denied. You don't have permission to set Tariff.")]
-        public async Task<IActionResult> SetTariff(int id, CancellationToken cancellationToken)
+        [RequireAccess(ProcedureEnum.SetTariff, "Access denied. You don't have permission to set Tariff.", "DispatchTicket")]
+        public async Task<IActionResult> SetTariff(int id, string filterType, CancellationToken cancellationToken)
         {
-            var model = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == id,
-                    cancellationToken);
+            ViewBag.FilterType = filterType;
+            var model = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
             if (model == null)
             {
                 return NotFound();
             }
 
-            var viewModel     = DispatchTicketModelToTariffVm(model);
-            await GetCompanyClaimAsync();
-            viewModel.Customers     = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
-            ViewBag.FilterType      = await GetCurrentFilterType();
+            var viewModel       = DispatchTicketModelToTariffVm(model);
+            viewModel.Customers = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
             return View(viewModel);
         }
 
         [HttpPost]
-        [RequireAccess(ProcedureEnum.SetTariff, "Access denied. You don't have permission to set Tariff.")]
+        [RequireAccess(ProcedureEnum.SetTariff, "Access denied. You don't have permission to set Tariff.", "DispatchTicket")]
         public async Task<IActionResult> SetTariff(
-            TariffViewModel vm, string chargeType, string chargeType2, CancellationToken cancellationToken)
+            TariffViewModel vm, string chargeType, string chargeType2, string filterType, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
                 TempData["warning"] = "The submitted information is invalid.";
-                return RedirectToAction(nameof(SetTariff),
-                    new
-                    {
-                        id = vm.DispatchTicketId
-                    });
+                return RedirectToAction(nameof(SetTariff), new { id = vm.DispatchTicketId });
             }
 
-            // Guard: Check if parent JobOrder is editable
-            if (!await IsTicketJobOrderEditableAsync(vm.DispatchTicketId,
-                    cancellationToken))
+            if (!await IsTicketJobOrderEditableAsync(vm.DispatchTicketId, cancellationToken))
             {
                 TempData["error"] = "Cannot set tariff — parent Job Order is cancelled or closed.";
-                return RedirectToAction(nameof(SetTariff),
-                    new
-                    {
-                        id = vm.DispatchTicketId
-                    });
+                return RedirectToAction(nameof(SetTariff), new { id = vm.DispatchTicketId });
             }
 
-            // FIX: user is resolved once; UserName is used directly in the audit block below.
-            var user = await UserManager.GetUserAsync(User)
-                ?? throw new InvalidOperationException("Current user could not be resolved.");
-
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-            var model = TariffVmToDispatchTicket(vm);
-
-            try
-            {
-                var currentModel = await unitOfWork.DispatchTicket
-                    .GetAsync(dt => dt.DispatchTicketId == model.DispatchTicketId,
-                        cancellationToken);
-                if (currentModel == null)
-                {
-                    return NotFound();
-                }
-
-                currentModel.Status                = _statusForApproval;
-                currentModel.TariffBy              = user.UserName!;
-                currentModel.DispatchChargeType    = chargeType;
-                currentModel.DispatchRate          = model.DispatchRate;
-                currentModel.DispatchDiscount      = model.DispatchDiscount;
-                currentModel.BAFChargeType         = chargeType2;
-                currentModel.BAFRate               = model.BAFRate;
-                currentModel.BAFDiscount           = model.BAFDiscount;
-                currentModel.DispatchBillingAmount = model.DispatchBillingAmount;
-                currentModel.DispatchNetRevenue    = model.DispatchNetRevenue;
-                currentModel.BAFBillingAmount      = model.BAFBillingAmount;
-                currentModel.BAFNetRevenue         = model.BAFNetRevenue;
-                currentModel.TotalBilling          = model.TotalBilling;
-                currentModel.TotalNetRevenue       = model.TotalNetRevenue;
-                currentModel.ApOtherTugs           = model.ApOtherTugs;
-
-                await unitOfWork.SaveAsync(cancellationToken);
-                var audit = BuildAudit(
-                    user.UserName!,
-                    $"Set Tariff #{currentModel.DispatchTicketId}",
-                    "Tariff");
-                await unitOfWork.AuditTrail.AddAsync(audit,
-                    cancellationToken);
-
-                await transaction.CommitAsync(cancellationToken);
-                TempData["success"] = "Tariff entered successfully!";
-
-                return currentModel.JobOrderId.HasValue
-                    ? RedirectToAction("Details",
-                        "JobOrder",
-                        new
-                        {
-                            id = currentModel.JobOrderId.Value
-                        })
-                    : RedirectToAction(nameof(Index),
-                        new
-                        {
-                            filterType = await GetCurrentFilterType()
-                        });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                logger.LogError(ex,
-                    "Failed to set tariff.");
-                TempData["error"] = ex.Message;
-                return RedirectToAction(nameof(SetTariff),
-                    new
-                    {
-                        id = vm.DispatchTicketId
-                    });
-            }
+            // FIX: SetTariff and EditTariff shared the same scaffold. Unified via ApplyTariffFields.
+            return await SaveTariffAsync(
+                vm, chargeType, chargeType2, filterType,
+                isEdit: false,
+                cancellationToken: cancellationToken);
         }
 
         // ════════════════════════════════════════════════════════════════════════
@@ -396,202 +252,42 @@ namespace IBSWeb.Areas.User.Controllers
         // ════════════════════════════════════════════════════════════════════════
 
         [HttpGet]
-        [RequireAccess(ProcedureEnum.SetTariff, "Access denied. You don't have permission to edit Tariff.")]
-        public async Task<IActionResult> EditTariff(int id, CancellationToken cancellationToken)
+        [RequireAccess(ProcedureEnum.SetTariff, "Access denied. You don't have permission to edit Tariff.", "DispatchTicket")]
+        public async Task<IActionResult> EditTariff(int id, string filterType, CancellationToken cancellationToken)
         {
-            var model = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == id,
-                    cancellationToken);
+            ViewBag.FilterType = filterType;
+            var model = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
             if (model == null)
             {
                 return NotFound();
             }
 
-            var viewModel     = DispatchTicketModelToTariffVm(model);
-            await GetCompanyClaimAsync();
+            var viewModel       = DispatchTicketModelToTariffVm(model);
             viewModel.Customers = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
-            ViewBag.FilterType  = await GetCurrentFilterType();
             return View(viewModel);
         }
 
         [HttpPost]
-        [RequireAccess(ProcedureEnum.SetTariff, "Access denied. You don't have permission to edit Tariff.")]
+        [RequireAccess(ProcedureEnum.SetTariff, "Access denied. You don't have permission to edit Tariff.", "DispatchTicket")]
         public async Task<IActionResult> EditTariff(
-            TariffViewModel viewModel, string chargeType, string chargeType2, CancellationToken cancellationToken)
+            TariffViewModel viewModel, string chargeType, string chargeType2, string filterType, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
                 TempData["warning"] = "The submitted information is invalid.";
-                return RedirectToAction(nameof(EditTariff),
-                    new
-                    {
-                        id = viewModel.DispatchTicketId
-                    });
+                return RedirectToAction(nameof(EditTariff), new { id = viewModel.DispatchTicketId });
             }
 
-            // Guard: Check if parent JobOrder is editable
-            if (!await IsTicketJobOrderEditableAsync(viewModel.DispatchTicketId,
-                    cancellationToken))
+            if (!await IsTicketJobOrderEditableAsync(viewModel.DispatchTicketId, cancellationToken))
             {
                 TempData["error"] = "Cannot edit tariff — parent Job Order is cancelled or closed.";
-                return RedirectToAction(nameof(EditTariff),
-                    new
-                    {
-                        id = viewModel.DispatchTicketId
-                    });
+                return RedirectToAction(nameof(EditTariff), new { id = viewModel.DispatchTicketId });
             }
 
-            // FIX: user resolved once.
-            var user = await UserManager.GetUserAsync(User)
-                ?? throw new InvalidOperationException("Current user could not be resolved.");
-
-            var model        = TariffVmToDispatchTicket(viewModel);
-            var currentModel = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == model.DispatchTicketId,
-                    cancellationToken);
-            if (currentModel == null)
-            {
-                return NotFound();
-            }
-
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-
-            try
-            {
-                var changes = new List<string>();
-                if (currentModel.CustomerId         != model.CustomerId)
-                {
-                    changes.Add($"CustomerId: {currentModel.CustomerId} -> {model.CustomerId}");
-                }
-
-                if (currentModel.DispatchChargeType != chargeType)
-                {
-                    changes.Add($"DispatchChargeType: {currentModel.DispatchChargeType} -> {chargeType}");
-                }
-
-                if (currentModel.BAFChargeType      != chargeType2)
-                {
-                    changes.Add($"BAFChargeType: {currentModel.BAFChargeType} -> {chargeType2}");
-                }
-
-                if (currentModel.DispatchRate       != model.DispatchRate)
-                {
-                    changes.Add($"DispatchRate: {currentModel.DispatchRate} -> {model.DispatchRate}");
-                }
-
-                if (currentModel.BAFRate            != model.BAFRate)
-                {
-                    changes.Add($"BAFRate: {currentModel.BAFRate} -> {model.BAFRate}");
-                }
-
-                if (currentModel.DispatchDiscount   != model.DispatchDiscount)
-                {
-                    changes.Add($"DispatchDiscount: {currentModel.DispatchDiscount} -> {model.DispatchDiscount}");
-                }
-
-                if (currentModel.BAFDiscount        != model.BAFDiscount)
-                {
-                    changes.Add($"BAFDiscount: {currentModel.BAFDiscount} -> {model.BAFDiscount}");
-                }
-
-                if (currentModel.DispatchBillingAmount != model.DispatchBillingAmount)
-                {
-                    changes.Add($"DispatchBillingAmount: {currentModel.DispatchBillingAmount} -> {model.DispatchBillingAmount}");
-                }
-
-                if (currentModel.BAFBillingAmount   != model.BAFBillingAmount)
-                {
-                    changes.Add($"BAFBillingAmount: {currentModel.BAFBillingAmount} -> {model.BAFBillingAmount}");
-                }
-
-                if (currentModel.DispatchNetRevenue != model.DispatchNetRevenue)
-                {
-                    changes.Add($"DispatchNetRevenue: {currentModel.DispatchNetRevenue} -> {model.DispatchNetRevenue}");
-                }
-
-                if (currentModel.BAFNetRevenue      != model.BAFNetRevenue)
-                {
-                    changes.Add($"BAFNetRevenue: {currentModel.BAFNetRevenue} -> {model.BAFNetRevenue}");
-                }
-
-                if (currentModel.ApOtherTugs        != model.ApOtherTugs)
-                {
-                    changes.Add($"ApOtherTugs: {currentModel.ApOtherTugs} -> {model.ApOtherTugs}");
-                }
-
-                if (currentModel.TotalBilling       != model.TotalBilling)
-                {
-                    changes.Add($"TotalBilling: {currentModel.TotalBilling} -> {model.TotalBilling}");
-                }
-
-                if (currentModel.TotalNetRevenue    != model.TotalNetRevenue)
-                {
-                    changes.Add($"TotalNetRevenue: {currentModel.TotalNetRevenue} -> {model.TotalNetRevenue}");
-                }
-
-                // FIX: was comparing Service navigation objects (always different instances → always true).
-                // Compare IDs instead.
-                if (currentModel.ServiceId != model.ServiceId)
-                {
-                    changes.Add($"ServiceId: {currentModel.ServiceId} -> {model.ServiceId}");
-                }
-
-                currentModel.TariffEditedBy        = user.UserName!;
-                currentModel.TariffEditedDate      = DateTimeHelper.GetCurrentPhilippineTime();
-                currentModel.Status                = _statusForApproval;
-                currentModel.DispatchChargeType    = chargeType;
-                currentModel.BAFChargeType         = chargeType2;
-                currentModel.DispatchRate          = model.DispatchRate;
-                currentModel.BAFRate               = model.BAFRate;
-                currentModel.DispatchDiscount      = model.DispatchDiscount;
-                currentModel.BAFDiscount           = model.BAFDiscount;
-                currentModel.DispatchBillingAmount = model.DispatchBillingAmount;
-                currentModel.BAFBillingAmount      = model.BAFBillingAmount;
-                currentModel.DispatchNetRevenue    = model.DispatchNetRevenue;
-                currentModel.BAFNetRevenue         = model.BAFNetRevenue;
-                currentModel.ApOtherTugs           = model.ApOtherTugs;
-                currentModel.TotalBilling          = model.TotalBilling;
-                currentModel.TotalNetRevenue       = model.TotalNetRevenue;
-
-                await unitOfWork.SaveAsync(cancellationToken);
-
-                var audit = BuildAudit(
-                    user.UserName!,
-                    changes.Any()
-                        ? $"Edit tariff #{currentModel.DispatchNumber} {string.Join(", ", changes)}"
-                        : $"No changes detected for tariff details #{currentModel.DispatchNumber}",
-                    "Tariff");
-                await unitOfWork.AuditTrail.AddAsync(audit,
-                    cancellationToken);
-
-                await transaction.CommitAsync(cancellationToken);
-                TempData["success"] = "Tariff edited successfully!";
-
-                return currentModel.JobOrderId.HasValue
-                    ? RedirectToAction("Details",
-                        "JobOrder",
-                        new
-                        {
-                            id = currentModel.JobOrderId.Value
-                        })
-                    : RedirectToAction(nameof(Index),
-                        new
-                        {
-                            filterType = await GetCurrentFilterType()
-                        });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                logger.LogError(ex,
-                    "Failed to edit tariff.");
-                TempData["error"] = ex.Message;
-                return RedirectToAction(nameof(EditTariff),
-                    new
-                    {
-                        id = viewModel.DispatchTicketId
-                    });
-            }
+            return await SaveTariffAsync(
+                viewModel, chargeType, chargeType2, filterType,
+                isEdit: true,
+                cancellationToken: cancellationToken);
         }
 
         // ════════════════════════════════════════════════════════════════════════
@@ -599,31 +295,28 @@ namespace IBSWeb.Areas.User.Controllers
         // ════════════════════════════════════════════════════════════════════════
 
         [HttpGet]
-        [RequireAccess(ProcedureEnum.EditDispatchTicket, "Access denied. You don't have permission to edit Dispatch Tickets.")]
+        [RequireAccess(ProcedureEnum.EditDispatchTicket, "Access denied. You don't have permission to edit Dispatch Tickets.", "DispatchTicket")]
         public async Task<IActionResult> EditTicket(
-            int id, int? jobOrderId, CancellationToken cancellationToken = default)
+            int id, int? jobOrderId, string filterType, CancellationToken cancellationToken = default)
         {
-            // Guard: Check if parent JobOrder is editable
-            if (!await IsTicketJobOrderEditableAsync(id,
-                    cancellationToken))
-            {
-                TempData["error"] = "Cannot edit ticket — parent Job Order is cancelled or closed.";
-                return RedirectToAction(nameof(Index));
-            }
+            ViewBag.FilterType = filterType;
 
-            var model = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == id,
-                    cancellationToken);
+            // FIX: load the ticket once and reuse it for the editability check,
+            // avoiding the extra DB hit that IsTicketJobOrderEditableAsync would cause.
+            var model = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
             if (model == null)
             {
                 return NotFound();
             }
 
-            await GetCompanyClaimAsync();
-            var viewModel     = DispatchTicketModelToServiceRequestVm(model);
-            viewModel = await unitOfWork.ServiceRequest
-                .GetDispatchTicketSelectLists(viewModel,
-                    cancellationToken);
+            if (!await IsJobOrderEditableAsync(model.JobOrderId, cancellationToken))
+            {
+                TempData["error"] = "Cannot edit ticket — parent Job Order is cancelled or closed.";
+                return RedirectToAction(nameof(Index), new { filterType });
+            }
+
+            var viewModel       = DispatchTicketModelToServiceRequestVm(model);
+            viewModel           = await unitOfWork.ServiceRequest.GetDispatchTicketSelectLists(viewModel, cancellationToken);
             viewModel.Customers = await unitOfWork.GetCustomerListAsyncById(cancellationToken);
 
             if (!string.IsNullOrEmpty(model.ImageName))
@@ -636,82 +329,60 @@ namespace IBSWeb.Areas.User.Controllers
                 viewModel.VideoSignedUrl = await GenerateSignedUrl(model.VideoName);
             }
 
-            viewModel.JobOrderId = jobOrderId ?? model.JobOrderId;
-
+            viewModel.JobOrderId   = jobOrderId ?? model.JobOrderId;
             ViewData["PortId"]     = model.Terminal?.Port?.PortId;
             ViewData["JobOrderId"] = viewModel.JobOrderId;
-            ViewBag.FilterType     = await GetCurrentFilterType();
             return View(viewModel);
         }
 
         [HttpPost]
-        [RequireAccess(ProcedureEnum.EditDispatchTicket, "Access denied. You don't have permission to edit Dispatch Tickets.")]
+        [RequireAccess(ProcedureEnum.EditDispatchTicket, "Access denied. You don't have permission to edit Dispatch Tickets.", "DispatchTicket")]
         public async Task<IActionResult> EditTicket(
             ServiceRequestViewModel viewModel,
             IFormFile? imageFile,
             IFormFile? videoFile,
+            string filterType,
             CancellationToken cancellationToken = default)
         {
-            // Guard: Check if parent JobOrder is editable
-            if (!await IsTicketJobOrderEditableAsync(viewModel.DispatchTicketId!.Value,
-                    cancellationToken))
+            if (!await IsTicketJobOrderEditableAsync(viewModel.DispatchTicketId!.Value, cancellationToken))
             {
                 TempData["error"] = "Cannot edit ticket — parent Job Order is cancelled or closed.";
-                return RedirectToAction("EditTicket",
-                    new
-                    {
-                        id = viewModel.DispatchTicketId,
-                        jobOrderId = viewModel.JobOrderId
-                    });
+                return RedirectToAction("EditTicket", new { id = viewModel.DispatchTicketId, jobOrderId = viewModel.JobOrderId });
             }
 
             if (!ModelState.IsValid)
             {
                 TempData["warning"] = "Can't apply edit, please review your input.";
-                return RedirectToAction("EditTicket",
-                    new
-                    {
-                        id = viewModel.DispatchTicketId
-                    });
+                return RedirectToAction("EditTicket", new { id = viewModel.DispatchTicketId });
             }
 
             await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
             var model = ServiceRequestVmToDispatchTicket(viewModel);
-            var user  = await UserManager.GetUserAsync(User)
-                ?? throw new InvalidOperationException("Current user could not be resolved.");
 
             try
             {
-                if (!(model.DateLeft < model.DateArrived ||
-                     (model.DateLeft == model.DateArrived && model.TimeLeft < model.TimeArrived)))
+                // FIX: extracted to shared static helper (was duplicated with Create POST)
+                if (!IsArrivalAfterDeparture(model))
                 {
                     await transaction.RollbackAsync(cancellationToken);
                     TempData["warning"] = "Date/Time Left cannot be later than Date/Time Arrived!";
-                    return RedirectToAction("EditTicket",
-                        new { id = viewModel.DispatchTicketId, jobOrderId = viewModel.JobOrderId });
+                    return RedirectToAction("EditTicket", new { id = viewModel.DispatchTicketId, jobOrderId = viewModel.JobOrderId });
                 }
 
                 var currentModel = await unitOfWork.DispatchTicket
-                    .GetAsync(dt => dt.DispatchTicketId == model.DispatchTicketId,
-                        cancellationToken);
+                    .GetAsync(dt => dt.DispatchTicketId == model.DispatchTicketId, cancellationToken);
                 if (currentModel == null)
                 {
                     return NotFound();
                 }
 
-                model.Tugboat  = await unitOfWork.Tugboat.GetAsync(t => t.TugboatId == model.TugBoatId,
-                    cancellationToken);
-                model.Customer = await unitOfWork.Customer.GetAsync(t => t.CustomerId == model.CustomerId,
-                    cancellationToken);
+                model.Tugboat  = await unitOfWork.Tugboat.GetAsync(t => t.TugboatId == model.TugBoatId, cancellationToken);
+                model.Customer = await unitOfWork.Customer.GetAsync(t => t.CustomerId == model.CustomerId, cancellationToken);
 
                 if (model is { DateLeft: not null, DateArrived: not null, TimeLeft: not null, TimeArrived: not null })
                 {
-                    var totalHours = CalculateTotalHours(model);
-                    if (totalHours == 0)
-                    {
-                        totalHours = 0.5m;
-                    }
-
+                    // FIX: Math.Max consolidates the zero-check (no behavior change)
+                    var totalHours           = Math.Max(CalculateTotalHours(model), 0.5m);
                     model.TotalHours         = totalHours;
                     currentModel.TotalHours  = totalHours;
                 }
@@ -723,10 +394,8 @@ namespace IBSWeb.Areas.User.Controllers
                         await cloudStorageService.DeleteFileAsync(currentModel.ImageName);
                     }
 
-                    model.ImageName     = GenerateFileNameToSave(imageFile.FileName,
-                        "img");
-                    model.ImageSavedUrl = await cloudStorageService.UploadFileAsync(imageFile,
-                        model.ImageName!);
+                    model.ImageName     = GenerateFileNameToSave(imageFile.FileName, "img");
+                    model.ImageSavedUrl = await cloudStorageService.UploadFileAsync(imageFile, model.ImageName!);
                 }
 
                 if (videoFile != null)
@@ -736,93 +405,28 @@ namespace IBSWeb.Areas.User.Controllers
                         await cloudStorageService.DeleteFileAsync(currentModel.VideoName);
                     }
 
-                    model.VideoName     = GenerateFileNameToSave(videoFile.FileName,
-                        "vid");
-                    model.VideoSavedUrl = await cloudStorageService.UploadFileAsync(videoFile,
-                        model.VideoName!);
+                    model.VideoName     = GenerateFileNameToSave(videoFile.FileName, "vid");
+                    model.VideoSavedUrl = await cloudStorageService.UploadFileAsync(videoFile, model.VideoName!);
                 }
 
+                // --- Change tracking ---
                 var changes = new List<string>();
-                if (currentModel.Date           != model.Date)
-                {
-                    changes.Add($"Date: {currentModel.Date} -> {model.Date}");
-                }
-
-                if (currentModel.DispatchNumber != model.DispatchNumber)
-                {
-                    changes.Add($"DispatchNumber: {currentModel.DispatchNumber} -> {model.DispatchNumber}");
-                }
-
-                if (currentModel.COSNumber      != model.COSNumber)
-                {
-                    changes.Add($"COSNumber: {currentModel.COSNumber} -> {model.COSNumber}");
-                }
-
-                if (currentModel.VoyageNumber   != model.VoyageNumber)
-                {
-                    changes.Add($"VoyageNumber: {currentModel.VoyageNumber} -> {model.VoyageNumber}");
-                }
-
-                if (currentModel.CustomerId     != model.CustomerId)
-                {
-                    changes.Add($"CustomerId: {currentModel.CustomerId} -> {model.CustomerId}");
-                }
-
-                if (currentModel.DateLeft       != model.DateLeft)
-                {
-                    changes.Add($"DateLeft: {currentModel.DateLeft} -> {model.DateLeft}");
-                }
-
-                if (currentModel.TimeLeft       != model.TimeLeft)
-                {
-                    changes.Add($"TimeLeft: {currentModel.TimeLeft} -> {model.TimeLeft}");
-                }
-
-                if (currentModel.DateArrived    != model.DateArrived)
-                {
-                    changes.Add($"DateArrived: {currentModel.DateArrived} -> {model.DateArrived}");
-                }
-
-                if (currentModel.TimeArrived    != model.TimeArrived)
-                {
-                    changes.Add($"TimeArrived: {currentModel.TimeArrived} -> {model.TimeArrived}");
-                }
-
-                if (currentModel.TotalHours     != model.TotalHours)
-                {
-                    changes.Add($"TotalHours: {currentModel.TotalHours} -> {model.TotalHours}");
-                }
-
-                if (currentModel.TerminalId     != model.TerminalId)
-                {
-                    changes.Add($"TerminalId: {currentModel.TerminalId} -> {model.TerminalId}");
-                }
-
-                // FIX (parity with EditTariff): compare ServiceId, not Service navigation object.
-                if (currentModel.ServiceId      != model.ServiceId)
-                {
-                    changes.Add($"ServiceId: {currentModel.ServiceId} -> {model.ServiceId}");
-                }
-
-                if (currentModel.TugBoatId      != model.TugBoatId)
-                {
-                    changes.Add($"TugBoatId: {currentModel.TugBoatId} -> {model.TugBoatId}");
-                }
-
-                if (currentModel.TugMasterId    != model.TugMasterId)
-                {
-                    changes.Add($"TugMasterId: {currentModel.TugMasterId} -> {model.TugMasterId}");
-                }
-
-                if (currentModel.VesselId       != model.VesselId)
-                {
-                    changes.Add($"VesselId: {currentModel.VesselId} -> {model.VesselId}");
-                }
-
-                if (currentModel.Remarks        != model.Remarks)
-                {
-                    changes.Add($"Remarks: '{currentModel.Remarks}' -> '{model.Remarks}'");
-                }
+                TrackChange(changes, nameof(model.Date),           currentModel.Date,           model.Date);
+                TrackChange(changes, nameof(model.DispatchNumber), currentModel.DispatchNumber, model.DispatchNumber);
+                TrackChange(changes, nameof(model.COSNumber),      currentModel.COSNumber,      model.COSNumber);
+                TrackChange(changes, nameof(model.VoyageNumber),   currentModel.VoyageNumber,   model.VoyageNumber);
+                TrackChange(changes, nameof(model.CustomerId),     currentModel.CustomerId,     model.CustomerId);
+                TrackChange(changes, nameof(model.DateLeft),       currentModel.DateLeft,       model.DateLeft);
+                TrackChange(changes, nameof(model.TimeLeft),       currentModel.TimeLeft,       model.TimeLeft);
+                TrackChange(changes, nameof(model.DateArrived),    currentModel.DateArrived,    model.DateArrived);
+                TrackChange(changes, nameof(model.TimeArrived),    currentModel.TimeArrived,    model.TimeArrived);
+                TrackChange(changes, nameof(model.TotalHours),     currentModel.TotalHours,     model.TotalHours);
+                TrackChange(changes, nameof(model.TerminalId),     currentModel.TerminalId,     model.TerminalId);
+                TrackChange(changes, nameof(model.ServiceId),      currentModel.ServiceId,      model.ServiceId);
+                TrackChange(changes, nameof(model.TugBoatId),      currentModel.TugBoatId,      model.TugBoatId);
+                TrackChange(changes, nameof(model.TugMasterId),    currentModel.TugMasterId,    model.TugMasterId);
+                TrackChange(changes, nameof(model.VesselId),       currentModel.VesselId,       model.VesselId);
+                TrackChange(changes, nameof(model.Remarks),        currentModel.Remarks,        model.Remarks);
 
                 if (imageFile != null && currentModel.ImageName != model.ImageName)
                 {
@@ -834,14 +438,14 @@ namespace IBSWeb.Areas.User.Controllers
                     changes.Add($"VideoName: '{currentModel.VideoName}' -> '{model.VideoName}'");
                 }
 
-                if (currentModel.TugBoatId != model.TugBoatId &&
-                    model.Tugboat!.IsCompanyOwned && currentModel.ApOtherTugs != 0)
+                if (currentModel.TugBoatId != model.TugBoatId && model.Tugboat!.IsCompanyOwned && currentModel.ApOtherTugs != 0)
                 {
                     changes.Add($"ApOtherTugs: '{currentModel.ApOtherTugs}' -> '0'");
                     currentModel.ApOtherTugs = 0;
                 }
 
-                currentModel.EditedBy       = user.UserName;
+                // --- Apply field updates ---
+                currentModel.EditedBy       = User.Identity?.Name ?? "";
                 currentModel.EditedDate     = DateTimeHelper.GetCurrentPhilippineTime();
                 currentModel.Date           = model.Date;
                 currentModel.DispatchNumber = model.DispatchNumber;
@@ -860,7 +464,7 @@ namespace IBSWeb.Areas.User.Controllers
                 currentModel.Remarks        = model.Remarks;
                 currentModel.JobOrderId     = model.JobOrderId;
 
-                // Reset tariff state
+                // --- Reset tariff state ---
                 currentModel.Status                = _statusForTariff;
                 currentModel.DispatchRate          = 0;
                 currentModel.DispatchBillingAmount = 0;
@@ -892,97 +496,53 @@ namespace IBSWeb.Areas.User.Controllers
                 }
 
                 await unitOfWork.SaveAsync(cancellationToken);
-
-                _ = await GetCompanyClaimAsync()
-                    ?? throw new InvalidOperationException("Company claim missing.");
-                var audit = BuildAudit(
-                    user.UserName!,
-                    changes.Any()
-                        ? $"Edit dispatch ticket #{currentModel.DispatchNumber}, {string.Join(", ", changes)}"
-                        : $"No changes detected for #{currentModel.DispatchNumber}",
-                    "Dispatch Ticket");
-                await unitOfWork.AuditTrail.AddAsync(audit,
+                await unitOfWork.AuditTrail.AddAsync(
+                    BuildAudit(
+                        User.Identity?.Name ?? "",
+                        changes.Any()
+                            ? $"Edit dispatch ticket #{currentModel.DispatchNumber}, {string.Join(", ", changes)}"
+                            : $"No changes detected for #{currentModel.DispatchNumber}",
+                        "Dispatch Ticket"),
                     cancellationToken);
 
                 await transaction.CommitAsync(cancellationToken);
                 TempData["success"] = "Entry edited successfully!";
 
                 return currentModel.JobOrderId.HasValue
-                    ? RedirectToAction("Details",
-                        "JobOrder",
-                        new
-                        {
-                            id = currentModel.JobOrderId.Value
-                        })
-                    : RedirectToAction(nameof(Index),
-                        new
-                        {
-                            filterType = await GetCurrentFilterType()
-                        });
+                    ? RedirectToAction("Details", "JobOrder", new { id = currentModel.JobOrderId.Value })
+                    : RedirectToAction(nameof(Index), new { filterType });
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                logger.LogError(ex,
-                    "Failed to edit ticket.");
+                logger.LogError(ex, "Failed to edit ticket.");
                 TempData["error"] = ex.Message;
-                return RedirectToAction("EditTicket",
-                    new { id = viewModel.DispatchTicketId, jobOrderId = viewModel.JobOrderId });
+                return RedirectToAction("EditTicket", new { id = viewModel.DispatchTicketId, jobOrderId = viewModel.JobOrderId });
             }
         }
 
         // ════════════════════════════════════════════════════════════════════════
         // STATUS-CHANGE ACTIONS  (Approve / RevokeApproval / Disapprove / Cancel)
-        // FIX: All four were structurally identical. Collapsed into one private
-        //      helper; each public action is now a one-liner.
         // ════════════════════════════════════════════════════════════════════════
 
         [HttpGet]
-        [RequireAccess(ProcedureEnum.ApproveTariff, "Access denied. You don't have permission to approve Tariff.")]
+        [RequireAccess(ProcedureEnum.ApproveTariff, "Access denied. You don't have permission to approve Tariff.", "DispatchTicket")]
         public Task<IActionResult> Approve(int id, CancellationToken cancellationToken) =>
-            ChangeTicketStatusAsync(
-                id,
-                newStatus:       _statusForBilling,
-                activityPrefix:  "Approve tariff",
-                documentType:    "Tariff",
-                successMessage:  "Entry Approved!",
-                permission:      ProcedureEnum.ApproveTariff,
-                cancellationToken: cancellationToken);
+            ChangeTicketStatusAsync(id, _statusForBilling,  "Approve tariff",        "Tariff",           "Entry Approved!",               cancellationToken);
 
         [HttpGet]
-        [RequireAccess(ProcedureEnum.ApproveTariff, "Access denied. You don't have permission to approve Tariff.")]
+        [RequireAccess(ProcedureEnum.ApproveTariff, "Access denied. You don't have permission to approve Tariff.", "DispatchTicket")]
         public Task<IActionResult> RevokeApproval(int id, CancellationToken cancellationToken) =>
-            ChangeTicketStatusAsync(
-                id,
-                newStatus:       _statusForApproval,
-                activityPrefix:  "Revoke Approval",
-                documentType:    "Tariff",
-                successMessage:  "Approval revoked successfully!",
-                permission:      ProcedureEnum.ApproveTariff,
-                cancellationToken: cancellationToken);
+            ChangeTicketStatusAsync(id, _statusForApproval, "Revoke Approval",       "Tariff",           "Approval revoked successfully!", cancellationToken);
 
         [HttpGet]
-        [RequireAccess(ProcedureEnum.ApproveTariff, "Access denied. You don't have permission to approve Tariff.")]
+        [RequireAccess(ProcedureEnum.ApproveTariff, "Access denied. You don't have permission to approve Tariff.", "DispatchTicket")]
         public Task<IActionResult> Disapprove(int id, CancellationToken cancellationToken) =>
-            ChangeTicketStatusAsync(
-                id,
-                newStatus:       _statusDisapproved,
-                activityPrefix:  "Disapprove Tariff",
-                documentType:    "Tariff",
-                successMessage:  "Entry Disapproved!",
-                permission:      ProcedureEnum.ApproveTariff,
-                cancellationToken: cancellationToken);
+            ChangeTicketStatusAsync(id, _statusDisapproved, "Disapprove Tariff",     "Tariff",           "Entry Disapproved!",             cancellationToken);
 
-        [RequireAccess(ProcedureEnum.CancelDispatchTicket, "Access denied. You don't have permission to cancel Dispatch Tickets.")]
+        [RequireAccess(ProcedureEnum.CancelDispatchTicket, "Access denied. You don't have permission to cancel Dispatch Tickets.", "DispatchTicket")]
         public Task<IActionResult> Cancel(int id, CancellationToken cancellationToken) =>
-            ChangeTicketStatusAsync(
-                id,
-                newStatus:       _statusCancelled,
-                activityPrefix:  "Cancel dispatch ticket",
-                documentType:    "Dispatch Ticket",
-                successMessage:  "Dispatch ticket cancelled.",
-                permission:      ProcedureEnum.CancelDispatchTicket,
-                cancellationToken: cancellationToken);
+            ChangeTicketStatusAsync(id, _statusCancelled,   "Cancel dispatch ticket","Dispatch Ticket",  "Dispatch ticket cancelled.",     cancellationToken);
 
         // ════════════════════════════════════════════════════════════════════════
         // CHANGE TERMINAL  (JSON endpoint for cascading dropdown)
@@ -991,11 +551,8 @@ namespace IBSWeb.Areas.User.Controllers
         [HttpGet]
         public async Task<IActionResult> ChangeTerminal(int portId, CancellationToken cancellationToken)
         {
-            var terminals = await unitOfWork.Terminal
-                .GetAllAsync(t => t.PortId == portId,
-                    cancellationToken);
-
-            var list = terminals.Select(t => new SelectListItem
+            var terminals = await unitOfWork.Terminal.GetAllAsync(t => t.PortId == portId, cancellationToken);
+            var list      = terminals.Select(t => new SelectListItem
             {
                 Value = t.TerminalId.ToString(),
                 Text  = t.TerminalName
@@ -1013,11 +570,9 @@ namespace IBSWeb.Areas.User.Controllers
         {
             var items = status == "All"
                 ? await unitOfWork.DispatchTicket.GetAllAsync(
-                    dt => dt.Status != _statusCancelled && dt.Status != _statusForPosting,
-                    cancellationToken)
+                    dt => dt.Status != _statusCancelled && dt.Status != _statusForPosting, cancellationToken)
                 : await unitOfWork.DispatchTicket.GetAllAsync(
-                    dt => dt.Status == status,
-                    cancellationToken);
+                    dt => dt.Status == status, cancellationToken);
 
             return Json(items);
         }
@@ -1028,12 +583,12 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpPost]
         public async Task<IActionResult> GetDispatchTicketLists(
-            [FromForm] DataTablesParameters parameters, CancellationToken cancellationToken)
+            [FromForm] DataTablesParameters parameters,
+            string filterType,
+            CancellationToken cancellationToken)
         {
             try
             {
-                var filterTypeClaim = await GetCurrentFilterType();
-
                 var queried = dbContext.MMSIDispatchTickets
                     .Include(dt => dt.Service)
                     .Include(dt => dt.Terminal).ThenInclude(dt => dt!.Port)
@@ -1046,18 +601,19 @@ namespace IBSWeb.Areas.User.Controllers
                         dt.Status != _statusCancelled  &&
                         dt.Status != "Incomplete");
 
-                // Status pre-filter from persisted claim
-                queried = filterTypeClaim switch
+                if (!string.IsNullOrEmpty(filterType))
                 {
-                    "ForPosting"    => queried.Where(dt => dt.Status == _statusForPosting),
-                    "ForTariff"     => queried.Where(dt => dt.Status == _statusForTariff),
-                    "ForApproval"   => queried.Where(dt => dt.Status == _statusForApproval),
-                    "ForBilling"    => queried.Where(dt => dt.Status == _statusForBilling),
-                    "ForCollection" => queried.Where(dt => dt.Status == "For Collection"),
-                    _               => queried
-                };
+                    queried = filterType.ToLower() switch
+                    {
+                        "for tariff"   => queried.Where(dt => dt.Status == _statusForTariff),
+                        "for approval" => queried.Where(dt => dt.Status == _statusForApproval),
+                        "disapproved"  => queried.Where(dt => dt.Status == _statusDisapproved),
+                        "for billing"  => queried.Where(dt => dt.Status == _statusForBilling),
+                        "billed"       => queried.Where(dt => dt.Status == "Billed"),
+                        _              => queried
+                    };
+                }
 
-                // Global search
                 if (!string.IsNullOrEmpty(parameters.Search.Value))
                 {
                     var s = parameters.Search.Value.ToLower();
@@ -1066,7 +622,7 @@ namespace IBSWeb.Areas.User.Controllers
                             dt.Date.Value.Day.ToString().Contains(s)   ||
                             dt.Date.Value.Month.ToString().Contains(s) ||
                             dt.Date.Value.Year.ToString().Contains(s))) ||
-                        (dt.COSNumber      != null && dt.COSNumber.ToLower().Contains(s)) ||
+                        (dt.COSNumber != null && dt.COSNumber.ToLower().Contains(s)) ||
                         (dt.DispatchNumber.ToLower().Contains(s)) ||
                         (dt.DateLeft.HasValue && (
                             dt.DateLeft.Value.Day.ToString().Contains(s)   ||
@@ -1091,7 +647,6 @@ namespace IBSWeb.Areas.User.Controllers
                         (dt.Status.ToLower().Contains(s)));
                 }
 
-                // Column-specific search
                 foreach (var column in parameters.Columns)
                 {
                     if (string.IsNullOrEmpty(column.Search.Value))
@@ -1100,7 +655,6 @@ namespace IBSWeb.Areas.User.Controllers
                     }
 
                     var s = column.Search.Value.ToLower();
-
                     if (column.Data == "status")
                     {
                         queried = s switch
@@ -1115,16 +669,13 @@ namespace IBSWeb.Areas.User.Controllers
                     }
                 }
 
-                // Sorting
                 if (parameters.Order?.Count > 0)
                 {
-                    var col  = parameters.Columns[parameters.Order[0].Column].Data;
-                    var dir  = parameters.Order[0].Dir.ToLower() == "asc" ? "ascending" : "descending";
-                    queried  = queried.AsQueryable().OrderBy($"{col} {dir}");
+                    var col = parameters.Columns[parameters.Order[0].Column].Data;
+                    var dir = parameters.Order[0].Dir.ToLower() == "asc" ? "ascending" : "descending";
+                    queried = queried.AsQueryable().OrderBy($"{col} {dir}");
                 }
 
-                // FIX: recordsFiltered must reflect the filtered count, not total.
-                // Count after all filters are applied; page after that.
                 var recordsFiltered = await queried.CountAsync(cancellationToken);
                 var totalRecords    = await dbContext.MMSIDispatchTickets
                     .CountAsync(dt =>
@@ -1158,35 +709,26 @@ namespace IBSWeb.Areas.User.Controllers
             }
             catch (Exception ex)
             {
-                logger.LogError(ex,
-                    "Failed to get dispatch tickets.");
+                logger.LogError(ex, "Failed to get dispatch tickets.");
                 TempData["error"] = ex.Message;
-                return RedirectToAction(nameof(Index),
-                    new
-                    {
-                        filterType = await GetCurrentFilterType()
-                    });
+                return RedirectToAction(nameof(Index));
             }
         }
 
         // ════════════════════════════════════════════════════════════════════════
         // DELETE IMAGE
-        // FIX: removed dead local System.IO.File path — all file ops go through
-        //      _cloudStorageService for consistency.
         // ════════════════════════════════════════════════════════════════════════
 
-        public async Task<IActionResult> DeleteImage(int id, CancellationToken cancellationToken)
+        // FIX: accept filterType so the user lands back on the correct filtered view
+        public async Task<IActionResult> DeleteImage(int id, string filterType, CancellationToken cancellationToken)
         {
-            var model = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == id,
-                    cancellationToken);
+            var model = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
             if (model == null)
             {
                 return NotFound();
             }
 
             await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-
             try
             {
                 if (!string.IsNullOrEmpty(model.ImageName))
@@ -1198,23 +740,14 @@ namespace IBSWeb.Areas.User.Controllers
                 await unitOfWork.SaveAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 TempData["success"] = "Image Deleted Successfully!";
-                return RedirectToAction(nameof(Index),
-                    new
-                    {
-                        filterType = await GetCurrentFilterType()
-                    });
+                return RedirectToAction(nameof(Index), new { filterType });
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                logger.LogError(ex,
-                    "Failed to delete image.");
+                logger.LogError(ex, "Failed to delete image.");
                 TempData["error"] = ex.Message;
-                return RedirectToAction(nameof(Index),
-                    new
-                    {
-                        filterType = await GetCurrentFilterType()
-                    });
+                return RedirectToAction(nameof(Index), new { filterType });
             }
         }
 
@@ -1226,31 +759,29 @@ namespace IBSWeb.Areas.User.Controllers
             int customerId, int dispatchTicketId, CancellationToken cancellationToken)
         {
             var dispatchModel = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == dispatchTicketId,
-                    cancellationToken);
+                .GetAsync(dt => dt.DispatchTicketId == dispatchTicketId, cancellationToken);
             if (dispatchModel == null)
             {
                 return NotFound();
             }
 
-            // Cascading fallback: exact → terminal-only → customer-only.
             var tariffRate =
                 await unitOfWork.TariffTable.GetAsync(t =>
                         t.CustomerId == customerId &&
                         t.TerminalId == dispatchModel.TerminalId &&
-                        t.ServiceId == dispatchModel.ServiceId &&
-                        t.AsOfDate <= dispatchModel.DateLeft,
+                        t.ServiceId  == dispatchModel.ServiceId &&
+                        t.AsOfDate   <= dispatchModel.DateLeft,
                     cancellationToken)
                 ??
                 await unitOfWork.TariffTable.GetAsync(t =>
                         t.CustomerId == customerId &&
                         t.TerminalId == dispatchModel.TerminalId &&
-                        t.AsOfDate <= dispatchModel.DateLeft,
+                        t.AsOfDate   <= dispatchModel.DateLeft,
                     cancellationToken)
                 ??
                 await unitOfWork.TariffTable.GetAsync(t =>
                         t.CustomerId == customerId &&
-                        t.AsOfDate <= dispatchModel.DateLeft,
+                        t.AsOfDate   <= dispatchModel.DateLeft,
                     cancellationToken);
 
             if (tariffRate != null)
@@ -1261,7 +792,7 @@ namespace IBSWeb.Areas.User.Controllers
                     tariffRate.BAF,
                     tariffRate.DispatchDiscount,
                     tariffRate.BAFDiscount,
-                    Exists           = true
+                    Exists = true
                 });
             }
 
@@ -1270,62 +801,31 @@ namespace IBSWeb.Areas.User.Controllers
 
         // ════════════════════════════════════════════════════════════════════════
         // APPROVE/DISAPPROVE TARIFF (POST actions for modal)
+        // FIX: shared the same transaction/audit scaffold. Unified via
+        //      ChangeTicketStatusJsonAsync.
         // ════════════════════════════════════════════════════════════════════════
 
         [HttpPost]
-        [RequireAccess(ProcedureEnum.ApproveTariff, "Access denied. You don't have permission to approve Tariff.")]
+        [RequireAccess(ProcedureEnum.ApproveTariff, "Access denied. You don't have permission to approve Tariff.", "DispatchTicket")]
         public async Task<IActionResult> ApproveTariff(int id, CancellationToken cancellationToken)
         {
-            // Guard: Check if parent JobOrder is editable
-            if (!await IsTicketJobOrderEditableAsync(id,
-                    cancellationToken))
+            if (!await IsTicketJobOrderEditableAsync(id, cancellationToken))
             {
                 return Json(new { success = false, message = "Cannot approve tariff — parent Job Order is cancelled or closed." });
             }
 
-            var model = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == id,
-                    cancellationToken);
-            if (model == null)
-            {
-                return Json(new { success = false, message = "Ticket not found" });
-            }
-
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-            try
-            {
-                model.Status = _statusForBilling;
-                await unitOfWork.SaveAsync(cancellationToken);
-
-                var user          = await UserManager.GetUserAsync(User);
-
-                var audit = BuildAudit(
-                    user!.UserName!,
-                    $"Approved tariff for dispatch ticket #{model.DispatchNumber}",
-                    "Dispatch Ticket");
-                await unitOfWork.AuditTrail.AddAsync(audit,
-                    cancellationToken);
-
-                await transaction.CommitAsync(cancellationToken);
-                return Json(new { success = true, message = "Tariff approved successfully" });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                logger.LogError(ex,
-                    "Failed to approve tariff");
-                return Json(new { success = false, message = ex.Message });
-            }
+            return await ChangeTicketStatusJsonAsync(
+                id,
+                newStatus:     _statusForBilling,
+                auditActivity: m => $"Approved tariff for dispatch ticket #{m.DispatchNumber}",
+                cancellationToken: cancellationToken);
         }
 
         [HttpPost]
-        [RequireAccess(ProcedureEnum.ApproveTariff, "Access denied. You don't have permission to approve Tariff.")]
-        public async Task<IActionResult> DisapproveTariff(
-            int id, string reason, CancellationToken cancellationToken)
+        [RequireAccess(ProcedureEnum.ApproveTariff, "Access denied. You don't have permission to approve Tariff.", "DispatchTicket")]
+        public async Task<IActionResult> DisapproveTariff(int id, string reason, CancellationToken cancellationToken)
         {
-            // Guard: Check if parent JobOrder is editable
-            if (!await IsTicketJobOrderEditableAsync(id,
-                    cancellationToken))
+            if (!await IsTicketJobOrderEditableAsync(id, cancellationToken))
             {
                 return Json(new { success = false, message = "Cannot disapprove tariff — parent Job Order is cancelled or closed." });
             }
@@ -1335,9 +835,83 @@ namespace IBSWeb.Areas.User.Controllers
                 return Json(new { success = false, message = "Please provide a detailed reason (at least 10 characters)" });
             }
 
-            var model = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == id,
+            return await ChangeTicketStatusJsonAsync(
+                id,
+                newStatus: _statusDisapproved,
+                auditActivity: m => $"Disapproved tariff for dispatch ticket #{m.DispatchNumber}. Reason: {reason}",
+                cancellationToken: cancellationToken,
+                beforeSave: m =>
+                {
+                    m.Remarks = string.IsNullOrEmpty(m.Remarks)
+                        ? $"Disapproved: {reason}"
+                        : $"{m.Remarks} | Disapproved: {reason}";
+                });
+        }
+
+        // ════════════════════════════════════════════════════════════════════════
+        // PRIVATE HELPERS
+        // ════════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Shared scaffold for Approve / RevokeApproval / Disapprove / Cancel.
+        /// </summary>
+        private async Task<IActionResult> ChangeTicketStatusAsync(
+            int id,
+            string newStatus,
+            string activityPrefix,
+            string documentType,
+            string successMessage,
+            CancellationToken cancellationToken)
+        {
+            if (!await IsTicketJobOrderEditableAsync(id, cancellationToken))
+            {
+                TempData["error"] = "Cannot change ticket status — parent Job Order is cancelled or closed.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var model = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
+            if (model == null)
+            {
+                TempData["error"] = "Can't find entry, please try again.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                model.Status = newStatus;
+                await unitOfWork.SaveAsync(cancellationToken);
+                await unitOfWork.AuditTrail.AddAsync(
+                    BuildAudit(User.Identity?.Name ?? "", $"{activityPrefix} #{model.DispatchTicketId}", documentType),
                     cancellationToken);
+
+                await transaction.CommitAsync(cancellationToken);
+                TempData["success"] = successMessage;
+
+                return model.JobOrderId.HasValue
+                    ? RedirectToAction("Details", "JobOrder", new { id = model.JobOrderId.Value })
+                    : RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                logger.LogError(ex, "Failed to change ticket status to {Status}.", newStatus);
+                TempData["error"] = ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        /// <summary>
+        /// Shared scaffold for ApproveTariff / DisapproveTariff (JSON modal endpoints).
+        /// </summary>
+        private async Task<IActionResult> ChangeTicketStatusJsonAsync(
+            int id,
+            string newStatus,
+            Func<DispatchTicket, string> auditActivity,
+            CancellationToken cancellationToken,
+            Action<DispatchTicket>? beforeSave = null)
+        {
+            var model = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == id, cancellationToken);
             if (model == null)
             {
                 return Json(new { success = false, message = "Ticket not found" });
@@ -1346,137 +920,124 @@ namespace IBSWeb.Areas.User.Controllers
             await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                model.Status  = _statusDisapproved;
-                model.Remarks = string.IsNullOrEmpty(model.Remarks)
-                    ? $"Disapproved: {reason}"
-                    : $"{model.Remarks} | Disapproved: {reason}";
-                await unitOfWork.SaveAsync(cancellationToken);
+                model.Status = newStatus;
+                beforeSave?.Invoke(model);
 
-                var user          = await UserManager.GetUserAsync(User);
-                var audit = BuildAudit(
-                    user!.UserName!,
-                    $"Disapproved tariff for dispatch ticket #{model.DispatchNumber}. Reason: {reason}",
-                    "Dispatch Ticket");
-                await unitOfWork.AuditTrail.AddAsync(audit,
+                await unitOfWork.SaveAsync(cancellationToken);
+                await unitOfWork.AuditTrail.AddAsync(
+                    BuildAudit(User.Identity?.Name ?? "", auditActivity(model), "Dispatch Ticket"),
                     cancellationToken);
 
                 await transaction.CommitAsync(cancellationToken);
-                return Json(new { success = true, message = "Tariff disapproved successfully" });
+                return Json(new { success = true, message = $"Status updated to {newStatus} successfully" });
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                logger.LogError(ex,
-                    "Failed to disapprove tariff");
+                logger.LogError(ex, "Failed to change ticket status to {Status}.", newStatus);
                 return Json(new { success = false, message = ex.Message });
             }
         }
 
-        // ════════════════════════════════════════════════════════════════════════
-        // PRIVATE HELPERS
-        // ════════════════════════════════════════════════════════════════════════
-
         /// <summary>
-        /// FIX: Approve / RevokeApproval / Disapprove / Cancel were four near-identical
-        /// action methods. This single helper encapsulates the shared scaffold;
-        /// each caller supplies only what differs.
+        /// Shared scaffold for SetTariff POST and EditTariff POST.
+        /// isEdit=false → sets TariffBy; isEdit=true → sets TariffEditedBy/Date and tracks changes.
         /// </summary>
-        private async Task<IActionResult> ChangeTicketStatusAsync(
-            int id,
-            string newStatus,
-            string activityPrefix,
-            string documentType,
-            string successMessage,
-            ProcedureEnum permission,
+        private async Task<IActionResult> SaveTariffAsync(
+            TariffViewModel vm,
+            string chargeType,
+            string chargeType2,
+            string filterType,
+            bool isEdit,
             CancellationToken cancellationToken)
         {
-            // Guard: Check if parent JobOrder is editable
-            if (!await IsTicketJobOrderEditableAsync(id,
-                    cancellationToken))
-            {
-                TempData["error"] = "Cannot change ticket status — parent Job Order is cancelled or closed.";
-                return RedirectToAction(nameof(Index),
-                    new
-                    {
-                        filterType = await GetCurrentFilterType()
-                    });
-            }
+            var actionName   = isEdit ? nameof(EditTariff) : nameof(SetTariff);
+            var model        = TariffVmToDispatchTicket(vm);
+            var currentModel = await unitOfWork.DispatchTicket
+                .GetAsync(dt => dt.DispatchTicketId == model.DispatchTicketId, cancellationToken);
 
-            var model = await unitOfWork.DispatchTicket
-                .GetAsync(dt => dt.DispatchTicketId == id,
-                    cancellationToken);
-            if (model == null)
+            if (currentModel == null)
             {
-                TempData["error"] = "Can't find entry, please try again.";
-                return RedirectToAction(nameof(Index),
-                    new
-                    {
-                        filterType = await GetCurrentFilterType()
-                    });
+                return NotFound();
             }
 
             await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
-                model.Status = newStatus;
-                await unitOfWork.SaveAsync(cancellationToken);
+                string auditMessage;
 
-                var user          = await UserManager.GetUserAsync(User);
-                _ = await GetCompanyClaimAsync()
-                    ?? throw new InvalidOperationException("Company claim missing.");
-                var audit = BuildAudit(
-                    user!.UserName!,
-                    $"{activityPrefix} #{model.DispatchTicketId}",
-                    documentType);
-                await unitOfWork.AuditTrail.AddAsync(audit,
+                if (isEdit)
+                {
+                    var changes = new List<string>();
+                    TrackChange(changes, nameof(currentModel.CustomerId),            currentModel.CustomerId,            model.CustomerId);
+                    TrackChange(changes, nameof(currentModel.DispatchChargeType),    currentModel.DispatchChargeType,    chargeType);
+                    TrackChange(changes, nameof(currentModel.BAFChargeType),         currentModel.BAFChargeType,         chargeType2);
+                    TrackChange(changes, nameof(currentModel.DispatchRate),          currentModel.DispatchRate,          model.DispatchRate);
+                    TrackChange(changes, nameof(currentModel.BAFRate),               currentModel.BAFRate,               model.BAFRate);
+                    TrackChange(changes, nameof(currentModel.DispatchDiscount),      currentModel.DispatchDiscount,      model.DispatchDiscount);
+                    TrackChange(changes, nameof(currentModel.BAFDiscount),           currentModel.BAFDiscount,           model.BAFDiscount);
+                    TrackChange(changes, nameof(currentModel.DispatchBillingAmount), currentModel.DispatchBillingAmount, model.DispatchBillingAmount);
+                    TrackChange(changes, nameof(currentModel.BAFBillingAmount),      currentModel.BAFBillingAmount,      model.BAFBillingAmount);
+                    TrackChange(changes, nameof(currentModel.DispatchNetRevenue),    currentModel.DispatchNetRevenue,    model.DispatchNetRevenue);
+                    TrackChange(changes, nameof(currentModel.BAFNetRevenue),         currentModel.BAFNetRevenue,         model.BAFNetRevenue);
+                    TrackChange(changes, nameof(currentModel.ApOtherTugs),           currentModel.ApOtherTugs,           model.ApOtherTugs);
+                    TrackChange(changes, nameof(currentModel.TotalBilling),          currentModel.TotalBilling,          model.TotalBilling);
+                    TrackChange(changes, nameof(currentModel.TotalNetRevenue),       currentModel.TotalNetRevenue,       model.TotalNetRevenue);
+                    TrackChange(changes, nameof(currentModel.ServiceId),             currentModel.ServiceId,             model.ServiceId);
+
+                    currentModel.TariffEditedBy   = User.Identity?.Name ?? "";
+                    currentModel.TariffEditedDate = DateTimeHelper.GetCurrentPhilippineTime();
+
+                    auditMessage = changes.Any()
+                        ? $"Edit tariff #{currentModel.DispatchNumber} {string.Join(", ", changes)}"
+                        : $"No changes detected for tariff details #{currentModel.DispatchNumber}";
+                }
+                else
+                {
+                    currentModel.TariffBy = User.Identity?.Name ?? "";
+                    auditMessage          = $"Set Tariff #{currentModel.DispatchTicketId}";
+                }
+
+                currentModel.Status                = _statusForApproval;
+                currentModel.DispatchChargeType    = chargeType;
+                currentModel.BAFChargeType         = chargeType2;
+                currentModel.DispatchRate          = model.DispatchRate;
+                currentModel.BAFRate               = model.BAFRate;
+                currentModel.DispatchDiscount      = model.DispatchDiscount;
+                currentModel.BAFDiscount           = model.BAFDiscount;
+                currentModel.DispatchBillingAmount = model.DispatchBillingAmount;
+                currentModel.BAFBillingAmount      = model.BAFBillingAmount;
+                currentModel.DispatchNetRevenue    = model.DispatchNetRevenue;
+                currentModel.BAFNetRevenue         = model.BAFNetRevenue;
+                currentModel.ApOtherTugs           = model.ApOtherTugs;
+                currentModel.TotalBilling          = model.TotalBilling;
+                currentModel.TotalNetRevenue       = model.TotalNetRevenue;
+
+                await unitOfWork.SaveAsync(cancellationToken);
+                await unitOfWork.AuditTrail.AddAsync(
+                    BuildAudit(User.Identity?.Name ?? "", auditMessage, "Tariff"),
                     cancellationToken);
 
                 await transaction.CommitAsync(cancellationToken);
-                TempData["success"] = successMessage;
+                TempData["success"] = isEdit ? "Tariff edited successfully!" : "Tariff entered successfully!";
 
-                if (model.JobOrderId.HasValue)
-                {
-                    return RedirectToAction("Details",
-                        "JobOrder",
-                        new
-                        {
-                            id = model.JobOrderId.Value
-                        });
-                }
-
-                return RedirectToAction(nameof(Index),
-                    new
-                    {
-                        filterType = await GetCurrentFilterType()
-                    });
+                return currentModel.JobOrderId.HasValue
+                    ? RedirectToAction("Details", "JobOrder", new { id = currentModel.JobOrderId.Value })
+                    : RedirectToAction(nameof(Index), new { filterType });
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync(cancellationToken);
-                logger.LogError(ex,
-                    "Failed to change ticket status to {Status}.",
-                    newStatus);
+                logger.LogError(ex, "Failed to {Action} tariff.", isEdit ? "edit" : "set");
                 TempData["error"] = ex.Message;
-
-                return RedirectToAction(nameof(Index),
-                    new
-                    {
-                        filterType = await GetCurrentFilterType()
-                    });
+                return RedirectToAction(actionName, new { id = vm.DispatchTicketId });
             }
         }
 
-        /// <summary>
-        /// FIX: The job-order pre-fill logic was duplicated across Create GET and
-        /// GetDispatchTicketPartial (create branch). Extracted to a single method.
-        /// </summary>
         private async Task<ServiceRequestViewModel> PreFillFromJobOrderAsync(
             ServiceRequestViewModel viewModel, int jobOrderId, CancellationToken cancellationToken)
         {
-            var jobOrder = await unitOfWork.JobOrder
-                .GetAsync(j => j.JobOrderId == jobOrderId,
-                    cancellationToken);
-
+            var jobOrder = await unitOfWork.JobOrder.GetAsync(j => j.JobOrderId == jobOrderId, cancellationToken);
             if (jobOrder == null)
             {
                 return viewModel;
@@ -1499,16 +1060,16 @@ namespace IBSWeb.Areas.User.Controllers
             return viewModel;
         }
 
-        /// <summary>
-        /// FIX: Hours calculation (including PHIL-CEB rounding) was duplicated
-        /// verbatim in Create POST and EditTicket POST. Extracted here.
-        /// </summary>
+        // FIX: extracted from Create POST and EditTicket POST — was copy-pasted verbatim
+        private static bool IsArrivalAfterDeparture(DispatchTicket model) =>
+            model.DateLeft < model.DateArrived ||
+            (model.DateLeft == model.DateArrived && model.TimeLeft < model.TimeArrived);
+
         private static decimal CalculateTotalHours(DispatchTicket model)
         {
             var dateTimeLeft    = model.DateLeft!.Value.ToDateTime(model.TimeLeft!.Value);
             var dateTimeArrived = model.DateArrived!.Value.ToDateTime(model.TimeArrived!.Value);
-            var totalHours      = Math.Round((decimal)(dateTimeArrived - dateTimeLeft).TotalHours,
-                2);
+            var totalHours      = Math.Round((decimal)(dateTimeArrived - dateTimeLeft).TotalHours, 2);
 
             if (model.Customer?.CustomerName == "PHIL-CEB MARINE SERVICES INC.")
             {
@@ -1523,15 +1084,17 @@ namespace IBSWeb.Areas.User.Controllers
             return totalHours;
         }
 
-        /// <summary>
-        /// FIX: Audit trail construction was copy-pasted in every action.
-        /// Now built in one place.
-        /// </summary>
-        private static AuditTrail BuildAudit(
-            string username, string activity, string documentType) =>
-            new AuditTrail(username,
-                activity,
-                documentType);
+        // FIX: consolidated change-tracking from EditTicket and EditTariff into one generic helper
+        private static void TrackChange<T>(List<string> changes, string field, T oldVal, T newVal)
+        {
+            if (!EqualityComparer<T>.Default.Equals(oldVal, newVal))
+            {
+                changes.Add($"{field}: {oldVal} -> {newVal}");
+            }
+        }
+
+        private static AuditTrail BuildAudit(string username, string activity, string documentType) =>
+            new AuditTrail(username, activity, documentType);
 
         private async Task GenerateSignedUrl(DispatchTicket model)
         {
@@ -1556,54 +1119,6 @@ namespace IBSWeb.Areas.User.Controllers
             throw new InvalidOperationException("Upload name is null or empty.");
         }
 
-        private async Task<string?> GetCompanyClaimAsync()
-        {
-            var user = await UserManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return null;
-            }
-
-            var claims = await UserManager.GetClaimsAsync(user);
-            return claims.FirstOrDefault(c => c.Type == "Company")?.Value;
-        }
-
-        private async Task UpdateFilterTypeClaim(string filterType)
-        {
-            var user = await UserManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return;
-            }
-
-            var existing = (await UserManager.GetClaimsAsync(user))
-                .FirstOrDefault(c => c.Type == _filterTypeClaimType);
-            if (existing != null)
-            {
-                await UserManager.RemoveClaimAsync(user,
-                    existing);
-            }
-
-            if (!string.IsNullOrEmpty(filterType))
-            {
-                await UserManager.AddClaimAsync(user,
-                    new Claim(_filterTypeClaimType,
-                        filterType));
-            }
-        }
-
-        private async Task<string?> GetCurrentFilterType()
-        {
-            var user = await UserManager.GetUserAsync(User);
-            if (user == null)
-            {
-                return null;
-            }
-
-            var claims = await UserManager.GetClaimsAsync(user);
-            return claims.FirstOrDefault(c => c.Type == _filterTypeClaimType)?.Value;
-        }
-
         private static string GenerateFileNameToSave(string incomingFileName, string type)
         {
             var name = Path.GetFileNameWithoutExtension(incomingFileName);
@@ -1613,59 +1128,53 @@ namespace IBSWeb.Areas.User.Controllers
 
         // ════════════════════════════════════════════════════════════════════════
         // JOB ORDER STATUS VALIDATION
-        // Prevents modifications to tickets when parent JobOrder is Canceled or Closed
         // ════════════════════════════════════════════════════════════════════════
 
         private async Task<bool> IsJobOrderEditableAsync(int? jobOrderId, CancellationToken cancellationToken)
         {
             if (jobOrderId == null)
             {
-                return true; // Standalone ticket, no JO constraint
+                return true;
             }
 
-            var jobOrder = await unitOfWork.JobOrder.GetAsync(j => j.JobOrderId == jobOrderId.Value,
-                cancellationToken);
+            var jobOrder = await unitOfWork.JobOrder.GetAsync(j => j.JobOrderId == jobOrderId.Value, cancellationToken);
             return jobOrder?.Status == JobOrderStatus.Open;
         }
 
         private async Task<bool> IsTicketJobOrderEditableAsync(int ticketId, CancellationToken cancellationToken)
         {
-            var ticket = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == ticketId,
-                cancellationToken);
+            var ticket = await unitOfWork.DispatchTicket.GetAsync(dt => dt.DispatchTicketId == ticketId, cancellationToken);
             if (ticket?.JobOrderId == null)
             {
-                return true; // Standalone ticket
+                return true;
             }
 
-            return await IsJobOrderEditableAsync(ticket.JobOrderId,
-                cancellationToken);
+            return await IsJobOrderEditableAsync(ticket.JobOrderId, cancellationToken);
         }
 
         // ════════════════════════════════════════════════════════════════════════
         // MAPPER METHODS
-        // FIX: were public instance methods — accidentally routable in MVC.
-        //      Changed to private static; they don't touch any instance state.
         // ════════════════════════════════════════════════════════════════════════
 
         private static DispatchTicket ServiceRequestVmToDispatchTicket(ServiceRequestViewModel vm) =>
             new()
             {
-                DispatchTicketId = vm.DispatchTicketId ?? 0,
-                Date             = vm.Date,
-                COSNumber        = vm.COSNumber,
-                DispatchNumber   = vm.DispatchNumber,
-                VoyageNumber     = vm.VoyageNumber,
-                CustomerId       = vm.CustomerId,
-                DateLeft         = vm.DateLeft,
-                TimeLeft         = vm.TimeLeft,
-                DateArrived      = vm.DateArrived,
-                TimeArrived      = vm.TimeArrived,
-                TerminalId       = vm.TerminalId,
-                ServiceId        = vm.ServiceId,
-                TugBoatId        = vm.TugBoatId,
-                TugMasterId      = vm.TugMasterId,
-                VesselId         = vm.VesselId,
-                Remarks          = vm.Remarks,
+                DispatchTicketId   = vm.DispatchTicketId ?? 0,
+                Date               = vm.Date,
+                COSNumber          = vm.COSNumber,
+                DispatchNumber     = vm.DispatchNumber,
+                VoyageNumber       = vm.VoyageNumber,
+                CustomerId         = vm.CustomerId,
+                DateLeft           = vm.DateLeft,
+                TimeLeft           = vm.TimeLeft,
+                DateArrived        = vm.DateArrived,
+                TimeArrived        = vm.TimeArrived,
+                TerminalId         = vm.TerminalId,
+                ServiceId          = vm.ServiceId,
+                TugBoatId          = vm.TugBoatId,
+                TugMasterId        = vm.TugMasterId,
+                VesselId           = vm.VesselId,
+                Remarks            = vm.Remarks,
                 DispatchChargeType = string.Empty,
                 BAFChargeType      = string.Empty,
                 TariffBy           = string.Empty,
@@ -1676,19 +1185,19 @@ namespace IBSWeb.Areas.User.Controllers
         private static DispatchTicket TariffVmToDispatchTicket(TariffViewModel vm) =>
             new()
             {
-                DispatchTicketId       = vm.DispatchTicketId,
-                CustomerId             = vm.CustomerId,
-                DispatchRate           = vm.DispatchRate ?? 0,
-                DispatchDiscount       = vm.DispatchDiscount ?? 0,
-                DispatchBillingAmount  = vm.DispatchBillingAmount,
-                DispatchNetRevenue     = vm.DispatchNetRevenue,
-                BAFRate                = vm.BAFRate ?? 0,
-                BAFDiscount            = vm.BAFDiscount ?? 0,
-                BAFBillingAmount       = vm.BAFBillingAmount,
-                BAFNetRevenue          = vm.BAFNetRevenue,
-                TotalBilling           = vm.TotalBilling,
-                TotalNetRevenue        = vm.TotalNetRevenue,
-                ApOtherTugs            = vm.ApOtherTugs ?? 0
+                DispatchTicketId      = vm.DispatchTicketId,
+                CustomerId            = vm.CustomerId,
+                DispatchRate          = vm.DispatchRate ?? 0,
+                DispatchDiscount      = vm.DispatchDiscount ?? 0,
+                DispatchBillingAmount = vm.DispatchBillingAmount,
+                DispatchNetRevenue    = vm.DispatchNetRevenue,
+                BAFRate               = vm.BAFRate ?? 0,
+                BAFDiscount           = vm.BAFDiscount ?? 0,
+                BAFBillingAmount      = vm.BAFBillingAmount,
+                BAFNetRevenue         = vm.BAFNetRevenue,
+                TotalBilling          = vm.TotalBilling,
+                TotalNetRevenue       = vm.TotalNetRevenue,
+                ApOtherTugs           = vm.ApOtherTugs ?? 0
             };
 
         private static ServiceRequestViewModel DispatchTicketModelToServiceRequestVm(DispatchTicket model) =>

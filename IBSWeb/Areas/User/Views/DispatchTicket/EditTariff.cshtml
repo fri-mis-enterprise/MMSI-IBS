@@ -80,6 +80,7 @@
 
     <div class="card-body p-3 m-0">
         <form id="myForm" method="post" class="row">
+            <input type="hidden" name="filterType" value="@filterType" />
             <input type="hidden" asp-for="DispatchNumber" value="@Model.DispatchNumber"></input>
             <div class="border-2 px-3 mt-2">
                 <div asp-validation-summary="ModelOnly"></div>
@@ -332,12 +333,12 @@
                 theme: 'classic'
             });
 
-            function ValueChange() 
+            function ValueChange()
             {
                 @* Get if per hour or per move *@
                 let selectedValue = $('input[name="chargeType"]:checked').val();
                 let selectedValue2 = $('input[name="chargeType2"]:checked').val();
-                
+
                 @* Get Dispatch/BAF Rate and Discount Value *@
                 let dispatchRate = dispatchRateInputVar.val() || 0;
                 let dispatchDiscountPercent = dispatchDiscountInputVar.val() || 0;
@@ -381,7 +382,7 @@
                 $('input[name="BAFBillingAmount"]').val(bafBillingFormatted);
                 $('input[name="DispatchNetRevenue"]').val(dispatchRevenueFormatted);
                 $('input[name="BAFNetRevenue"]').val(bafRevenueFormatted);
-                
+
                 @* Calculate, Parse, Format, and Display Total Billings/ Revenue *@
                 let totalBilling = dispatchBilling + bafBilling;
                 let formattedTotalBilling = formatNumber(totalBilling);
@@ -422,7 +423,7 @@
                                 timer: 3000
                             });
                             ValueChange();
-                            
+
                         }
                         else
                         {
@@ -470,7 +471,7 @@
                     let bafBillingAmountInput = $('input[name="BAFBillingAmount"]');
                     let dispatchNetRevenueInput = $('input[name="DispatchNetRevenue"]');
                     let bafNetRevenueInput = $('input[name="BAFNetRevenue"]');
-                    
+
                     let parsedDispatchBillingAmount = parseNumber(dispatchBillingAmountInput.val());
                     let parsedBAFBillingAmount = parseNumber(bafBillingAmountInput.val());
                     let parsedDispatchNetRevenue = parseNumber(dispatchNetRevenueInput.val());
@@ -480,34 +481,34 @@
                     bafBillingAmountInput.val(parsedBAFBillingAmount);
                     dispatchNetRevenueInput.val(parsedDispatchNetRevenue);
                     bafNetRevenueInput.val(parsedBAFNetRevenue);
-                    
+
                     let totalBilling = parsedDispatchBillingAmount + parsedBAFBillingAmount;
                     $('input[name="TotalBilling"]').val(totalBilling);
 
                     let totalRevenue = parsedDispatchNetRevenue + parsedBAFNetRevenue;
                     $('input[name="TotalNetRevenue"]').val(totalRevenue);
-                    
+
                     document.getElementById('myForm').requestSubmit();
                 }
             }
 
-            dispatchRateInputVar.on('input', function () 
+            dispatchRateInputVar.on('input', function ()
             { ValueChange(); });
 
-            bafRateInputVar.on('input', function () 
+            bafRateInputVar.on('input', function ()
             { ValueChange(); });
 
             dispatchDiscountInputVar.on('input', function ()
             { ValueChange(); });
 
-            bafDiscountInputVar.on('input', function () 
+            bafDiscountInputVar.on('input', function ()
             { ValueChange(); });
 
             customerIdVar.on('change', function ()
             { CustomerChange(); });
 
             $("#submitButton").on("click", checkDispatchAndBafValues);
-            
+
             $(document).on('change', 'input[name="chargeType"]', ValueChange);
             $(document).on('change', 'input[name="chargeType2"]', ValueChange);
 

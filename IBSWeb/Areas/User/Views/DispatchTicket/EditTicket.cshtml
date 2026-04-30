@@ -95,6 +95,7 @@
     <div class="card-body">
 
         <form id="myForm" method="post" class="row" enctype="multipart/form-data">
+            <input type="hidden" name="filterType" value="@filterType" />
             <input asp-for="DispatchTicketId" type="hidden">
             <input asp-for="JobOrderId" type="hidden">
             <div class="border-2 px-3">
