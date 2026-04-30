@@ -170,11 +170,6 @@ namespace IBS.DataAccess.Migrations
                         .HasColumnType("text")
                         .HasColumnName("activity");
 
-                    b.Property<string>("Company")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("company");
-
                     b.Property<DateTime>("Date")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("date");

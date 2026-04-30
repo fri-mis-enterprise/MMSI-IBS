@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace IBS.DataAccess.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -80,8 +80,7 @@ namespace IBS.DataAccess.Migrations
                     date = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
                     machine_name = table.Column<string>(type: "text", nullable: false),
                     activity = table.Column<string>(type: "text", nullable: false),
-                    document_type = table.Column<string>(type: "text", nullable: false),
-                    company = table.Column<string>(type: "text", nullable: false)
+                    document_type = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
