@@ -152,6 +152,8 @@ app.MapHub<NotificationHub>("/notificationHub");
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    var db = services.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync(); // creates all tables automatically
     await DbSeeder.SeedAsync(services);
 }
 
