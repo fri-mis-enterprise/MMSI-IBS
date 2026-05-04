@@ -9,7 +9,12 @@ namespace IBS.DataAccess.Repository.MMSI
     {
         public async Task<List<SelectListItem>> GetMMSIUsersSelectListById(CancellationToken cancellationToken = default)
         {
+            var existingUserIds = await db.MMSIUserAccesses
+                .Select(ua => ua.UserId)
+                .ToListAsync(cancellationToken);
+
             var list = await db.Users
+                .Where(u => !existingUserIds.Contains(u.Id))
                 .OrderBy(dt => dt.UserName).Select(s => new SelectListItem
                 {
                     Value = s.Id.ToString(),
