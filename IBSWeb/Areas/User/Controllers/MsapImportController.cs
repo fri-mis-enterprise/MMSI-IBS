@@ -3,17 +3,16 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using IBS.DataAccess.Data;
 using IBS.DataAccess.Repository.IRepository;
-using IBS.Models;
 using IBS.Models.MMSI;
 using IBS.Models.MMSI.MasterFile;
-using IBS.Services.AccessControl;
 using IBS.Utility.Helpers;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Security.Claims;
 using System.Text;
+using IBS.Models.Enums;
+using IBS.Services.Attributes;
 
 namespace IBSWeb.Areas.User.Controllers
 {
@@ -38,14 +37,14 @@ namespace IBSWeb.Areas.User.Controllers
                     ?? "Unknown";
         }
 
+        [RequireAnyAccess("You do not have permission to import Msap data.", ProcedureEnum.ManageMsapImport)]
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public IActionResult Index()
         {
-
-                TempData["error"] = "Access denied.";
-                return RedirectToAction("Index", "Home", new { area = "User" });
+            return View();
         }
 
+        [RequireAnyAccess("You do not have permission to import Msap data.", ProcedureEnum.ManageMsapImport)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Index(List<string> fieldList)
@@ -278,9 +277,11 @@ namespace IBSWeb.Areas.User.Controllers
         public async Task<string> ImportMsapCustomers(string customerCSVPath, CancellationToken cancellationToken)
         {
             var existingNames = (await unitOfWork.Customer.GetAllAsync(c => c.Company == "MMSI", cancellationToken))
-                .Select(c => c.CustomerName).ToHashSet();
+                .Select(c => c.CustomerName?.Trim() ?? string.Empty)
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            var currentBatchNames = new HashSet<string>();
+            var currentBatchNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var customerList = new List<Customer>();
             using var reader = new StreamReader(customerCSVPath);
             using var csv = new CsvReader(reader, _csvConfig);
@@ -288,9 +289,9 @@ namespace IBSWeb.Areas.User.Controllers
 
             foreach (var record in records)
             {
-                string customerName = GetString(record, "name") ?? string.Empty;
+                string customerName = (GetString(record, "name") ?? string.Empty).Trim();
 
-                if (string.IsNullOrEmpty(customerName) || existingNames.Contains(customerName) || currentBatchNames.Contains(customerName))
+                if (string.IsNullOrWhiteSpace(customerName) || existingNames.Contains(customerName) || currentBatchNames.Contains(customerName))
                 {
                     continue;
                 }
@@ -325,6 +326,7 @@ namespace IBSWeb.Areas.User.Controllers
                 newCustomer.IsActive = ParseBool(record, "active");
                 newCustomer.ZipCode = "0000";
                 newCustomer.Type = "Documented";
+                newCustomer.Company = "MMSI";
 
                 customerList.Add(newCustomer);
                 currentBatchNames.Add(customerName);
