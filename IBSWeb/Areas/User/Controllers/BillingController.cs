@@ -4,7 +4,6 @@ using IBS.DataAccess.Repository.IRepository;
 using IBS.Models;
 using IBS.Models.Enums;
 using IBS.Models.MMSI;
-using IBS.Models.MMSI.ViewModels;
 using IBS.Utility.Helpers;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -35,13 +34,13 @@ namespace IBSWeb.Areas.User.Controllers
         [RequireAccess(ProcedureEnum.CreateBilling)]
         public async Task<IActionResult> Create(CancellationToken cancellationToken)
         {
-            var viewModel = await GetBillingSelectLists(new CreateBillingViewModel(), cancellationToken);
-            return View(viewModel);
+            var model = await GetBillingSelectLists(new Billing(), cancellationToken);
+            return View(model);
         }
 
         [HttpPost]
         [RequireAccess(ProcedureEnum.CreateBilling)]
-        public async Task<IActionResult> Create(CreateBillingViewModel viewModel, CancellationToken cancellationToken)
+        public async Task<IActionResult> Create(Billing model, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
@@ -50,8 +49,6 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var model = CreateBillingVmToBillingModel(viewModel);
-
                 if (model.CustomerId == null)
                 {
                     throw new InvalidOperationException("Customer is required.");
@@ -83,12 +80,10 @@ namespace IBSWeb.Areas.User.Controllers
                 }
                 else
                 {
-                    if (string.IsNullOrWhiteSpace(viewModel.MMSIBillingNumber))
+                    if (string.IsNullOrWhiteSpace(model.MMSIBillingNumber))
                     {
                         throw new InvalidOperationException("Billing Number is required.");
                     }
-
-                    model.MMSIBillingNumber = viewModel.MMSIBillingNumber;
                 }
 
                 if (model.ToBillDispatchTickets == null || !model.ToBillDispatchTickets.Any())
@@ -130,62 +125,6 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 return Failure(ex, "Failed to create billing.");
             }
-        }
-
-        public Billing CreateBillingVmToBillingModel(CreateBillingViewModel viewModel)
-        {
-            var model = new Billing
-            {
-                Date = viewModel.Date,
-                IsUndocumented = viewModel.IsUndocumented,
-                BilledTo = viewModel.BilledTo,
-                VoyageNumber = viewModel.VoyageNumber,
-                Amount = viewModel.Amount,
-                IsPrincipal = viewModel.IsPrincipal,
-                CustomerId = viewModel.CustomerId,
-                PrincipalId = viewModel.PrincipalId,
-                VesselId = viewModel.VesselId,
-                PortId = viewModel.PortId,
-                TerminalId = viewModel.TerminalId,
-                ToBillDispatchTickets = viewModel.ToBillDispatchTickets,
-                ApOtherTug = viewModel.ApOtherTug
-            };
-
-            if (viewModel.MMSIBillingId != null)
-            {
-                model.MMSIBillingId = viewModel.MMSIBillingId ?? 0;
-
-                if (model.MMSIBillingId == 0)
-                {
-                    throw new NullReferenceException("MMSIBillingId cannot be zero.");
-                }
-            }
-
-            return model;
-        }
-
-        public CreateBillingViewModel BillingModelToCreateBillingVm(Billing model)
-        {
-            var viewModel = new CreateBillingViewModel
-            {
-                MMSIBillingId = model.MMSIBillingId,
-                MMSIBillingNumber = model.MMSIBillingNumber,
-                Date = model.Date,
-                IsUndocumented = model.IsUndocumented,
-                BilledTo = model.BilledTo,
-                VoyageNumber = model.VoyageNumber,
-                Amount = model.Amount,
-                IsPrincipal = model.IsPrincipal,
-                CustomerId = model.CustomerId,
-                PrincipalId = model.PrincipalId,
-                VesselId = model.VesselId,
-                PortId = model.PortId,
-                TerminalId = model.TerminalId,
-                ToBillDispatchTickets = model.ToBillDispatchTickets,
-                ApOtherTug = model.ApOtherTug
-            };
-
-            return viewModel;
         }
 
         [HttpPost]
@@ -312,21 +251,20 @@ namespace IBSWeb.Areas.User.Controllers
             var model = await unitOfWork.Billing
                 .GetAsync(b => b.MMSIBillingId == id, cancellationToken) ?? throw new NullReferenceException();
 
-            var viewModel = BillingModelToCreateBillingVm(model);
-            viewModel = await GetBillingSelectLists(viewModel, cancellationToken);
-            viewModel.UnbilledDispatchTickets = await GetEditTickets(viewModel.CustomerId, viewModel.MMSIBillingId ?? 0, cancellationToken);
+            model = await GetBillingSelectLists(model, cancellationToken);
+            model.UnbilledDispatchTickets = await GetEditTickets(model.CustomerId, model.MMSIBillingId, cancellationToken);
             if(model.CustomerId != null)
             {
-                viewModel.CustomerPrincipal = await GetPrincipals(model.CustomerId.ToString(), cancellationToken);
+                model.CustomerPrincipal = await GetPrincipals(model.CustomerId.ToString(), cancellationToken);
             }
 
-            viewModel.Terminals = await unitOfWork.Terminal
-                .GetMMSITerminalsSelectList(viewModel.PortId, cancellationToken);
+            model.Terminals = await unitOfWork.Terminal
+                .GetMMSITerminalsSelectList(model.PortId, cancellationToken);
 
-            viewModel.ToBillDispatchTickets = await unitOfWork.Billing
+            model.ToBillDispatchTickets = await unitOfWork.Billing
                 .GetToBillDispatchTicketListAsync(model.MMSIBillingId, cancellationToken);
 
-            if (viewModel.CustomerPrincipal?.Count == 0 || viewModel.CustomerPrincipal == null)
+            if (model.CustomerPrincipal?.Count == 0 || model.CustomerPrincipal == null)
             {
                 ViewData["HasPrincipal"] = false;
             }
@@ -346,12 +284,12 @@ namespace IBSWeb.Areas.User.Controllers
                 ViewData["CustomerType"] = model.Customer.Type;
             }
 
-            return View(viewModel);
+            return View(model);
         }
 
         [HttpPost]
         [RequireAccess(ProcedureEnum.EditBilling)]
-        public async Task<IActionResult> Edit(CreateBillingViewModel viewModel, IFormFile? file, CancellationToken cancellationToken)
+        public async Task<IActionResult> Edit(Billing model, IFormFile? file, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
             {
@@ -360,7 +298,6 @@ namespace IBSWeb.Areas.User.Controllers
 
             try
             {
-                var model = CreateBillingVmToBillingModel(viewModel);
                 var currentModel = await unitOfWork.Billing.GetAsync(b => b.MMSIBillingId == model.MMSIBillingId, cancellationToken)
                     ?? throw new InvalidOperationException("Billing not found.");
 
@@ -867,18 +804,18 @@ namespace IBSWeb.Areas.User.Controllers
             return listToReturn;
         }
 
-        public async Task<CreateBillingViewModel> GetBillingSelectLists(CreateBillingViewModel viewModel, CancellationToken cancellationToken = default)
+        public async Task<Billing> GetBillingSelectLists(Billing model, CancellationToken cancellationToken = default)
         {
-            viewModel.Vessels = await unitOfWork.Vessel.GetMMSIVesselsSelectList(cancellationToken);
-            viewModel.Ports = await unitOfWork.Port.GetMMSIPortsSelectList(cancellationToken);
-            viewModel.Customers = await unitOfWork.Billing.GetMMSICustomersWithBillablesSelectList(viewModel.CustomerId, "", cancellationToken);
+            model.Vessels = await unitOfWork.Vessel.GetMMSIVesselsSelectList(cancellationToken);
+            model.Ports = await unitOfWork.Port.GetMMSIPortsSelectList(cancellationToken);
+            model.Customers = await unitOfWork.Billing.GetMMSICustomersWithBillablesSelectList(model.CustomerId, "", cancellationToken);
 
-            if (viewModel.PortId != 0)
+            if (model.PortId != 0)
             {
-                viewModel.Terminals = await unitOfWork.Terminal.GetMMSITerminalsSelectList(viewModel.PortId, cancellationToken);
+                model.Terminals = await unitOfWork.Terminal.GetMMSITerminalsSelectList(model.PortId, cancellationToken);
             }
 
-            return viewModel;
+            return model;
         }
     }
 }

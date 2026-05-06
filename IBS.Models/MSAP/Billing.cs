@@ -134,6 +134,11 @@ namespace IBS.Models.MMSI
         [NotMapped]
         public List<DispatchTicket>? PaidDispatchTickets { get; set; }
 
+        public int? JobOrderId { get; set; }
+
+        [NotMapped]
+        public JobOrder? JobOrder { get; set; }
+
         public int? CollectionId { get; set; }
 
         [NotMapped]

@@ -1,4 +1,4 @@
-@model CreateBillingViewModel
+@model Billing
 
 @{
     ViewData["Title"] = "Billing - Create";
@@ -41,7 +41,7 @@
         padding: 1rem;
         border: 1px solid #dee2e6;
     }
-    
+
     #CustomerSearchResults, #PrincipalSearchResults, #JobOrderSearchResults {
         z-index: 1050;
         max-height: 200px;
@@ -57,13 +57,13 @@
             <h2 class="text-white py-2">@ViewData["Title"]</h2>
         </div>
     </div>
-    
+
     <div class="card-body p-4">
         <form id="myForm" method="post">
             @Html.AntiForgeryToken()
             <div class="border-2 px-3">
                 <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-                
+
                 <!-- I. Customer Selection -->
                 <div class="mb-4 position-relative">
                     <h5 class="section-header text-secondary border-bottom"><i class="bi bi-person-check me-2"></i>I. Customer Selection</h5>
@@ -408,7 +408,7 @@
                 $("#PrincipalSection, #BilledToContainer").addClass("d-none");
                 $("#PrincipalSearch").val("");
                 $("#PrincipalId").val("");
-                
+
                 $("#CustomerDetailsSection").removeClass("d-none");
                 $("#CustomerAddress").text(customer.address || '-');
                 $("#CustomerTIN").text(customer.tinNo || '-');
@@ -418,7 +418,7 @@
                 $("#CustomerType").text(customer.type || '-');
 
                 $("#PrincipalCheckboxContainer").toggleClass("d-none", !customer.hasPrincipal);
-                
+
                 $(customer.vatType === "Vatable" ? "#billLocal" : "#billPrincipal").prop("checked", true);
                 $("#isUndocumentedCheckbox").prop("checked", customer.isUndoc === "Undocumented");
                 handleCheckboxChange();
