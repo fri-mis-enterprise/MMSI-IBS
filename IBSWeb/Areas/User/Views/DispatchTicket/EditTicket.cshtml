@@ -161,19 +161,27 @@
                 <div class="row">
                     <div class="form-group col-12 my-2">
                         <label class="control-label ps-1 pb-1">Customer<span class="required text-danger">*</span></label>
-                        <select id="CustomerId" asp-for="CustomerId" asp-items="@Model.Customers" class="port-select form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
+                        <select id="CustomerId" asp-for="CustomerId" asp-items="@Model.Customers" class="port-select form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required disabled="@(Model.JobOrderId.HasValue)">
                             <option value="">Select Customer</option>
                         </select>
                         <span class="text-danger"></span>
+                        @if (Model.JobOrderId.HasValue)
+                        {
+                            <input type="hidden" asp-for="CustomerId" />
+                        }
                     </div>
                 </div>
                 <div class="row">
                     <div class="form-group col-md-6 col-12 my-2">
                         <label class="control-label ps-1 pb-1">Vessel<span class="required text-danger">*</span></label>
-                        <select asp-for="VesselId" asp-items="@Model.Vessels" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required>
+                        <select asp-for="VesselId" asp-items="@Model.Vessels" class="form-select js-select2 border-0 shadow ms-5 mt-4" style="width:100%" required disabled="@(Model.JobOrderId.HasValue)">
                             <option value="">Select Vessel</option>
                         </select>
                         <span asp-validation-for="VesselId" class="text-danger"></span>
+                        @if (Model.JobOrderId.HasValue)
+                        {
+                            <input type="hidden" asp-for="VesselId" />
+                        }
                     </div>
                     <div class="form-group col-md-3 col-6 my-2">
                         <label class="control-label ps-1 pb-1">Port<span class="required text-danger">*</span></label>

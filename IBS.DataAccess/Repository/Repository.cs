@@ -37,7 +37,7 @@ namespace IBS.DataAccess.Repository
             return await dbSet.Where(filter).FirstOrDefaultAsync(cancellationToken);
         }
 
-        public async Task AddAsync(T entity, CancellationToken cancellationToken = default)
+        public virtual async Task AddAsync(T entity, CancellationToken cancellationToken = default)
         {
             dbSet.Add(entity);
             await _db.SaveChangesAsync(cancellationToken);

@@ -210,7 +210,7 @@
                                             {
                                                 <li>
                                                     <button type="button" class="dropdown-item text-success"
-                                                            data-approve-url="@Url.Action("Approve", "DispatchTicket", new { id = ticket.DispatchTicketId })"
+                                                            data-id="@ticket.DispatchTicketId"
                                                             onclick="confirmApprove(this)">
                                                         <i class="bi bi-check-circle"></i> Approve Tariff
                                                     </button>
@@ -363,17 +363,38 @@
         }
 
         function confirmApprove(btn) {
-            const url = btn.getAttribute('data-approve-url');
+            const id = btn.getAttribute('data-id');
             Swal.fire({
                 title: 'Approve Tariff?',
                 text: "This ticket will be marked for billing.",
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#198754',
-                confirmButtonText: 'Yes, approve it!'
+                confirmButtonText: 'Yes, approve it!',
+                showLoaderOnConfirm: true,
+                preConfirm: () => {
+                    const formData = new FormData();
+                    formData.append('id', id);
+                    formData.append('__RequestVerificationToken', $('input[name="__RequestVerificationToken"]').val());
+
+                    return fetch('@Url.Action("ApproveTariff", "DispatchTicket", new { area = "User" })', {
+                        method: 'POST',
+                        body: new URLSearchParams(formData)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) throw new Error(data.message);
+                        return data;
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = url;
+                    Swal.fire('Approved!', 'The tariff has been approved.', 'success')
+                        .then(() => location.reload());
                 }
             });
         }

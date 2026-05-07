@@ -178,6 +178,10 @@ namespace IBS.Models.MMSI
         [ForeignKey(nameof(VesselId))]
         public Vessel? Vessel { get; set; } //carries the columns of one record
 
+        public int? PortId { get; set; }
+        [ForeignKey(nameof(PortId))]
+        public Port? Port { get; set; }
+
         public int? TerminalId { get; set; }
         [ForeignKey(nameof(TerminalId))]
         public Terminal? Terminal { get; set; } //carries the columns of one record

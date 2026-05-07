@@ -82,5 +82,55 @@ namespace IBS.Models.MMSI.ViewModels
         public List<SelectListItem>? Customers { get; set; }
 
         #endregion ---Select Lists---
+
+        public DispatchTicket ToEntity()
+        {
+            return new DispatchTicket
+            {
+                DispatchTicketId = DispatchTicketId ?? 0,
+                Date = Date,
+                COSNumber = COSNumber,
+                DispatchNumber = DispatchNumber,
+                VoyageNumber = VoyageNumber,
+                CustomerId = CustomerId,
+                DateLeft = DateLeft,
+                TimeLeft = TimeLeft,
+                DateArrived = DateArrived,
+                TimeArrived = TimeArrived,
+                TerminalId = TerminalId,
+                ServiceId = ServiceId,
+                TugBoatId = TugBoatId,
+                TugMasterId = TugMasterId,
+                VesselId = VesselId,
+                PortId = PortId,
+                Remarks = Remarks,
+                JobOrderId = JobOrderId
+            };
+        }
+
+        public void FromEntity(DispatchTicket entity)
+        {
+            Date = entity.Date;
+            COSNumber = entity.COSNumber;
+            DispatchNumber = entity.DispatchNumber;
+            VoyageNumber = entity.VoyageNumber;
+            CustomerId = entity.CustomerId;
+            DateLeft = entity.DateLeft;
+            TimeLeft = entity.TimeLeft;
+            DateArrived = entity.DateArrived;
+            TimeArrived = entity.TimeArrived;
+            TerminalId = entity.TerminalId;
+            ServiceId = entity.ServiceId;
+            TugBoatId = entity.TugBoatId;
+            TugMasterId = entity.TugMasterId;
+            VesselId = entity.VesselId;
+            Terminal = entity.Terminal;
+            PortId = entity.PortId;
+            Remarks = entity.Remarks;
+            ImageName = entity.ImageName;
+            VideoName = entity.VideoName;
+            DispatchTicketId = entity.DispatchTicketId;
+            JobOrderId = entity.JobOrderId;
+        }
     }
 }

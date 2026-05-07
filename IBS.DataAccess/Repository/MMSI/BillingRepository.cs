@@ -5,6 +5,7 @@ using IBS.Models.MMSI;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using IBS.Utility.Helpers;
 
 namespace IBS.DataAccess.Repository.MMSI
 {
@@ -275,6 +276,104 @@ namespace IBS.DataAccess.Repository.MMSI
             model.AddressLine4 = fourthString;
 
             return model;
+        }
+
+        public override async Task AddAsync(Billing entity, CancellationToken cancellationToken = default)
+        {
+            if (entity.JobOrderId.HasValue && entity.JobOrderId == 0)
+            {
+                entity.JobOrderId = null;
+            }
+
+            if (entity.JobOrderId.HasValue)
+            {
+                var jobOrder = await _db.MMSIJobOrders
+                    .Include(j => j.Customer)
+                    .Include(j => j.Vessel)
+                    .Include(j => j.Port)
+                    .Include(j => j.Terminal)
+                    .FirstOrDefaultAsync(j => j.JobOrderId == entity.JobOrderId.Value, cancellationToken);
+
+                if (jobOrder != null)
+                {
+                    entity.JobOrder = jobOrder;
+                    entity.CustomerId = jobOrder.CustomerId;
+                    entity.Customer = jobOrder.Customer;
+                    entity.VesselId = jobOrder.VesselId;
+                    entity.Vessel = jobOrder.Vessel;
+                    entity.PortId = jobOrder.PortId;
+                    entity.Port = jobOrder.Port;
+                    entity.TerminalId = jobOrder.TerminalId;
+                    entity.Terminal = jobOrder.Terminal;
+                    entity.VoyageNumber = jobOrder.VoyageNumber;
+                }
+            }
+
+            if (entity.CustomerId.HasValue && entity.CustomerId != 0)
+            {
+                entity.Customer ??= await _db.Customers.FindAsync(new object[] { entity.CustomerId.Value }, cancellationToken);
+            }
+            
+            entity.IsVatable = entity.Customer?.VatType == "Vatable";
+            entity.Status = "For Collection";
+            entity.CreatedDate = DateTimeHelper.GetCurrentPhilippineTime();
+
+            if (entity.PrincipalId.HasValue && entity.Principal == null && entity.PrincipalId != 0)
+            {
+                entity.Principal = await _db.MMSIPrincipals.FindAsync(new object[] { entity.PrincipalId.Value }, cancellationToken);
+            }
+
+            entity.Terms = entity.PrincipalId != null && entity.PrincipalId != 0
+                ? entity.Principal?.Terms
+                : entity.Customer?.CustomerTerms;
+
+            if (string.IsNullOrEmpty(entity.Terms))
+            {
+                entity.Terms = "COD";
+            }
+
+            entity.DueDate = await ComputeDueDateAsync(entity.Terms, entity.Date, cancellationToken);
+
+            if (entity.IsUndocumented)
+            {
+                entity.MMSIBillingNumber = await GenerateBillingNumber(cancellationToken);
+            }
+            else if (string.IsNullOrWhiteSpace(entity.MMSIBillingNumber))
+            {
+                throw new InvalidOperationException("Billing Number is required.");
+            }
+
+            if (entity.ToBillDispatchTickets == null || !entity.ToBillDispatchTickets.Any())
+            {
+                throw new InvalidOperationException("At least one dispatch ticket must be selected.");
+            }
+
+            decimal total = 0, dispatch = 0, baf = 0;
+            foreach (var ticketIdStr in entity.ToBillDispatchTickets!)
+            {
+                var dt = await _db.MMSIDispatchTickets.FindAsync(new object[] { int.Parse(ticketIdStr) }, cancellationToken)
+                    ?? throw new InvalidOperationException($"Dispatch ticket #{ticketIdStr} not found.");
+
+                if (entity.JobOrderId.HasValue && dt.JobOrderId != entity.JobOrderId)
+                {
+                    throw new InvalidOperationException($"Ticket #{dt.DispatchNumber} does not belong to the selected Job Order.");
+                }
+
+                total += dt.TotalNetRevenue;
+                dispatch += dt.DispatchNetRevenue;
+                baf += dt.BAFNetRevenue;
+
+                dt.Status = "Billed";
+                dt.Billing = entity;
+                dt.BillingNumber = entity.MMSIBillingNumber;
+            }
+
+            entity.Amount = entity.Balance = total;
+            entity.DispatchAmount = dispatch;
+            entity.BAFAmount = baf;
+            entity.IsPaid = false;
+
+            await base.AddAsync(entity, cancellationToken);
         }
     }
 }

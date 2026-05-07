@@ -231,9 +231,7 @@
             });
 
             document.getElementById('approveTariff')?.addEventListener('click', function () {
-
-                let imageId = this.getAttribute('data-id');
-
+                let id = this.getAttribute('data-id');
                 Swal.fire({
                     title: "Approve this Tariff?",
                     text: "The ticket will be available for billing.",
@@ -241,14 +239,34 @@
                     confirmButtonText: "Yes",
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = '@Url.Action("Approve", "DispatchTicket", new { area = "User" })' + '/' + imageId;
+                        fetch('@Url.Action("ApproveTariff", "DispatchTicket", new { area = "User" })', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `id=${id}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire("Approved!", data.message, "success").then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire("Error!", data.message, "error");
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire("Error!", "An unexpected error occurred.", "error");
+                        });
                     }
                 });
             });
 
             document.getElementById('revokeApproval')?.addEventListener('click', function () {
 
-                let imageId = this.getAttribute('data-id');
+                let id = this.getAttribute('data-id');
 
                 Swal.fire({
                     title: "Revoke tariff status?",
@@ -257,23 +275,57 @@
                     confirmButtonText: "Yes",
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = '@Url.Action("RevokeApproval", "DispatchTicket", new { area = "User" })' + '/' + imageId;
+                        fetch('@Url.Action("ChangeStatus", "DispatchTicket", new { area = "User" })', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `id=${id}&status=For Approval&activity=Revoked approval&docType=Dispatch Ticket&successMessage=Approval revoked successfully.`
+                        })
+                        .then(() => {
+                            location.reload();
+                        });
                     }
                 });
             });
 
             document.getElementById('disapproveTariff')?.addEventListener('click', function () {
-
-                let imageId = this.getAttribute('data-id');
-
+                let id = this.getAttribute('data-id');
                 Swal.fire({
                     title: "Disapprove this Tariff?",
-                    text: "The ticket will not be available for billing",
+                    text: "Please provide a reason for disapproval:",
+                    input: 'text',
+                    inputPlaceholder: 'Reason (at least 10 characters)',
                     showCancelButton: true,
-                    confirmButtonText: "Yes",
+                    confirmButtonText: "Disapprove",
+                    inputValidator: (value) => {
+                        if (!value || value.length < 10) {
+                            return 'Please provide a detailed reason (at least 10 characters)';
+                        }
+                    }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = '@Url.Action("Disapprove", "DispatchTicket", new { area = "User" })' + '/' + imageId;
+                        fetch('@Url.Action("DisapproveTariff", "DispatchTicket", new { area = "User" })', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `id=${id}&reason=${encodeURIComponent(result.value)}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire("Disapproved!", data.message, "success").then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire("Error!", data.message, "error");
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire("Error!", "An unexpected error occurred.", "error");
+                        });
                     }
                 });
             });

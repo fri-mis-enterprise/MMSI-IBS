@@ -44,73 +44,10 @@ namespace IBSWeb.Areas.User.Controllers
         {
             try
             {
-                if (model.CustomerId == null)
-                {
-                    throw new InvalidOperationException("Customer is required.");
-                }
-
-                model.Customer = await unitOfWork.Customer.GetAsync(c => c.CustomerId == model.CustomerId, cancellationToken)
-                                 ?? throw new InvalidOperationException("Customer not found.");
-
-                model.IsVatable = model.Customer.VatType == "Vatable";
-                model.Status = "For Collection";
                 model.CreatedBy = await GetUserNameAsync() ?? "System";
                 model.Company = await GetCompanyClaimAsync() ?? "MMSI";
-                model.CreatedDate = DateTimeHelper.GetCurrentPhilippineTime();
-
-                model.Terms = model.PrincipalId != null
-                    ? (await unitOfWork.Principal.GetAsync(p => p.PrincipalId == model.PrincipalId, cancellationToken))?.Terms
-                    : model.Customer?.CustomerTerms;
-
-                if (string.IsNullOrEmpty(model.Terms))
-                {
-                    model.Terms = "COD";
-                }
-
-                model.DueDate = await unitOfWork.Billing.ComputeDueDateAsync(model.Terms, model.Date, cancellationToken);
-
-                if (model.IsUndocumented)
-                {
-                    model.MMSIBillingNumber = await unitOfWork.Billing.GenerateBillingNumber(cancellationToken);
-                }
-                else
-                {
-                    if (string.IsNullOrWhiteSpace(model.MMSIBillingNumber))
-                    {
-                        throw new InvalidOperationException("Billing Number is required.");
-                    }
-                }
-
-                if (model.ToBillDispatchTickets == null || !model.ToBillDispatchTickets.Any())
-                {
-                    throw new InvalidOperationException("At least one dispatch ticket must be selected.");
-                }
 
                 await unitOfWork.Billing.AddAsync(model, cancellationToken);
-
-                await unitOfWork.AuditTrail.AddAsync(new AuditTrail(model.CreatedBy, $"Create billing #{model.MMSIBillingNumber} for tickets #{string.Join(", #", model.ToBillDispatchTickets!)}", "Billing"), cancellationToken);
-
-                decimal total = 0, dispatch = 0, baf = 0;
-                foreach (var ticketIdStr in model.ToBillDispatchTickets!)
-                {
-                    var dt = await unitOfWork.DispatchTicket.GetAsync(t => t.DispatchTicketId == int.Parse(ticketIdStr), cancellationToken)
-                        ?? throw new InvalidOperationException($"Dispatch ticket #{ticketIdStr} not found.");
-
-                    total += dt.TotalNetRevenue;
-                    dispatch += dt.DispatchNetRevenue;
-                    baf += dt.BAFNetRevenue;
-
-                    dt.Status = "Billed";
-                    dt.BillingId = model.MMSIBillingId;
-                    dt.BillingNumber = model.MMSIBillingNumber;
-                }
-
-                model.Amount = model.Balance = total;
-                model.DispatchAmount = dispatch;
-                model.BAFAmount = baf;
-                model.IsPaid = false;
-
-                await unitOfWork.SaveAsync(cancellationToken);
                 await unitOfWork.Billing.PostAsync(model, cancellationToken);
 
                 return Success(model.IsUndocumented ? $"Created. Control No: {model.MMSIBillingNumber}" : $"Billing #{model.MMSIBillingNumber} created.",
@@ -533,37 +470,6 @@ namespace IBSWeb.Areas.User.Controllers
             }
         }
 
-        [HttpPost]
-        [RequireAnyAccess(ProcedureEnum.CreateBilling, ProcedureEnum.EditBilling)]
-        public async Task<JsonResult> GetCustomerDetails(int customerId)
-        {
-            var customerDetails = await unitOfWork.Customer
-                .GetAsync(c => c.CustomerId == customerId);
-
-            if (customerDetails == null)
-            {
-                return new JsonResult("Customer not found");
-            }
-
-            var principal = await unitOfWork.Principal
-                .GetAsync(c => c.CustomerId == customerId);
-
-            var hasPrincipal = principal != null;
-
-            var customerDetailsJson = new
-            {
-                terms = customerDetails.CustomerTerms,
-                address = customerDetails.CustomerAddress,
-                tinNo = customerDetails.CustomerTin,
-                businessStyle = customerDetails.BusinessStyle,
-                hasPrincipal,
-                vatType = customerDetails.VatType,
-                isUndoc = customerDetails.Type
-            };
-
-            return Json(customerDetailsJson);
-        }
-
         [HttpGet]
         [RequireAnyAccess(ProcedureEnum.CreateBilling, ProcedureEnum.EditBilling)]
         public async Task<JsonResult> SearchCustomers(string? term, CancellationToken cancellationToken)
@@ -585,7 +491,11 @@ namespace IBSWeb.Areas.User.Controllers
                     value = c.CustomerId,
                     name = c.CustomerName,
                     vatType = c.VatType,
-                    isUndoc = c.Type
+                    isUndoc = c.Type,
+                    address = c.CustomerAddress,
+                    tinNo = c.CustomerTin,
+                    terms = c.CustomerTerms,
+                    businessStyle = c.BusinessStyle ?? "-"
                 })
                 .ToListAsync(cancellationToken);
 
@@ -602,7 +512,11 @@ namespace IBSWeb.Areas.User.Controllers
                 c.name,
                 hasPrincipal = principalsExist.Contains(c.value),
                 c.vatType,
-                c.isUndoc
+                c.isUndoc,
+                c.address,
+                c.tinNo,
+                c.terms,
+                c.businessStyle
             }).ToList();
 
             return Json(result);
@@ -627,7 +541,11 @@ namespace IBSWeb.Areas.User.Controllers
                 .Select(p => new
                 {
                     value = p.PrincipalId,
-                    name = p.PrincipalName
+                    name = p.PrincipalName,
+                    address = p.Address,
+                    tinNo = p.TIN,
+                    businessStyle = p.BusinessType,
+                    terms = p.Terms
                 })
                 .ToListAsync(cancellationToken);
 
@@ -636,34 +554,23 @@ namespace IBSWeb.Areas.User.Controllers
 
         [HttpGet]
         [RequireAnyAccess(ProcedureEnum.CreateBilling, ProcedureEnum.EditBilling)]
-        public async Task<JsonResult> GetPrincipalDetails(int principalId)
-        {
-            var customerDetails = await unitOfWork.Principal
-                .GetAsync(c => c.PrincipalId == principalId);
-
-            if (customerDetails == null)
-            {
-                return new JsonResult("Principal not found");
-            }
-
-            var customerDetailsJson = new
-            {
-                terms = customerDetails.Terms,
-                address = customerDetails.Address,
-                tinNo = customerDetails.TIN,
-                businessStyle = customerDetails.BusinessType
-            };
-
-            return Json(customerDetailsJson);
-        }
-
-        [HttpGet]
-        [RequireAnyAccess(ProcedureEnum.CreateBilling, ProcedureEnum.EditBilling)]
         public async Task<JsonResult> SearchJobOrders(string? term, int customerId, CancellationToken cancellationToken)
         {
+            // Strict Mode: All tickets must be "For Billing"
             var query = dbContext.MMSIJobOrders.AsNoTracking()
                 .Where(j => j.CustomerId == customerId &&
-                            j.DispatchTickets.Any(dt => dt.Status == "For Billing" && dt.BillingId == null));
+                            j.DispatchTickets.Any() &&
+                            j.DispatchTickets.All(dt => dt.Status == "For Billing" || dt.Status == "Billed" || dt.Status == "Cancelled"));
+
+            // Refinement: The user said "if all tickets are for billing". 
+            // Cancelled tickets are ignored. Billed tickets are already done.
+            // So we want JOs where there's at least one "For Billing" ticket, 
+            // and NO tickets that are "Pending", "For Tariff", or "For Approval".
+
+            query = dbContext.MMSIJobOrders.AsNoTracking()
+                .Where(j => j.CustomerId == customerId &&
+                            j.DispatchTickets.Any(dt => dt.Status == "For Billing" && dt.BillingId == null) &&
+                            !j.DispatchTickets.Any(dt => dt.Status == "Pending" || dt.Status == "For Tariff" || dt.Status == "For Approval"));
 
             if (!string.IsNullOrWhiteSpace(term))
             {
@@ -689,25 +596,40 @@ namespace IBSWeb.Areas.User.Controllers
         [RequireAnyAccess(ProcedureEnum.CreateBilling, ProcedureEnum.EditBilling)]
         public async Task<JsonResult> GetDispatchTicketsByJobOrder(int jobOrderId, CancellationToken cancellationToken)
         {
-            var tickets = await unitOfWork.DispatchTicket
-                .GetAllAsync(t => t.JobOrderId == jobOrderId &&
-                    t.Status == "For Billing" &&
-                    t.BillingId == null,
-                    cancellationToken);
+            var jobOrder = await unitOfWork.JobOrder.GetJobOrderWithDetailsAsync(jobOrderId, cancellationToken);
 
-            var result = tickets.Select(t => new
+            if (jobOrder == null)
             {
-                dispatchTicketId = t.DispatchTicketId,
-                dispatchNo = t.DispatchNumber,
-                tugboat = t.Tugboat?.TugboatName ?? "N/A",
-                service = t.Service?.ServiceName ?? "N/A",
-                duration = t.TotalHours,
-                dispatchAmount = t.DispatchBillingAmount,
-                bafAmount = t.BAFBillingAmount,
-                totalAmount = t.TotalBilling
-            }).ToList();
+                return Json(new { success = false, message = "Job Order not found" });
+            }
 
-            return Json(result);
+            var tickets = jobOrder.DispatchTickets
+                .Where(t => t.Status == "For Billing" && t.BillingId == null)
+                .Select(t => new
+                {
+                    dispatchTicketId = t.DispatchTicketId,
+                    dispatchNo = t.DispatchNumber,
+                    tugboat = t.Tugboat?.TugboatName ?? "N/A",
+                    service = t.Service?.ServiceName ?? "N/A",
+                    duration = t.TotalHours,
+                    dispatchAmount = t.DispatchBillingAmount,
+                    bafAmount = t.BAFBillingAmount,
+                    totalAmount = t.TotalBilling
+                }).ToList();
+
+            return Json(new
+            {
+                success = true,
+                header = new
+                {
+                    vesselId = jobOrder.VesselId,
+                    portId = jobOrder.PortId,
+                    terminalId = jobOrder.TerminalId,
+                    voyageNumber = jobOrder.VoyageNumber,
+                    cosNumber = jobOrder.COSNumber
+                },
+                tickets
+            });
         }
 
         private async Task<string?> GetCompanyClaimAsync()
