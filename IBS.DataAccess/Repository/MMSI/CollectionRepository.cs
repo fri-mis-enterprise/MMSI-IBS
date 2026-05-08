@@ -67,6 +67,7 @@ namespace IBS.DataAccess.Repository.MMSI
                 .ToListAsync(cancellationToken);
 
             var listOfCustomerWithCollectibleBillings = billingsToBeCollected
+                .Where(t => t.Customer != null)
                 .Select(t => t.Customer!.CustomerId)
                 .Distinct()
                 .ToList();

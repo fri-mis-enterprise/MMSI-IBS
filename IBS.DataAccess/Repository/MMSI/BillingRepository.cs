@@ -145,6 +145,7 @@ namespace IBS.DataAccess.Repository.MMSI
                 .ToListAsync(cancellationToken);
 
             var listOfCustomerWithBillableTickets = dispatchToBeBilled
+                .Where(t => t.Customer != null)
                 .Select(t => t.Customer!.CustomerId)
                 .Distinct()
                 .ToList();
