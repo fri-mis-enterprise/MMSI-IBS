@@ -19,12 +19,9 @@ namespace IBSWeb.Areas.User.Controllers
     [Area("User")]
     public class MsapImportController(
         IUnitOfWork unitOfWork,
-        ApplicationDbContext dbContext,
-        ILogger<MsapImportController> logger)
+        ApplicationDbContext dbContext)
         : Controller
     {
-        private readonly ILogger<MsapImportController> _logger = logger;
-
         private readonly CsvConfiguration _csvConfig = new(CultureInfo.InvariantCulture)
         {
             PrepareHeaderForMatch = args => args.Header.ToLower(),
@@ -47,146 +44,147 @@ namespace IBSWeb.Areas.User.Controllers
         [RequireAnyAccess("You do not have permission to import Msap data.", ProcedureEnum.ManageMsapImport)]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Index(List<string> fieldList)
+        public async Task<IActionResult> Index(
+            IFormFile? customerFile,
+            IFormFile? portFile,
+            IFormFile? terminalFile,
+            IFormFile? principalFile,
+            IFormFile? serviceFile,
+            IFormFile? tugboatOwnerFile,
+            IFormFile? tugboatFile,
+            IFormFile? tugMasterFile,
+            IFormFile? vesselFile,
+            IFormFile? tariffFile,
+            IFormFile? dispatchTicketFile,
+            IFormFile? billingFile,
+            IFormFile? collectionFile)
         {
+            var sb = new StringBuilder();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync();
+
             try
             {
-                if (fieldList == null || fieldList.Count == 0)
+                // Maps for dependency resolution
+                var customerMap = new Dictionary<string, int>(); // MsapNumber -> IbsCustomerId
+                var portMap = new Dictionary<string, int>();     // MsapNumber -> IbsPortId
+                var serviceMap = new Dictionary<string, int>();  // MsapNumber -> IbsServiceId
+                var ownerMap = new Dictionary<string, int>();    // MsapNumber -> IbsOwnerId
+                var tugboatMap = new Dictionary<string, int>();  // MsapNumber -> IbsTugboatId
+                var tugMasterMap = new Dictionary<string, int>();// MsapNumber -> IbsTugMasterId
+                var vesselMap = new Dictionary<string, int>();   // MsapNumber -> IbsVesselId
+                var terminalMap = new Dictionary<string, int>(); // PortNum|TermNum -> IbsTerminalId
+                var principalMap = new Dictionary<string, int>();// MsapNumber -> IbsPrincipalId
+                var collectionMap = new Dictionary<string, int>();// MsapNumber -> IbsCollectionId
+                var billingMap = new Dictionary<string, int>();  // MsapNumber -> IbsBillingId
+
+                // Level 1: Independent
+                if (customerFile != null)
                 {
-                    TempData["error"] = "Please select at least one import field.";
+                    var (res, map) = await ImportMsapCustomers(customerFile, CancellationToken.None);
+                    sb.AppendLine(res);
+                    customerMap = map;
+                }
+
+                if (portFile != null)
+                {
+                    var (res, map) = await ImportMsapPorts(portFile, CancellationToken.None);
+                    sb.AppendLine(res);
+                    portMap = map;
+                }
+
+                if (serviceFile != null)
+                {
+                    var (res, map) = await ImportMsapServices(serviceFile, CancellationToken.None);
+                    sb.AppendLine(res);
+                    serviceMap = map;
+                }
+
+                if (tugboatOwnerFile != null)
+                {
+                    var (res, map) = await ImportMsapTugboatOwners(tugboatOwnerFile, CancellationToken.None);
+                    sb.AppendLine(res);
+                    ownerMap = map;
+                }
+
+                if (tugMasterFile != null)
+                {
+                    var (res, map) = await ImportMsapTugMasters(tugMasterFile, CancellationToken.None);
+                    sb.AppendLine(res);
+                    tugMasterMap = map;
+                }
+
+                if (vesselFile != null)
+                {
+                    var (res, map) = await ImportMsapVessels(vesselFile, CancellationToken.None);
+                    sb.AppendLine(res);
+                    vesselMap = map;
+                }
+
+                // Level 2: Single Dependency
+                if (terminalFile != null)
+                {
+                    var (res, map) = await ImportMsapTerminals(terminalFile, portMap, CancellationToken.None);
+                    sb.AppendLine(res);
+                    terminalMap = map;
+                }
+
+                if (tugboatFile != null)
+                {
+                    var (res, map) = await ImportMsapTugboats(tugboatFile, ownerMap, CancellationToken.None);
+                    sb.AppendLine(res);
+                    tugboatMap = map;
+                }
+
+                if (principalFile != null)
+                {
+                    var (res, map) = await ImportMsapPrincipals(principalFile, customerMap, CancellationToken.None);
+                    sb.AppendLine(res);
+                    principalMap = map;
+                }
+
+                // Level 3: Mixed Dependencies
+                if (tariffFile != null)
+                {
+                    sb.AppendLine(await ImportMsapTariffRates(tariffFile, customerMap, terminalMap, serviceMap, CancellationToken.None));
+                }
+
+                if (collectionFile != null)
+                {
+                    var (res, map) = await ImportMsapCollections(collectionFile, customerMap, CancellationToken.None);
+                    sb.AppendLine(res);
+                    collectionMap = map;
+                }
+
+                // Level 4: Transactional
+                if (billingFile != null)
+                {
+                    var (res, map) = await ImportMsapBillings(billingFile, customerMap, vesselMap, portMap, terminalMap, principalMap, collectionMap, CancellationToken.None);
+                    sb.AppendLine(res);
+                    billingMap = map;
+                }
+
+                // Level 5: Final
+                if (dispatchTicketFile != null)
+                {
+                    sb.AppendLine(await ImportMsapDispatchTickets(dispatchTicketFile, customerMap, vesselMap, tugboatMap, tugMasterMap, serviceMap, terminalMap, billingMap, CancellationToken.None));
+                }
+
+                if (sb.Length == 0)
+                {
+                    TempData["error"] = "Please upload at least one CSV file.";
                     return RedirectToAction(nameof(Index));
                 }
-                var sb = new StringBuilder();
 
-                foreach (string field in fieldList)
-                {
-                    string importResult = await ImportFromCSV(field);
-                    sb.AppendLine(importResult);
-                }
-
+                await transaction.CommitAsync();
                 TempData["success"] = sb.ToString().Replace(Environment.NewLine, "\\n");
-                return RedirectToAction(nameof(Index));
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 TempData["error"] = ex.Message;
-                return RedirectToAction(nameof(Index));
             }
-        }
 
-        public async Task<string> ImportFromCSV(string field, CancellationToken cancellationToken = default)
-        {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-
-            try
-            {
-                var customerCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\customer.csv";
-                var portCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\port.csv";
-                var terminalCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\terminal.csv";
-                var principalCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\principal.csv";
-                var servicesCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\services.csv";
-                var tugboatCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\tugboat.csv";
-                var tugboatOwnerCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\tugboatowner.csv";
-                var tugMasterCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\tugmaster.csv";
-                var vesselCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\vessel.csv";
-                var dispatchTicketCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\dispatch.csv";
-                var billingCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\billing.csv";
-                var collectionCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\collection.csv";
-                var tariffCSVPath = @"C:\Users\MIS2\Documents\CSV_OUTPUTS\tariff.csv";
-
-                string result;
-
-                switch (field)
-                {
-                    #region -- Masterfiles --
-
-                    case "Customer":
-                        {
-                            result = await ImportMsapCustomers(customerCSVPath, cancellationToken);
-                            break;
-                        }
-                    case "Port":
-                        {
-                            result = await ImportMsapPorts(portCSVPath, cancellationToken);
-                            break;
-                        }
-                    case "Terminal":
-                        {
-                            result = await ImportMsapTerminals(terminalCSVPath, cancellationToken);
-                            break;
-                        }
-                    case "Principal":
-                        {
-                            result = await ImportMsapPrincipals(principalCSVPath, customerCSVPath, cancellationToken);
-                            break;
-                        }
-                    case "Service":
-                        {
-                            result = await ImportMsapServices(servicesCSVPath, cancellationToken);
-                            break;
-                        }
-                    case "Tugboat":
-                        {
-                            result = await ImportMsapTugboats(tugboatCSVPath, cancellationToken);
-                            break;
-                        }
-                    case "TugboatOwner":
-                        {
-                            result = await ImportMsapTugboatOwners(tugboatOwnerCSVPath, cancellationToken);
-                            break;
-                        }
-                    case "TugMaster":
-                        {
-                            result = await ImportMsapTugMasters(tugMasterCSVPath, cancellationToken);
-                            break;
-                        }
-                    case "Vessel":
-                        {
-                            result = await ImportMsapVessels(vesselCSVPath, cancellationToken);
-                            break;
-                        }
-                    case "Tariff":
-                        {
-                            result = await ImportMsapTariffRates(tariffCSVPath, customerCSVPath, cancellationToken);
-                            break;
-                        }
-
-                    #endregion -- Masterfiles --
-
-                    #region -- Data entries --
-
-                    case "DispatchTicket":
-                        {
-                            result = await ImportMsapDispatchTickets(dispatchTicketCSVPath, customerCSVPath, cancellationToken);
-                            break;
-                        }
-                    case "Billing":
-                        {
-                            result = await ImportMsapBillings(billingCSVPath, customerCSVPath, cancellationToken);
-                            break;
-                        }
-                    case "Collection":
-                        {
-                            result = await ImportMsapCollections(collectionCSVPath, customerCSVPath, cancellationToken);
-                            break;
-                        }
-
-                    #endregion -- Data entries --
-
-                    default:
-                        result = $"{field} field is invalid";
-                        break;
-                }
-
-                await transaction.CommitAsync(cancellationToken);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                TempData["error"] = ex.Message;
-                await transaction.RollbackAsync(cancellationToken);
-                throw new InvalidOperationException(ex.Message);
-            }
+            return RedirectToAction(nameof(Index));
         }
 
         #region -- Helpers --
@@ -196,7 +194,7 @@ namespace IBSWeb.Areas.User.Controllers
             var dict = (IDictionary<string, object>)record;
             if (dict.TryGetValue(propertyName, out var value))
             {
-                return value?.ToString();
+                return value.ToString();
             }
             return null;
         }
@@ -274,25 +272,32 @@ namespace IBSWeb.Areas.User.Controllers
 
         #region -- Masterfiles --
 
-        public async Task<string> ImportMsapCustomers(string customerCSVPath, CancellationToken cancellationToken)
+        public async Task<(string Result, Dictionary<string, int> Map)> ImportMsapCustomers(IFormFile file, CancellationToken cancellationToken)
         {
-            var existingNames = (await unitOfWork.Customer.GetAllAsync(c => c.Company == "MMSI", cancellationToken))
-                .Select(c => c.CustomerName?.Trim() ?? string.Empty)
-                .Where(n => !string.IsNullOrWhiteSpace(n))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var existingCustomers = (await unitOfWork.Customer.GetAllAsync(c => c.Company == "MMSI", cancellationToken))
+                .Where(c => !string.IsNullOrWhiteSpace(c.CustomerName))
+                .ToDictionary(c => c.CustomerName.Trim(), c => c.CustomerId, StringComparer.OrdinalIgnoreCase);
 
-            var currentBatchNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var customerMap = new Dictionary<string, int>();
             var customerList = new List<Customer>();
-            using var reader = new StreamReader(customerCSVPath);
+
+            using var reader = new StreamReader(file.OpenReadStream());
             using var csv = new CsvReader(reader, _csvConfig);
-            var records = csv.GetRecords<dynamic>().ToList();
+            var records = csv.GetRecords<dynamic>();
 
             foreach (var record in records)
             {
                 string customerName = (GetString(record, "name") ?? string.Empty).Trim();
+                string msapNumber = PadNumber(GetString(record, "number"), 4);
 
-                if (string.IsNullOrWhiteSpace(customerName) || existingNames.Contains(customerName) || currentBatchNames.Contains(customerName))
+                if (string.IsNullOrWhiteSpace(customerName))
                 {
+                    continue;
+                }
+
+                if (existingCustomers.TryGetValue(customerName, out int existingId))
+                {
+                    customerMap[msapNumber] = existingId;
                     continue;
                 }
 
@@ -329,148 +334,462 @@ namespace IBSWeb.Areas.User.Controllers
                 newCustomer.Company = "MMSI";
 
                 customerList.Add(newCustomer);
-                currentBatchNames.Add(customerName);
+                // Temporarily store in existingCustomers to prevent duplicates in the same batch
+                existingCustomers[customerName] = 0;
+
+                // We'll update the map with the real ID after saving
+                customerMap[msapNumber] = -1;
             }
 
-            await dbContext.Customers.AddRangeAsync(customerList, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return $"Customers imported successfully, {customerList.Count} new records";
+            if (customerList.Count > 0)
+            {
+                await dbContext.Customers.AddRangeAsync(customerList, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+
+                // Update the map for the newly added customers
+                // Re-fetch to be safe or use the local list if IDs are populated
+                foreach (var customer in customerList)
+                {
+                    // Find the MSAP number that corresponds to this name
+                    var msapNo = customerMap.FirstOrDefault(x => x.Value == -1 &&
+                        customerList.Any(cl => cl.CustomerName == customer.CustomerName)).Key;
+
+                    if (msapNo != null)
+                    {
+                        customerMap[msapNo] = customer.CustomerId;
+                    }
+                }
+            }
+
+            // Cleanup any temporary -1 values if any name was a duplicate in CSV but not in DB
+            // (Shouldn't happen with the current logic but good to be safe)
+
+            return ($"Customers imported successfully, {customerList.Count} new records", customerMap);
         }
 
-        public async Task<string> ImportMsapPorts(string portCSVPath, CancellationToken cancellationToken)
+        public async Task<(string Result, Dictionary<string, int> Map)> ImportMsapPorts(IFormFile file, CancellationToken cancellationToken)
         {
-            var existingIdentifier = (await dbContext.MMSIPorts.ToListAsync(cancellationToken))
-                .Select(c => c.PortNumber).ToHashSet();
-
-            var currentBatch = new HashSet<string>();
+            var existingPorts = await dbContext.MMSIPorts
+                .Where(p => p.PortNumber != null)
+                .ToDictionaryAsync(p => p.PortNumber!, p => p.PortId, cancellationToken);
+            var portMap = new Dictionary<string, int>();
             var newRecords = new List<Port>();
-            using var reader = new StreamReader(portCSVPath);
+
+            using var reader = new StreamReader(file.OpenReadStream());
             using var csv = new CsvReader(reader, _csvConfig);
-            var records = csv.GetRecords<dynamic>().ToList();
+            var records = csv.GetRecords<dynamic>();
 
             foreach (var record in records)
             {
-                string padded = PadNumber(GetString(record, "number"), 3);
+                string msapNumber = GetString(record, "number") ?? string.Empty;
+                string padded = PadNumber(msapNumber, 3);
 
-                if (string.IsNullOrEmpty(padded) || existingIdentifier.Contains(padded) || currentBatch.Contains(padded))
+                if (string.IsNullOrEmpty(padded))
                 {
                     continue;
                 }
 
-                Port newRecord = new Port();
-                newRecord.PortNumber = padded;
-                newRecord.PortName = GetString(record, "name");
+                if (existingPorts.TryGetValue(padded, out int existingId))
+                {
+                    portMap[msapNumber] = existingId;
+                    continue;
+                }
+
+                Port newRecord = new Port { PortNumber = padded, PortName = GetString(record, "name") };
 
                 newRecords.Add(newRecord);
-                currentBatch.Add(padded);
+                existingPorts[padded] = 0; // Prevent duplicates in batch
+                portMap[msapNumber] = -1;
             }
 
-            await dbContext.MMSIPorts.AddRangeAsync(newRecords, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return $"Ports imported successfully, {newRecords.Count} new records";
+            if (newRecords.Count > 0)
+            {
+                await dbContext.MMSIPorts.AddRangeAsync(newRecords, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                foreach (var record in newRecords)
+                {
+                    var key = portMap.FirstOrDefault(x => x.Value == -1 && PadNumber(x.Key, 3) == record.PortNumber).Key;
+                    if (key != null)
+                    {
+                        portMap[key] = record.PortId;
+                    }
+                }
+            }
+
+            return ($"Ports imported successfully, {newRecords.Count} new records", portMap);
         }
 
-        public async Task<string> ImportMsapTerminals(string terminalCSVPath, CancellationToken cancellationToken)
+        public async Task<(string Result, Dictionary<string, int> Map)> ImportMsapServices(IFormFile file, CancellationToken cancellationToken)
         {
-            var existingIdentifier = (await dbContext.MMSITerminals.Include(t => t.Port).ToListAsync(cancellationToken))
-                .Select(c => new { PortNumber = (string?)c.Port!.PortNumber, TerminalNumber = (string?)c.TerminalNumber }).ToHashSet();
+            var existingServices = await dbContext.MMSIServices
+                .Where(s => true)
+                .ToDictionaryAsync(s => s.ServiceNumber, s => s.ServiceId, cancellationToken);
+            var serviceMap = new Dictionary<string, int>();
+            var newRecords = new List<Service>();
 
-            var existingPorts = (await dbContext.MMSIPorts.ToListAsync(cancellationToken))
-                .Select(p => new { p.PortId, p.PortNumber }).ToList();
-
-            var currentBatch = new HashSet<object>();
-            var newRecords = new List<Terminal>();
-            using var reader = new StreamReader(terminalCSVPath);
+            using var reader = new StreamReader(file.OpenReadStream());
             using var csv = new CsvReader(reader, _csvConfig);
-            var records = csv.GetRecords<dynamic>().ToList();
+            var records = csv.GetRecords<dynamic>();
 
             foreach (var record in records)
             {
-                string terminalComposite = GetString(record, "number") ?? string.Empty;
-                if (terminalComposite.Length < 6) { continue; }
-                var portPart = terminalComposite.Substring(0, 3);
-                var terminalPart = terminalComposite.Substring(terminalComposite.Length - 3, 3);
+                string msapNumber = GetString(record, "number") ?? string.Empty;
+                string padded = PadNumber(msapNumber, 3);
+
+                if (string.IsNullOrEmpty(padded))
+                {
+                    continue;
+                }
+
+                if (existingServices.TryGetValue(padded, out int existingId))
+                {
+                    serviceMap[msapNumber] = existingId;
+                    continue;
+                }
+
+                Service newRecord = new Service { ServiceNumber = padded, ServiceName = GetString(record, "desc") ?? "UNKNOWN" };
+
+                newRecords.Add(newRecord);
+                existingServices[padded] = 0;
+                serviceMap[msapNumber] = -1;
+            }
+
+            if (newRecords.Count > 0)
+            {
+                await dbContext.MMSIServices.AddRangeAsync(newRecords, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                foreach (var record in newRecords)
+                {
+                    var key = serviceMap.FirstOrDefault(x => x.Value == -1 && PadNumber(x.Key, 3) == record.ServiceNumber).Key;
+                    if (key != null)
+                    {
+                        serviceMap[key] = record.ServiceId;
+                    }
+                }
+            }
+
+            return ($"Services imported successfully, {newRecords.Count} new records", serviceMap);
+        }
+
+        public async Task<(string Result, Dictionary<string, int> Map)> ImportMsapTugboatOwners(IFormFile file, CancellationToken cancellationToken)
+        {
+            var existingOwners = await dbContext.MMSITugboatOwners
+                .Where(o => true)
+                .ToDictionaryAsync(o => o.TugboatOwnerNumber, o => o.TugboatOwnerId, cancellationToken);
+            var ownerMap = new Dictionary<string, int>();
+            var newRecords = new List<TugboatOwner>();
+
+            using var reader = new StreamReader(file.OpenReadStream());
+            using var csv = new CsvReader(reader, _csvConfig);
+            var records = csv.GetRecords<dynamic>();
+
+            foreach (var record in records)
+            {
+                string msapNumber = GetString(record, "number") ?? string.Empty;
+                string padded = PadNumber(msapNumber, 3);
+
+                if (string.IsNullOrEmpty(padded))
+                {
+                    continue;
+                }
+
+                if (existingOwners.TryGetValue(padded, out int existingId))
+                {
+                    ownerMap[msapNumber] = existingId;
+                    continue;
+                }
+
+                TugboatOwner newRecord = new TugboatOwner { TugboatOwnerNumber = padded, TugboatOwnerName = GetString(record, "name") ?? "UNKNOWN" };
+
+                newRecords.Add(newRecord);
+                existingOwners[padded] = 0;
+                ownerMap[msapNumber] = -1;
+            }
+
+            if (newRecords.Count > 0)
+            {
+                await dbContext.MMSITugboatOwners.AddRangeAsync(newRecords, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                foreach (var record in newRecords)
+                {
+                    var key = ownerMap.FirstOrDefault(x => x.Value == -1 && PadNumber(x.Key, 3) == record.TugboatOwnerNumber).Key;
+                    if (key != null)
+                    {
+                        ownerMap[key] = record.TugboatOwnerId;
+                    }
+                }
+            }
+
+            return ($"Tugboat Owners imported successfully, {newRecords.Count} new records", ownerMap);
+        }
+
+        public async Task<(string Result, Dictionary<string, int> Map)> ImportMsapTugMasters(IFormFile file, CancellationToken cancellationToken)
+        {
+            var existingMasters = await dbContext.MMSITugMasters
+                .Where(m => true)
+                .ToDictionaryAsync(m => m.TugMasterNumber, m => m.TugMasterId, cancellationToken);
+            var tugMasterMap = new Dictionary<string, int>();
+            var newRecords = new List<TugMaster>();
+
+            using var reader = new StreamReader(file.OpenReadStream());
+            using var csv = new CsvReader(reader, _csvConfig);
+            var records = csv.GetRecords<dynamic>();
+
+            foreach (var record in records)
+            {
+                string empNo = GetString(record, "empno") ?? string.Empty;
+
+                if (string.IsNullOrEmpty(empNo))
+                {
+                    continue;
+                }
+
+                if (existingMasters.TryGetValue(empNo, out int existingId))
+                {
+                    tugMasterMap[empNo] = existingId;
+                    continue;
+                }
+
+                TugMaster newRecord = new TugMaster
+                {
+                    TugMasterNumber = empNo, TugMasterName = GetString(record, "name") ?? "UNKNOWN", IsActive = ParseBool(record, "active")
+                };
+
+                newRecords.Add(newRecord);
+                existingMasters[empNo] = 0;
+                tugMasterMap[empNo] = -1;
+            }
+
+            if (newRecords.Count > 0)
+            {
+                await dbContext.MMSITugMasters.AddRangeAsync(newRecords, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                foreach (var record in newRecords)
+                {
+                    if (tugMasterMap.ContainsKey(record.TugMasterNumber))
+                    {
+                        tugMasterMap[record.TugMasterNumber] = record.TugMasterId;
+                    }
+                }
+            }
+
+            return ($"Tug Masters imported successfully, {newRecords.Count} new records", tugMasterMap);
+        }
+
+        public async Task<(string Result, Dictionary<string, int> Map)> ImportMsapVessels(IFormFile file, CancellationToken cancellationToken)
+        {
+            var existingVessels = await dbContext.MMSIVessels
+                .Where(v => true)
+                .ToDictionaryAsync(v => v.VesselNumber, v => v.VesselId, cancellationToken);
+            var vesselMap = new Dictionary<string, int>();
+            var newRecords = new List<Vessel>();
+
+            using var reader = new StreamReader(file.OpenReadStream());
+            using var csv = new CsvReader(reader, _csvConfig);
+            var records = csv.GetRecords<dynamic>();
+
+            foreach (var record in records)
+            {
+                string msapNumber = GetString(record, "number") ?? string.Empty;
+                string padded = PadNumber(msapNumber, 4);
+
+                if (string.IsNullOrEmpty(padded))
+                {
+                    continue;
+                }
+
+                if (existingVessels.TryGetValue(padded, out int existingId))
+                {
+                    vesselMap[msapNumber] = existingId;
+                    continue;
+                }
+
+                Vessel newRecord = new Vessel
+                {
+                    VesselNumber = padded, VesselName = GetString(record, "name") ?? "UNKNOWN", VesselType = GetString(record, "type") == "L" ? "LOCAL" : "FOREIGN"
+                };
+
+                newRecords.Add(newRecord);
+                existingVessels[padded] = 0;
+                vesselMap[msapNumber] = -1;
+            }
+
+            if (newRecords.Count > 0)
+            {
+                await dbContext.MMSIVessels.AddRangeAsync(newRecords, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                foreach (var record in newRecords)
+                {
+                    var key = vesselMap.FirstOrDefault(x => x.Value == -1 && PadNumber(x.Key, 4) == record.VesselNumber).Key;
+                    if (key != null)
+                    {
+                        vesselMap[key] = record.VesselId;
+                    }
+                }
+            }
+
+            return ($"Vessels imported successfully, {newRecords.Count} new records", vesselMap);
+        }
+
+        public async Task<(string Result, Dictionary<string, int> Map)> ImportMsapTerminals(IFormFile file, Dictionary<string, int> portMap, CancellationToken cancellationToken)
+        {
+            var existingTerminals = await dbContext.MMSITerminals
+                .Include(t => t.Port)
+                .ToDictionaryAsync(t => $"{t.Port!.PortNumber}|{t.TerminalNumber}", t => t.TerminalId, cancellationToken);
+
+            var terminalMap = new Dictionary<string, int>();
+            var newRecords = new List<Terminal>();
+
+            using var reader = new StreamReader(file.OpenReadStream());
+            using var csv = new CsvReader(reader, _csvConfig);
+            var records = csv.GetRecords<dynamic>();
+
+            foreach (var record in records)
+            {
+                string msapNumber = GetString(record, "number") ?? string.Empty;
+                if (msapNumber.Length < 6)
+                {
+                    continue;
+                }
+
+                var portPart = msapNumber.Substring(0, 3);
+                var terminalPart = msapNumber.Substring(msapNumber.Length - 3, 3);
 
                 string paddedPortNumber = PadNumber(portPart, 3);
                 string paddedTerminalNumber = PadNumber(terminalPart, 3);
 
-                var identity = new { PortNumber = (string?)paddedPortNumber, TerminalNumber = (string?)paddedTerminalNumber };
+                string lookupKey = $"{paddedPortNumber}|{paddedTerminalNumber}";
 
-                if (existingIdentifier.Contains(identity) || currentBatch.Contains(identity))
+                if (existingTerminals.TryGetValue(lookupKey, out int existingId))
+                {
+                    terminalMap[msapNumber] = existingId;
+                    continue;
+                }
+
+                if (!portMap.TryGetValue(portPart, out int portId))
                 {
                     continue;
                 }
 
-                Terminal newRecord = new Terminal();
-                var port = existingPorts.FirstOrDefault(p => p.PortNumber == paddedPortNumber);
-                if (port == null) { continue; }
-                newRecord.PortId = port.PortId;
-                newRecord.TerminalName = GetString(record, "name");
-                newRecord.TerminalNumber = paddedTerminalNumber;
+                Terminal newRecord = new Terminal
+                {
+                    PortId = portId, TerminalName = GetString(record, "name"), TerminalNumber = paddedTerminalNumber
+                };
 
                 newRecords.Add(newRecord);
-                currentBatch.Add(identity);
+                existingTerminals[lookupKey] = 0;
+                terminalMap[msapNumber] = -1;
             }
 
-            await dbContext.MMSITerminals.AddRangeAsync(newRecords, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return $"Terminals imported successfully, {newRecords.Count} new records";
+            if (newRecords.Count > 0)
+            {
+                await dbContext.MMSITerminals.AddRangeAsync(newRecords, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                foreach (var record in newRecords)
+                {
+                    var portNum = portMap.FirstOrDefault(x => x.Value == record.PortId).Key;
+                    var key = terminalMap.FirstOrDefault(x => x.Value == -1 && x.Key.StartsWith(portNum!) && x.Key.EndsWith(record.TerminalNumber!)).Key;
+                    if (key != null)
+                    {
+                        terminalMap[key] = record.TerminalId;
+                    }
+                }
+            }
+
+            return ($"Terminals imported successfully, {newRecords.Count} new records", terminalMap);
         }
 
-        public async Task<string> ImportMsapPrincipals(string principalCSVPath, string customerCSVPath, CancellationToken cancellationToken)
+        public async Task<(string Result, Dictionary<string, int> Map)> ImportMsapTugboats(IFormFile file, Dictionary<string, int> ownerMap, CancellationToken cancellationToken)
         {
-            var existingIdentifier = (await dbContext.MMSIPrincipals.ToListAsync(cancellationToken))
-                .Select(c => new { PrincipalNumber = c.PrincipalNumber, PrincipalName = c.PrincipalName, CustomerId = c.CustomerId }).ToHashSet();
+            var existingTugboats = await dbContext.MMSITugboats
+                .Where(t => true)
+                .ToDictionaryAsync(t => t.TugboatNumber, t => t.TugboatId, cancellationToken);
+            var tugboatMap = new Dictionary<string, int>();
+            var newRecords = new List<Tugboat>();
 
-            var mmsiCustomers = await unitOfWork.Customer
-                .GetAllAsync(c => c.Company == "MMSI", cancellationToken);
-
-            var newRecords = new List<Principal>();
-            using var reader = new StreamReader(principalCSVPath);
+            using var reader = new StreamReader(file.OpenReadStream());
             using var csv = new CsvReader(reader, _csvConfig);
-            var records = csv.GetRecords<dynamic>().ToList();
-
-            using var reader2 = new StreamReader(customerCSVPath);
-            using var csv2 = new CsvReader(reader2, _csvConfig);
-            var customers = csv2.GetRecords<dynamic>().ToList();
-
-            var customersList = customers
-                .Select(c =>
-                {
-                    string? name = GetString(c, "name");
-                    var matchedCustomer = mmsiCustomers.FirstOrDefault(cu => cu.CustomerName == name);
-                    return matchedCustomer == null ? null : new
-                    {
-                        CustomerId = (int)matchedCustomer.CustomerId,
-                        CustomerNumber = GetString(c, "number"),
-                        CustomerName = name
-                    };
-                })
-                .Where(c => c != null)
-                .ToList();
-
-            var currentBatch = new HashSet<object>();
+            var records = csv.GetRecords<dynamic>();
 
             foreach (var record in records)
             {
-                string padded = PadNumber(GetString(record, "number"), 4);
-                string paddedCustomerNumber = PadNumber(GetString(record, "agent"), 4);
+                string msapNumber = GetString(record, "number") ?? string.Empty;
+                string padded = PadNumber(msapNumber, 3);
 
-                var agent = customersList.FirstOrDefault(c => c?.CustomerNumber == paddedCustomerNumber);
-                if (agent == null)
+                if (string.IsNullOrEmpty(padded))
                 {
                     continue;
                 }
 
-                var identity = new
+                if (existingTugboats.TryGetValue(padded, out int existingId))
                 {
-                    PrincipalNumber = padded,
-                    PrincipalName = (string)(GetString(record, "name") ?? string.Empty),
-                    CustomerId = agent.CustomerId
-                };
+                    tugboatMap[msapNumber] = existingId;
+                    continue;
+                }
 
-                if (existingIdentifier.Contains(identity) || currentBatch.Contains(identity))
+                Tugboat newRecord = new Tugboat();
+                string ownerNo = GetString(record, "owner") ?? string.Empty;
+                if (ownerMap.TryGetValue(ownerNo, out int ownerId))
                 {
+                    newRecord.TugboatOwnerId = ownerId;
+                }
+
+                newRecord.TugboatNumber = padded;
+                newRecord.TugboatName = GetString(record, "name") ?? "UNKNOWN";
+                newRecord.IsCompanyOwned = ParseBool(record, "companyown");
+
+                newRecords.Add(newRecord);
+                existingTugboats[padded] = 0;
+                tugboatMap[msapNumber] = -1;
+            }
+
+            if (newRecords.Count > 0)
+            {
+                await dbContext.MMSITugboats.AddRangeAsync(newRecords, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                foreach (var record in newRecords)
+                {
+                    var key = tugboatMap.FirstOrDefault(x => x.Value == -1 && PadNumber(x.Key, 3) == record.TugboatNumber).Key;
+                    if (key != null)
+                    {
+                        tugboatMap[key] = record.TugboatId;
+                    }
+                }
+            }
+
+            return ($"Tugboats imported successfully, {newRecords.Count} new records", tugboatMap);
+        }
+
+        public async Task<(string Result, Dictionary<string, int> Map)> ImportMsapPrincipals(IFormFile file, Dictionary<string, int> customerMap, CancellationToken cancellationToken)
+        {
+            var existingPrincipals = await dbContext.MMSIPrincipals
+                .Select(p => new { p.PrincipalNumber, p.PrincipalName, p.CustomerId, p.PrincipalId })
+                .ToListAsync(cancellationToken);
+
+            var principalMap = new Dictionary<string, int>();
+            var newRecords = new List<Principal>();
+
+            using var reader = new StreamReader(file.OpenReadStream());
+            using var csv = new CsvReader(reader, _csvConfig);
+            var records = csv.GetRecords<dynamic>();
+
+            foreach (var record in records)
+            {
+                string msapNumber = GetString(record, "number") ?? string.Empty;
+                string padded = PadNumber(msapNumber, 4);
+                string agentNo = GetString(record, "agent") ?? string.Empty;
+
+                if (!customerMap.TryGetValue(agentNo, out int customerId))
+                {
+                    continue;
+                }
+
+                string principalName = GetString(record, "name") ?? string.Empty;
+
+                var existing = existingPrincipals.FirstOrDefault(p => p.PrincipalNumber == padded && p.PrincipalName == principalName && p.CustomerId == customerId);
+                if (existing != null)
+                {
+                    principalMap[msapNumber] = existing.PrincipalId;
                     continue;
                 }
 
@@ -485,9 +804,9 @@ namespace IBSWeb.Areas.User.Controllers
                     case "60": newRecord.Terms = "60D"; break;
                 }
 
-                newRecord.CustomerId = agent.CustomerId;
+                newRecord.CustomerId = customerId;
                 newRecord.PrincipalNumber = padded;
-                newRecord.PrincipalName = GetString(record, "name") ?? "UNKNOWN";
+                newRecord.PrincipalName = principalName;
                 string? addr1 = GetString(record, "address1");
                 string? addr2 = GetString(record, "address2");
                 string? addr3 = GetString(record, "address3");
@@ -503,229 +822,39 @@ namespace IBSWeb.Areas.User.Controllers
                 newRecord.IsActive = ParseBool(record, "active");
 
                 newRecords.Add(newRecord);
-                currentBatch.Add(identity);
+                principalMap[msapNumber] = -1;
             }
 
-            await dbContext.MMSIPrincipals.AddRangeAsync(newRecords, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return $"Principals imported successfully, {newRecords.Count} new records";
-        }
-
-        public async Task<string> ImportMsapServices(string serviceCSVPath, CancellationToken cancellationToken)
-        {
-            var existingIdentifier = (await dbContext.MMSIServices.ToListAsync(cancellationToken))
-                .Select(c => c.ServiceNumber).ToHashSet();
-
-            var currentBatch = new HashSet<string>();
-            var newRecords = new List<Service>();
-            using var reader = new StreamReader(serviceCSVPath);
-            using var csv = new CsvReader(reader, _csvConfig);
-            var records = csv.GetRecords<dynamic>().ToList();
-
-            foreach (var record in records)
+            if (newRecords.Count > 0)
             {
-                string padded = PadNumber(GetString(record, "number"), 3);
-
-                if (string.IsNullOrEmpty(padded) || existingIdentifier.Contains(padded) || currentBatch.Contains(padded))
+                await dbContext.MMSIPrincipals.AddRangeAsync(newRecords, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                foreach (var record in newRecords)
                 {
-                    continue;
+                    var key = principalMap.FirstOrDefault(x => x.Value == -1 && PadNumber(x.Key, 4) == record.PrincipalNumber).Key;
+                    if (key != null)
+                    {
+                        principalMap[key] = record.PrincipalId;
+                    }
                 }
-
-                Service newRecord = new Service();
-                newRecord.ServiceNumber = padded;
-                newRecord.ServiceName = GetString(record, "desc") ?? "UNKNOWN";
-
-                newRecords.Add(newRecord);
-                currentBatch.Add(padded);
             }
 
-            await dbContext.MMSIServices.AddRangeAsync(newRecords, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return $"Services imported successfully, {newRecords.Count} new records";
+            return ($"Principals imported successfully, {newRecords.Count} new records", principalMap);
         }
 
-        public async Task<string> ImportMsapTugboats(string tugboatCSVPath, CancellationToken cancellationToken)
+        public async Task<string> ImportMsapTariffRates(IFormFile file, Dictionary<string, int> customerMap, Dictionary<string, int> terminalMap, Dictionary<string, int> serviceMap, CancellationToken cancellationToken)
         {
-            var existingIdentifier = (await dbContext.MMSITugboats.ToListAsync(cancellationToken))
-                .Select(c => c.TugboatNumber).ToHashSet();
-            var existingTugboatOwners = (await dbContext.MMSITugboatOwners.ToListAsync(cancellationToken))
-                .Select(c => new { c.TugboatOwnerId, c.TugboatOwnerNumber }).ToList();
-
-            var currentBatch = new HashSet<string>();
-            var newRecords = new List<Tugboat>();
-            using var reader = new StreamReader(tugboatCSVPath);
-            using var csv = new CsvReader(reader, _csvConfig);
-            var records = csv.GetRecords<dynamic>().ToList();
-
-            foreach (var record in records)
-            {
-                string padded = PadNumber(GetString(record, "number"), 3);
-                string paddedOwnerNumber = PadNumber(GetString(record, "owner"), 3);
-
-                var owner = existingTugboatOwners.FirstOrDefault(t => t.TugboatOwnerNumber == paddedOwnerNumber);
-
-                if (string.IsNullOrEmpty(padded) || existingIdentifier.Contains(padded) || currentBatch.Contains(padded))
-                {
-                    continue;
-                }
-
-                Tugboat newRecord = new Tugboat();
-                if (owner != null)
-                {
-                    newRecord.TugboatOwnerId = owner.TugboatOwnerId;
-                }
-
-                newRecord.TugboatNumber = padded;
-                newRecord.TugboatName = GetString(record, "name") ?? "UNKNOWN";
-                newRecord.IsCompanyOwned = ParseBool(record, "companyown");
-
-                newRecords.Add(newRecord);
-                currentBatch.Add(padded);
-            }
-
-            await dbContext.MMSITugboats.AddRangeAsync(newRecords, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return $"Tugboats imported successfully, {newRecords.Count} new records";
-        }
-
-        public async Task<string> ImportMsapTugboatOwners(string tugboatOwnerCSVPath, CancellationToken cancellationToken)
-        {
-            var existingIdentifier = (await dbContext.MMSITugboatOwners.ToListAsync(cancellationToken))
-                .Select(c => c.TugboatOwnerNumber).ToHashSet();
-
-            var currentBatch = new HashSet<string>();
-            var newRecords = new List<TugboatOwner>();
-            using var reader = new StreamReader(tugboatOwnerCSVPath);
-            using var csv = new CsvReader(reader, _csvConfig);
-            var records = csv.GetRecords<dynamic>().ToList();
-
-            foreach (var record in records)
-            {
-                string padded = PadNumber(GetString(record, "number"), 3);
-
-                if (string.IsNullOrEmpty(padded) || existingIdentifier.Contains(padded) || currentBatch.Contains(padded))
-                {
-                    continue;
-                }
-
-                TugboatOwner newRecord = new TugboatOwner();
-                newRecord.TugboatOwnerNumber = padded;
-                newRecord.TugboatOwnerName = GetString(record, "name") ?? "UNKNOWN";
-
-                newRecords.Add(newRecord);
-                currentBatch.Add(padded);
-            }
-
-            await dbContext.MMSITugboatOwners.AddRangeAsync(newRecords, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return $"Tugboat Owners imported successfully, {newRecords.Count} new records";
-        }
-
-        public async Task<string> ImportMsapTugMasters(string tugMasterCSVPath, CancellationToken cancellationToken)
-        {
-            var existingIdentifier = (await dbContext.MMSITugMasters.ToListAsync(cancellationToken))
-                .Select(c => c.TugMasterNumber).ToHashSet();
-
-            var currentBatch = new HashSet<string>();
-            var newRecords = new List<TugMaster>();
-            using var reader = new StreamReader(tugMasterCSVPath);
-            using var csv = new CsvReader(reader, _csvConfig);
-            var records = csv.GetRecords<dynamic>().ToList();
-
-            foreach (var record in records)
-            {
-                string? empNo = GetString(record, "empno");
-                if (string.IsNullOrEmpty(empNo) || existingIdentifier.Contains(empNo) || currentBatch.Contains(empNo))
-                {
-                    continue;
-                }
-
-                TugMaster newRecord = new TugMaster();
-                newRecord.TugMasterNumber = empNo;
-                newRecord.TugMasterName = GetString(record, "name") ?? "UNKNOWN";
-                newRecord.IsActive = ParseBool(record, "active");
-
-                newRecords.Add(newRecord);
-                currentBatch.Add(empNo);
-            }
-
-            await dbContext.MMSITugMasters.AddRangeAsync(newRecords, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return $"Tug Masters imported successfully, {newRecords.Count} new records";
-        }
-
-        public async Task<string> ImportMsapVessels(string vesselCSVPath, CancellationToken cancellationToken)
-        {
-            var existingIdentifier = (await dbContext.MMSIVessels.ToListAsync(cancellationToken))
-                .Select(c => c.VesselNumber).ToHashSet();
-
-            var currentBatch = new HashSet<string>();
-            var newRecords = new List<Vessel>();
-            using var reader = new StreamReader(vesselCSVPath);
-            using var csv = new CsvReader(reader, _csvConfig);
-            var records = csv.GetRecords<dynamic>().ToList();
-
-            foreach (var record in records)
-            {
-                string padded = PadNumber(GetString(record, "number"), 4);
-
-                if (string.IsNullOrEmpty(padded) || existingIdentifier.Contains(padded) || currentBatch.Contains(padded))
-                {
-                    continue;
-                }
-
-                Vessel newRecord = new Vessel();
-                newRecord.VesselNumber = padded;
-                newRecord.VesselName = GetString(record, "name") ?? "UNKNOWN";
-                newRecord.VesselType = GetString(record, "type") == "L" ? "LOCAL" : "FOREIGN";
-
-                newRecords.Add(newRecord);
-                currentBatch.Add(padded);
-            }
-
-            await dbContext.MMSIVessels.AddRangeAsync(newRecords, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return $"Vessels imported successfully, {newRecords.Count} new records";
-        }
-
-        public async Task<string> ImportMsapTariffRates(string tariffCSVPath, string customerCSVPath, CancellationToken cancellationToken)
-        {
-            using var reader0 = new StreamReader(customerCSVPath);
-            using var csv0 = new CsvReader(reader0, _csvConfig);
-
-            var msapCustomerRecords = csv0.GetRecords<dynamic>().Select(c => new
-            {
-                number = (string?)GetString(c, "number"),
-                name = (string?)GetString(c, "name")
-            }).ToList();
-
-            using var reader = new StreamReader(tariffCSVPath);
-            using var csv = new CsvReader(reader, _csvConfig);
-            var records = csv.GetRecords<dynamic>().ToList();
-
             var existingIdentifier = await dbContext.MMSITariffRates
                 .AsNoTracking()
-                .Select(t => new { CustomerId = t.CustomerId, TerminalId = t.TerminalId, ServiceId = t.ServiceId, AsOfDate = t.AsOfDate })
+                .Select(t => new { t.CustomerId, t.TerminalId, t.ServiceId, t.AsOfDate })
                 .ToHashSetAsync(cancellationToken);
 
-            var ibsCustomerList = await dbContext.Customers
-                .Where(c => c.Company == "MMSI")
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
-
-            var existingTerminals = await dbContext.MMSITerminals
-                .AsNoTracking()
-                .Include(t => t.Port)
-                .Select(t => new { TerminalNumber = t.TerminalNumber, TerminalId = t.TerminalId, PortNumber = t.Port!.PortNumber })
-                .ToListAsync(cancellationToken);
-
-            var existingServices = await dbContext.MMSIServices
-                .AsNoTracking()
-                .Select(s => new { ServiceNumber = s.ServiceNumber, ServiceId = s.ServiceId })
-                .ToListAsync(cancellationToken);
-
-            var currentBatch = new HashSet<object>();
             var newRecords = new List<TariffRate>();
+            var currentBatch = new HashSet<object>();
+
+            using var reader = new StreamReader(file.OpenReadStream());
+            using var csv = new CsvReader(reader, _csvConfig);
+            var records = csv.GetRecords<dynamic>();
 
             foreach (var record in records)
             {
@@ -738,64 +867,38 @@ namespace IBSWeb.Areas.User.Controllers
                 DateOnly asOfDate = asOfDateNullable.Value;
 
                 string? custNo = GetString(record, "custno");
-                var msapCustomer = msapCustomerRecords.FirstOrDefault(mc => mc.number == custNo);
-                if (msapCustomer == null)
-                {
-                    continue;
-                }
-
-                var customer = ibsCustomerList.FirstOrDefault(c => c.CustomerName.Trim() == msapCustomer.name?.Trim());
-                if (customer == null)
+                if (custNo == null || !customerMap.TryGetValue(custNo, out int customerId))
                 {
                     continue;
                 }
 
                 string terminalRaw = GetString(record, "terminal") ?? string.Empty;
-                if (terminalRaw.Length < 6)
+                if (!terminalMap.TryGetValue(terminalRaw, out int terminalId))
                 {
                     continue;
                 }
 
-                var portPart = terminalRaw.Substring(0, 3);
-                var terminalPart = terminalRaw.Substring(terminalRaw.Length - 3, 3);
-                string paddedPortNum = PadNumber(portPart, 3);
-                string paddedTerminalNum = PadNumber(terminalPart, 3);
-
-                var terminal = existingTerminals.FirstOrDefault(t => t.TerminalNumber == paddedTerminalNum && t.PortNumber == paddedPortNum);
-                if (terminal == null)
+                string serviceNum = GetString(record, "service") ?? string.Empty;
+                if (!serviceMap.TryGetValue(serviceNum, out int serviceId))
                 {
                     continue;
                 }
 
-                string paddedServiceNum = PadNumber(GetString(record, "service"), 3);
-                var service = existingServices.FirstOrDefault(s => s.ServiceNumber == paddedServiceNum);
-                if (service == null)
-                {
-                    continue;
-                }
-
-                var identity = new
-                {
-                    CustomerId = customer.CustomerId,
-                    TerminalId = terminal.TerminalId,
-                    ServiceId = service.ServiceId,
-                    AsOfDate = asOfDate
-                };
+                var identity = new { CustomerId = customerId, TerminalId = terminalId, ServiceId = serviceId, AsOfDate = asOfDate };
 
                 if (existingIdentifier.Contains(identity) || currentBatch.Contains(identity))
                 {
                     continue;
                 }
 
-                TariffRate newRecord = new TariffRate();
-                newRecord.CustomerId = customer.CustomerId;
-                newRecord.TerminalId = terminal.TerminalId;
-                newRecord.ServiceId = service.ServiceId;
-                newRecord.AsOfDate = asOfDate;
-                newRecord.Dispatch = ParseDecimal(record, "dispatch");
-                newRecord.BAF = ParseDecimal(record, "baf");
-                newRecord.CreatedBy = GetString(record, "createdby");
-                newRecord.CreatedDate = ParseDateTime(record, "createddat") ?? DateTimeHelper.GetCurrentPhilippineTime();
+                TariffRate newRecord = new TariffRate
+                {
+                    CustomerId = customerId, TerminalId = terminalId, ServiceId = serviceId, AsOfDate = asOfDate,
+                    Dispatch = ParseDecimal(record, "dispatch"),
+                    BAF = ParseDecimal(record, "baf"),
+                    CreatedBy = GetString(record, "createdby"),
+                    CreatedDate = ParseDateTime(record, "createddat") ?? DateTimeHelper.GetCurrentPhilippineTime()
+                };
 
                 newRecords.Add(newRecord);
                 currentBatch.Add(identity);
@@ -808,63 +911,28 @@ namespace IBSWeb.Areas.User.Controllers
 
         #endregion -- Masterfiles --
 
-        public async Task<string> ImportMsapDispatchTickets(string dispatchTicketCSVPath, string customerCSVPath, CancellationToken cancellationToken)
+        public async Task<string> ImportMsapDispatchTickets(
+            IFormFile file,
+            Dictionary<string, int> customerMap,
+            Dictionary<string, int> vesselMap,
+            Dictionary<string, int> tugboatMap,
+            Dictionary<string, int> tugMasterMap,
+            Dictionary<string, int> serviceMap,
+            Dictionary<string, int> terminalMap,
+            Dictionary<string, int> billingMap,
+            CancellationToken cancellationToken)
         {
-            using var reader0 = new StreamReader(customerCSVPath);
-            using var csv0 = new CsvReader(reader0, _csvConfig);
-
-            var msapCustomerRecords = csv0.GetRecords<dynamic>().Select(c => new
-            {
-                number = (string?)GetString(c, "number"),
-                name = (string?)GetString(c, "name")
-            }).ToList();
-
             var existingIdentifier = await dbContext.MMSIDispatchTickets
                 .AsNoTracking()
-                .Select(dt => new { DispatchNumber = dt.DispatchNumber, CreatedDate = dt.CreatedDate })
+                .Select(dt => new { dt.DispatchNumber, dt.CreatedDate })
                 .ToHashSetAsync(cancellationToken);
 
-            var existingVessels = await dbContext.MMSIVessels
-                .AsNoTracking()
-                .Select(v => new { VesselNumber = v.VesselNumber, VesselId = v.VesselId })
-                .ToListAsync(cancellationToken);
-
-            var existingTerminals = await dbContext.MMSITerminals
-                .Include(t => t.Port)
-                .Select(dt => new { TerminalNumber = dt.TerminalNumber, TerminalId = dt.TerminalId, PortNumber = dt.Port!.PortNumber, PortId = dt.Port.PortId })
-                .ToListAsync(cancellationToken);
-
-            var existingTugboats = await dbContext.MMSITugboats
-                .AsNoTracking()
-                .Select(dt => new { TugboatNumber = dt.TugboatNumber, TugboatId = dt.TugboatId })
-                .ToListAsync(cancellationToken);
-
-            var existingTugMasters = await dbContext.MMSITugMasters
-                .AsNoTracking()
-                .Select(dt => new { TugMasterNumber = dt.TugMasterNumber, TugMasterId = dt.TugMasterId })
-                .ToListAsync(cancellationToken);
-
-            var existingServices = await dbContext.MMSIServices
-                .AsNoTracking()
-                .Select(dt => new { ServiceNumber = dt.ServiceNumber, ServiceId = dt.ServiceId })
-                .ToListAsync(cancellationToken);
-
-            var ibsCustomerList = await dbContext.Customers
-                .Where(c => c.Company == "MMSI")
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
-
-            var existingBilling = await dbContext.Billings
-                .AsNoTracking()
-                .Select(b => new { MMSIBillingNumber = b.MMSIBillingNumber, MMSIBillingId = b.MMSIBillingId, CustomerId = (int?)b.CustomerId })
-                .ToListAsync(cancellationToken);
-
-            var currentBatch = new HashSet<object>();
             var newRecords = new List<DispatchTicket>();
+            var currentBatch = new HashSet<object>();
 
-            using var reader = new StreamReader(dispatchTicketCSVPath);
+            using var reader = new StreamReader(file.OpenReadStream());
             using var csv = new CsvReader(reader, _csvConfig);
-            var records = csv.GetRecords<dynamic>().ToList();
+            var records = csv.GetRecords<dynamic>();
 
             foreach (var record in records)
             {
@@ -875,13 +943,9 @@ namespace IBSWeb.Areas.User.Controllers
                 }
 
                 DateTime entryDate = entryDateNullable.Value;
-
                 string dispatchNumber = GetString(record, "number")?.Trim() ?? "";
-                var identity = new
-                {
-                    DispatchNumber = dispatchNumber,
-                    CreatedDate = entryDate
-                };
+
+                var identity = new { DispatchNumber = dispatchNumber, CreatedDate = entryDate };
 
                 if (existingIdentifier.Contains(identity) || currentBatch.Contains(identity))
                 {
@@ -890,43 +954,18 @@ namespace IBSWeb.Areas.User.Controllers
 
                 DispatchTicket newRecord = new DispatchTicket();
 
-                string portTerminalOriginal = GetString(record, "terminal") ?? string.Empty;
-                string portNumber = string.Empty;
-                string terminalNumber = string.Empty;
-
-                if (!string.IsNullOrWhiteSpace(portTerminalOriginal))
-                {
-                    var cleanStr = new string(portTerminalOriginal.Where(c => !char.IsWhiteSpace(c)).ToArray());
-                    if (cleanStr.Length >= 6)
-                    {
-                        portNumber = cleanStr.Substring(0, 3);
-                        terminalNumber = cleanStr.Substring(cleanStr.Length - 3, 3);
-                    }
-                }
-
-                string paddedVesselNum = PadNumber(GetString(record, "vesselnum"), 4);
-                string paddedTugboatNum = PadNumber(GetString(record, "tugnum"), 3);
-                string paddedServiceNum = PadNumber(GetString(record, "srvctype"), 3);
-
                 string? custNo = GetString(record, "custno");
-                var msapCustomer = msapCustomerRecords.FirstOrDefault(mc => mc.number == custNo);
-
-                if (msapCustomer != null)
+                if (custNo != null && customerMap.TryGetValue(custNo, out int customerId))
                 {
-                    var customer = ibsCustomerList.FirstOrDefault(c => c.CustomerName.Trim() == msapCustomer.name?.Trim());
-                    if (customer != null)
-                    {
-                        newRecord.CustomerId = customer.CustomerId;
-                    }
-                    else if (!string.IsNullOrEmpty(GetString(record, "billnum")))
-                    {
-                        string? billNum = GetString(record, "billnum");
-                        newRecord.CustomerId = existingBilling.FirstOrDefault(b => b.MMSIBillingNumber == billNum)?.CustomerId;
-                    }
+                    newRecord.CustomerId = customerId;
                 }
 
                 string? billNumberStr = GetString(record, "billnum");
-                newRecord.BillingId = existingBilling.FirstOrDefault(b => b.MMSIBillingNumber == billNumberStr)?.MMSIBillingId;
+                if (!string.IsNullOrEmpty(billNumberStr) && billingMap.TryGetValue(billNumberStr, out int billingId))
+                {
+                    newRecord.BillingId = billingId;
+                }
+
                 newRecord.BillingNumber = string.IsNullOrEmpty(billNumberStr) ? null : billNumberStr;
                 newRecord.DispatchNumber = dispatchNumber;
                 newRecord.Date = ParseDateOnly(record, "date");
@@ -954,11 +993,35 @@ namespace IBSWeb.Areas.User.Controllers
                 newRecord.TotalBilling = newRecord.DispatchBillingAmount + newRecord.BAFBillingAmount;
                 newRecord.TotalNetRevenue = newRecord.DispatchNetRevenue + newRecord.BAFNetRevenue;
 
-                newRecord.TugBoatId = existingTugboats.FirstOrDefault(tb => tb.TugboatNumber == paddedTugboatNum)?.TugboatId;
-                newRecord.TugMasterId = existingTugMasters.FirstOrDefault(tm => tm.TugMasterNumber == GetString(record, "masterno"))?.TugMasterId;
-                newRecord.VesselId = existingVessels.FirstOrDefault(v => v.VesselNumber == paddedVesselNum)?.VesselId;
-                newRecord.ServiceId = existingServices.FirstOrDefault(s => s.ServiceNumber == paddedServiceNum)?.ServiceId;
-                newRecord.TerminalId = string.IsNullOrEmpty(portTerminalOriginal) ? null : existingTerminals.FirstOrDefault(t => t.PortNumber == portNumber && t.TerminalNumber == terminalNumber)?.TerminalId;
+                string tugboatNum = GetString(record, "tugnum") ?? string.Empty;
+                if (tugboatMap.TryGetValue(tugboatNum, out int tbId))
+                {
+                    newRecord.TugBoatId = tbId;
+                }
+
+                string masterNo = GetString(record, "masterno") ?? string.Empty;
+                if (tugMasterMap.TryGetValue(masterNo, out int tmId))
+                {
+                    newRecord.TugMasterId = tmId;
+                }
+
+                string vesselNum = GetString(record, "vesselnum") ?? string.Empty;
+                if (vesselMap.TryGetValue(vesselNum, out int vId))
+                {
+                    newRecord.VesselId = vId;
+                }
+
+                string serviceNum = GetString(record, "srvctype") ?? string.Empty;
+                if (serviceMap.TryGetValue(serviceNum, out int sId))
+                {
+                    newRecord.ServiceId = sId;
+                }
+
+                string terminalRaw = GetString(record, "terminal") ?? string.Empty;
+                if (terminalMap.TryGetValue(terminalRaw, out int termId))
+                {
+                    newRecord.TerminalId = termId;
+                }
 
                 newRecord.CreatedBy = GetString(record, "entryby") ?? "IMPORT";
                 newRecord.CreatedDate = entryDate;
@@ -975,7 +1038,7 @@ namespace IBSWeb.Areas.User.Controllers
                     newRecord.Status = "For Tariff";
                 }
 
-                if (newRecord.DateLeft.HasValue && newRecord.DateArrived.HasValue && newRecord.TimeLeft.HasValue && newRecord.TimeArrived.HasValue)
+                if (newRecord is { DateLeft: not null, DateArrived: not null, TimeLeft: not null, TimeArrived: not null })
                 {
                     DateTime dtl = newRecord.DateLeft.Value.ToDateTime(newRecord.TimeLeft.Value);
                     DateTime dta = newRecord.DateArrived.Value.ToDateTime(newRecord.TimeArrived.Value);
@@ -1011,93 +1074,54 @@ namespace IBSWeb.Areas.User.Controllers
             return $"Dispatch Tickets imported successfully, {newRecords.Count} new records";
         }
 
-        public async Task<string> ImportMsapBillings(string billingCSVPath, string customerCSVPath, CancellationToken cancellationToken)
+        public async Task<(string Result, Dictionary<string, int> Map)> ImportMsapBillings(
+            IFormFile file,
+            Dictionary<string, int> customerMap,
+            Dictionary<string, int> vesselMap,
+            Dictionary<string, int> portMap,
+            Dictionary<string, int> terminalMap,
+            Dictionary<string, int> principalMap,
+            Dictionary<string, int> collectionMap,
+            CancellationToken cancellationToken)
         {
-            using var reader0 = new StreamReader(customerCSVPath);
-            using var csv0 = new CsvReader(reader0, _csvConfig);
-
-            var msapCustomerRecords = csv0.GetRecords<dynamic>().Select(c => new
-            {
-                number = (string?)GetString(c, "number"),
-                name = (string?)GetString(c, "name")
-            }).ToList();
-
-            using var reader = new StreamReader(billingCSVPath);
-            using var csv = new CsvReader(reader, _csvConfig);
-
-            var records = csv.GetRecords<dynamic>().ToList();
-            var newRecords = new List<Billing>();
-
             var existingIdentifier = await dbContext.Billings
                 .AsNoTracking()
-                .Select(b => b.MMSIBillingNumber)
-                .ToHashSetAsync(cancellationToken);
+                .Where(b => true)
+                .ToDictionaryAsync(b => b.MMSIBillingNumber, b => b.MMSIBillingId, cancellationToken);
 
-            var existingVessels = await dbContext.MMSIVessels
-                .AsNoTracking()
-                .Select(v => new { VesselNumber = v.VesselNumber, VesselId = v.VesselId })
-                .ToListAsync(cancellationToken);
+            var billingMap = new Dictionary<string, int>();
+            var newRecords = new List<Billing>();
 
-            var existingPorts = await dbContext.MMSIPorts
-                .AsNoTracking()
-                .Select(p => new { PortNumber = p.PortNumber, PortId = p.PortId })
-                .ToListAsync(cancellationToken);
-
-            var existingTerminals = await dbContext.MMSITerminals
-                .AsNoTracking()
-                .Include(t => t.Port)
-                .Select(p => new { TerminalNumber = p.TerminalNumber, TerminalId = p.TerminalId, PortNumber = p.Port!.PortNumber })
-                .ToListAsync(cancellationToken);
-
-            var existingPrincipals = await dbContext.MMSIPrincipals
-                .AsNoTracking()
-                .Select(p => new { PrincipalId = p.PrincipalId, CustomerId = p.CustomerId, PrincipalNumber = p.PrincipalNumber })
-                .ToListAsync(cancellationToken);
-
-            var existingCollection = await dbContext.MMSICollections
-                .AsNoTracking()
-                .Select(c => new { MMSICollectionId = c.MMSICollectionId, MMSICollectionNumber = c.MMSICollectionNumber })
-                .ToListAsync(cancellationToken);
-
-            var ibsCustomerList = await dbContext.Customers
-                .Where(c => c.Company == "MMSI")
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
-
-            var currentBatch = new HashSet<string>();
+            using var reader = new StreamReader(file.OpenReadStream());
+            using var csv = new CsvReader(reader, _csvConfig);
+            var records = csv.GetRecords<dynamic>();
 
             foreach (var record in records)
             {
                 string? billingNumber = GetString(record, "number");
-                if (string.IsNullOrEmpty(billingNumber) || existingIdentifier.Contains(billingNumber) || currentBatch.Contains(billingNumber))
+                if (string.IsNullOrEmpty(billingNumber))
                 {
                     continue;
                 }
 
-                string paddedVesselNum = PadNumber(GetString(record, "vesselnum"), 4);
-                if (paddedVesselNum == string.Empty)
+                if (existingIdentifier.TryGetValue(billingNumber, out int existingId))
+                {
+                    billingMap[billingNumber] = existingId;
+                    continue;
+                }
+
+                string vesselNum = GetString(record, "vesselnum") ?? string.Empty;
+                if (!vesselMap.TryGetValue(vesselNum, out int vesselId))
                 {
                     continue;
                 }
 
-                var vessel = existingVessels.FirstOrDefault(v => v.VesselNumber == paddedVesselNum);
-                if (vessel == null)
-                {
-                    continue;
-                }
-
-                Billing newRecord = new Billing();
-                newRecord.VesselId = vessel.VesselId;
+                Billing newRecord = new Billing { VesselId = vesselId };
 
                 string? custNo = GetString(record, "custno");
-                var msapCustomer = msapCustomerRecords.FirstOrDefault(mc => mc.number == custNo);
-                if (msapCustomer != null)
+                if (custNo != null && customerMap.TryGetValue(custNo, out int customerId))
                 {
-                    var customer = ibsCustomerList.FirstOrDefault(c => c.CustomerName.Trim() == msapCustomer.name?.Trim());
-                    if (customer != null)
-                    {
-                        newRecord.CustomerId = customer.CustomerId;
-                    }
+                    newRecord.CustomerId = customerId;
                 }
 
                 newRecord.MMSIBillingNumber = billingNumber;
@@ -1117,12 +1141,15 @@ namespace IBSWeb.Areas.User.Controllers
                 if (terminalRaw.Length >= 6)
                 {
                     var portPart = terminalRaw.Substring(0, 3);
-                    var terminalPart = terminalRaw.Substring(terminalRaw.Length - 3, 3);
-                    string paddedPortNum = PadNumber(portPart, 3);
-                    string paddedTerminalNum = PadNumber(terminalPart, 3);
+                    if (portMap.TryGetValue(portPart, out int portId))
+                    {
+                        newRecord.PortId = portId;
+                    }
 
-                    newRecord.PortId = existingPorts.FirstOrDefault(p => p.PortNumber == paddedPortNum)?.PortId;
-                    newRecord.TerminalId = existingTerminals.FirstOrDefault(t => t.TerminalNumber == paddedTerminalNum && t.PortNumber == paddedPortNum)?.TerminalId;
+                    if (terminalMap.TryGetValue(terminalRaw, out int terminalId))
+                    {
+                        newRecord.TerminalId = terminalId;
+                    }
                 }
 
                 newRecord.Amount = ParseDecimal(record, "amount");
@@ -1141,18 +1168,10 @@ namespace IBSWeb.Areas.User.Controllers
                 newRecord.BilledTo = "LOCAL";
 
                 string? crNum = GetString(record, "crnum");
-                if (!string.IsNullOrEmpty(crNum))
+                if (!string.IsNullOrEmpty(crNum) && collectionMap.TryGetValue(crNum, out int collId))
                 {
-                    var collection = existingCollection.FirstOrDefault(c => c.MMSICollectionNumber == crNum);
-                    if (collection != null)
-                    {
-                        newRecord.CollectionId = collection.MMSICollectionId;
-                        newRecord.Status = "Collected";
-                    }
-                    else
-                    {
-                        newRecord.Status = "For Collection";
-                    }
+                    newRecord.CollectionId = collId;
+                    newRecord.Status = "Collected";
                 }
                 else
                 {
@@ -1162,15 +1181,10 @@ namespace IBSWeb.Areas.User.Controllers
                 newRecord.CollectionNumber = string.IsNullOrEmpty(crNum) ? null : crNum;
                 newRecord.IsVatable = ParseBool(record, "vat");
 
-                string paddedPrincipalNum = PadNumber(GetString(record, "billto"), 4);
-                if (!string.IsNullOrEmpty(paddedPrincipalNum))
+                string principalNum = GetString(record, "billto") ?? string.Empty;
+                if (!string.IsNullOrEmpty(principalNum) && principalMap.TryGetValue(principalNum, out int principalId))
                 {
-                    var principal = existingPrincipals.FirstOrDefault(p => p.PrincipalNumber == paddedPrincipalNum && p.CustomerId == newRecord.CustomerId);
-                    if (principal != null)
-                    {
-                        newRecord.PrincipalId = principal.PrincipalId;
-                    }
-
+                    newRecord.PrincipalId = principalId;
                     newRecord.BilledTo = "PRINCIPAL";
                     newRecord.IsPrincipal = true;
                 }
@@ -1182,76 +1196,72 @@ namespace IBSWeb.Areas.User.Controllers
 
                 newRecord.IsPrinted = ParseBool(record, "printed");
                 newRecords.Add(newRecord);
-                currentBatch.Add(billingNumber);
+                existingIdentifier[billingNumber] = 0;
+                billingMap[billingNumber] = -1;
             }
 
-            await dbContext.Billings.AddRangeAsync(newRecords, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return $"Billings imported successfully, {newRecords.Count} new records";
+            if (newRecords.Count > 0)
+            {
+                await dbContext.Billings.AddRangeAsync(newRecords, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                foreach (var record in newRecords)
+                {
+                    if (billingMap.ContainsKey(record.MMSIBillingNumber))
+                    {
+                        billingMap[record.MMSIBillingNumber] = record.MMSIBillingId;
+                    }
+                }
+            }
+
+            return ($"Billings imported successfully, {newRecords.Count} new records", billingMap);
         }
 
-        public async Task<string> ImportMsapCollections(string collectionCSVPath, string customerCSVPath, CancellationToken cancellationToken)
+        public async Task<(string Result, Dictionary<string, int> Map)> ImportMsapCollections(IFormFile file, Dictionary<string, int> customerMap, CancellationToken cancellationToken)
         {
-            using var reader0 = new StreamReader(customerCSVPath);
-            using var csv0 = new CsvReader(reader0, _csvConfig);
-
-            var msapCustomerRecords = csv0.GetRecords<dynamic>().Select(c => new
-            {
-                number = (string?)GetString(c, "number"),
-                name = (string?)GetString(c, "name")
-            }).ToList();
-
-            using var reader = new StreamReader(collectionCSVPath);
-            using var csv = new CsvReader(reader, _csvConfig);
-
-            var records = csv.GetRecords<dynamic>().ToList();
-            var newRecords = new List<Collection>();
-
             var existingIdentifier = await dbContext.MMSICollections
                 .AsNoTracking()
-                .Select(b => b.MMSICollectionNumber)
-                .ToHashSetAsync(cancellationToken);
+                .Where(b => true)
+                .ToDictionaryAsync(b => b.MMSICollectionNumber, b => b.MMSICollectionId, cancellationToken);
 
-            var ibsCustomerList = await dbContext.Customers
-                .Where(c => c.Company == "MMSI")
-                .AsNoTracking()
-                .ToListAsync(cancellationToken);
+            var collectionMap = new Dictionary<string, int>();
+            var newRecords = new List<Collection>();
 
-            var currentBatch = new HashSet<string>();
+            using var reader = new StreamReader(file.OpenReadStream());
+            using var csv = new CsvReader(reader, _csvConfig);
+            var records = csv.GetRecords<dynamic>();
 
             foreach (var record in records)
             {
                 string? crNum = GetString(record, "crnum");
-                if (string.IsNullOrEmpty(crNum) || existingIdentifier.Contains(crNum) || currentBatch.Contains(crNum))
+                if (string.IsNullOrEmpty(crNum))
                 {
                     continue;
                 }
 
-                Collection newRecord = new Collection();
+                if (existingIdentifier.TryGetValue(crNum, out int existingId))
+                {
+                    collectionMap[crNum] = existingId;
+                    continue;
+                }
+
                 string? custNo = GetString(record, "custno");
-                var msapCustomer = msapCustomerRecords.FirstOrDefault(mc => mc.number == custNo);
-                if (msapCustomer == null)
+                if (custNo == null || !customerMap.TryGetValue(custNo, out int customerId))
                 {
                     continue;
                 }
 
-                var customer = ibsCustomerList.FirstOrDefault(c => c.CustomerName.Trim() == msapCustomer.name?.Trim());
-                if (customer == null)
+                Collection newRecord = new Collection
                 {
-                    continue;
-                }
+                    CustomerId = customerId, MMSICollectionNumber = crNum, CheckNumber = GetString(record, "checkno"),
+                    Status = "Create",
+                    Company = "MMSI",
+                    CashAmount = 0,
+                    WVAT = 0,
+                    Date = ParseDateOnly(record, "crdate") ?? DateOnly.FromDateTime(DateTime.Today),
+                    DepositDate = ParseDateOnly(record, "datedeposi"),
+                    Amount = ParseDecimal(record, "amount")
+                };
 
-                newRecord.CustomerId = customer.CustomerId;
-                newRecord.MMSICollectionNumber = crNum;
-                newRecord.CheckNumber = GetString(record, "checkno");
-                newRecord.Status = "Create";
-                newRecord.Company = "MMSI";
-                newRecord.CashAmount = 0;
-                newRecord.WVAT = 0;
-
-                newRecord.Date = ParseDateOnly(record, "crdate") ?? DateOnly.FromDateTime(DateTime.Today);
-                newRecord.DepositDate = ParseDateOnly(record, "datedeposi");
-                newRecord.Amount = ParseDecimal(record, "amount");
                 newRecord.CheckAmount = newRecord.Amount;
                 newRecord.EWT = ParseDecimal(record, "n2307");
 
@@ -1267,12 +1277,24 @@ namespace IBSWeb.Areas.User.Controllers
                 newRecord.CreatedBy = GetString(record, "createdby") ?? "IMPORT";
 
                 newRecords.Add(newRecord);
-                currentBatch.Add(crNum);
+                existingIdentifier[crNum] = 0;
+                collectionMap[crNum] = -1;
             }
 
-            await dbContext.MMSICollections.AddRangeAsync(newRecords, cancellationToken);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            return $"Collection import successful, {newRecords.Count} new records";
+            if (newRecords.Count > 0)
+            {
+                await dbContext.MMSICollections.AddRangeAsync(newRecords, cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken);
+                foreach (var record in newRecords)
+                {
+                    if (collectionMap.ContainsKey(record.MMSICollectionNumber))
+                    {
+                        collectionMap[record.MMSICollectionNumber] = record.MMSICollectionId;
+                    }
+                }
+            }
+
+            return ($"Collection import successful, {newRecords.Count} new records", collectionMap);
         }
     }
 }

@@ -563,9 +563,9 @@ namespace IBSWeb.Areas.User.Controllers
                             j.DispatchTickets.Any() &&
                             j.DispatchTickets.All(dt => dt.Status == "For Billing" || dt.Status == "Billed" || dt.Status == "Cancelled"));
 
-            // Refinement: The user said "if all tickets are for billing". 
+            // Refinement: The user said "if all tickets are for billing".
             // Cancelled tickets are ignored. Billed tickets are already done.
-            // So we want JOs where there's at least one "For Billing" ticket, 
+            // So we want JOs where there's at least one "For Billing" ticket,
             // and NO tickets that are "Pending", "For Tariff", or "For Approval".
 
             query = dbContext.MMSIJobOrders.AsNoTracking()
