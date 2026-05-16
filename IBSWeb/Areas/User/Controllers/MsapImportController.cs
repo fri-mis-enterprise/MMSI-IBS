@@ -317,8 +317,8 @@ namespace IBSWeb.Areas.User.Controllers
             foreach (var b in await dbContext.Billings.AsNoTracking().ToListAsync(ct))
             {
                 var info = new BillingMapInfo { Id = b.MMSIBillingId, PortId = b.PortId, TerminalId = b.TerminalId };
-                maps.Billing[b.MMSIBillingNumber] = info;
-                maps.BillingByRecId[b.MMSIBillingId.ToString()] = info;
+                maps.Billing[b.MMSIBillingNumber] = info; // Use Number for lookups from Dispatch
+                maps.BillingByRecId[b.MMSIBillingId.ToString()] = info; // Use RECID for deduplication
             }
 
             maps.Collection.Clear();
@@ -345,7 +345,8 @@ namespace IBSWeb.Areas.User.Controllers
             maps.PrincipalLegacyMap.Clear();
             foreach (var p in await dbContext.MMSIPrincipals.AsNoTracking().ToListAsync(ct))
             {
-                maps.Principal[p.PrincipalNumber] = p.PrincipalId;
+                // Composite key because Number is only unique per Agent
+                maps.Principal[$"{p.CustomerId}|{p.PrincipalNumber}"] = p.PrincipalId;
                 if (!string.IsNullOrEmpty(p.MsapRecId))
                 {
                     maps.PrincipalLegacyMap[p.MsapRecId] = p.PrincipalId;
@@ -361,7 +362,7 @@ namespace IBSWeb.Areas.User.Controllers
             maps.DispatchTicket.Clear();
             foreach (var dt in await dbContext.MMSIDispatchTickets.AsNoTracking().ToListAsync(ct))
             {
-                maps.DispatchTicket.Add(dt.DispatchNumber);
+                maps.DispatchTicket.Add(dt.DispatchTicketId.ToString());
             }
 
             maps.PortToFirstTerminal.Clear();
@@ -907,17 +908,8 @@ namespace IBSWeb.Areas.User.Controllers
                 string msapNumber = PadNumber(GetString(record, "number"), 4);
                 string recid = GetString(record, "recid");
 
-                if (maps.Principal.TryGetValue(msapNumber, out int existingId))
+                if (recid != "-" && maps.PrincipalLegacyMap.ContainsKey(recid))
                 {
-                    if (recid != "-")
-                    {
-                        maps.PrincipalLegacyMap[recid] = existingId;
-                        var existing = await dbContext.MMSIPrincipals.FindAsync(existingId);
-                        if (existing != null && existing.MsapRecId != recid)
-                        {
-                            existing.MsapRecId = recid;
-                        }
-                    }
                     skipped++;
                     continue;
                 }
@@ -960,7 +952,7 @@ namespace IBSWeb.Areas.User.Controllers
                 await dbContext.SaveChangesAsync();
                 foreach (var item in newRecords)
                 {
-                    maps.Principal[item.Entity.PrincipalNumber] = item.Entity.PrincipalId;
+                    maps.Principal[$"{item.Entity.CustomerId}|{item.Entity.PrincipalNumber}"] = item.Entity.PrincipalId;
                     if (item.LegacyId != "-")
                     {
                         maps.PrincipalLegacyMap[item.LegacyId] = item.Entity.PrincipalId;
@@ -1140,7 +1132,17 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 string billingNumber = GetString(record, "number");
                 int legacyRecId = (int)ParseDecimal(record, "recid");
-                if (maps.Billing.ContainsKey(billingNumber)) { skipped++; continue; }
+                
+                // 1. Skip if RECID already exists (redundant but safe)
+                if (maps.BillingByRecId.ContainsKey(legacyRecId.ToString())) { skipped++; continue; }
+                
+                // 2. Skip if Number already exists to avoid unique constraint violation in DB
+                if (maps.Billing.ContainsKey(billingNumber)) 
+                { 
+                    _importErrors.Add($"Billing {billingNumber} (RECID {legacyRecId}): Duplicate number found. Skipping to avoid DB constraint violation.");
+                    skipped++; 
+                    continue; 
+                }
 
                 string custNo = PadNumber(GetString(record, "custno"), 4);
                 string vesselNum = PadNumber(GetString(record, "vesselnum"), 4);
@@ -1162,7 +1164,8 @@ namespace IBSWeb.Areas.User.Controllers
                 var (pId, tId) = ResolvePortTerminal(terminalRaw, portNumRaw, maps, useFallback: true);
                 if (pId == null || tId == null) { _importErrors.Add($"Billing {billingNumber}: Port/Terminal resolution failed (TerminalRaw='{terminalRaw}', PortNumRaw='{portNumRaw}'). Skipping."); continue; }
 
-                int? principalId = maps.Principal.TryGetValue(principalNum, out int pid) ? pid : null;
+                // Principal lookup using composite key (CustomerId|PrincipalNumber)
+                int? principalId = maps.Principal.TryGetValue($"{customerId}|{principalNum}", out int pid) ? pid : null;
                 int? collectionId = maps.Collection.TryGetValue(crNum, out int cid) ? cid : null;
 
                 DateOnly billingDate = ParseDateOnly(record, "date") ?? DateOnly.FromDateTime(DateTime.Today);
@@ -1238,7 +1241,7 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 string dispatchNo = GetString(record, "number");
                 int legacyRecId = (int)ParseDecimal(record, "recid");
-                if (maps.DispatchTicket.Contains(dispatchNo)) { skipped++; continue; }
+                if (maps.DispatchTicket.Contains(legacyRecId.ToString())) { skipped++; continue; }
 
                 string custNoRaw = GetString(record, "custno");
                 string custNo = (custNoRaw == "-" || string.IsNullOrWhiteSpace(custNoRaw)) ? "0000" : PadNumber(custNoRaw, 4);
@@ -1361,7 +1364,7 @@ namespace IBSWeb.Areas.User.Controllers
 
                 newRecords.Add(entity);
                 count++;
-                maps.DispatchTicket.Add(dispatchNo);
+                maps.DispatchTicket.Add(legacyRecId.ToString());
 
                 if (newRecords.Count >= 500)
                 {
