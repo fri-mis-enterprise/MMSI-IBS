@@ -1347,8 +1347,16 @@ namespace IBSWeb.Areas.User.Controllers
                     Status = ParseBool(record, "approved")
                         ? (billNumStr != "-" ? "Billed" : "For Billing")
                         : "For Tariff",
+                    DispatchRate = ParseDecimal(record, "dispatchra"),
+                    DispatchBillingAmount = ParseDecimal(record, "dispatchbi"),
+                    DispatchNetRevenue = ParseDecimal(record, "dispatchne"),
+                    BAFRate = ParseDecimal(record, "bafrate"),
+                    BAFBillingAmount = ParseDecimal(record, "bafbillamt"),
+                    BAFNetRevenue = ParseDecimal(record, "bafnetamt"),
                 };
 
+                entity.TotalBilling = entity.DispatchBillingAmount + entity.BAFBillingAmount;
+                entity.TotalNetRevenue = entity.DispatchNetRevenue + entity.BAFNetRevenue;
                 entity.TotalHours = ComputeTotalHours(entity, entity.CustomerId);
 
                 newRecords.Add(entity);
