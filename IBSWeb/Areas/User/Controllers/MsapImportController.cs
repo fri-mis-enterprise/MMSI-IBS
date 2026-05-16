@@ -1132,33 +1132,44 @@ namespace IBSWeb.Areas.User.Controllers
             {
                 string billingNumber = GetString(record, "number");
                 int legacyRecId = (int)ParseDecimal(record, "recid");
-                
+
                 // 1. Skip if RECID already exists (redundant but safe)
                 if (maps.BillingByRecId.ContainsKey(legacyRecId.ToString())) { skipped++; continue; }
-                
+
                 // 2. Skip if Number already exists to avoid unique constraint violation in DB
-                if (maps.Billing.ContainsKey(billingNumber)) 
-                { 
+                if (maps.Billing.ContainsKey(billingNumber))
+                {
                     _importErrors.Add($"Billing {billingNumber} (RECID {legacyRecId}): Duplicate number found. Skipping to avoid DB constraint violation.");
-                    skipped++; 
-                    continue; 
+                    skipped++;
+                    continue;
                 }
 
-                string custNo = PadNumber(GetString(record, "custno"), 4);
-                string vesselNum = PadNumber(GetString(record, "vesselnum"), 4);
+                string vesselNumRaw = GetString(record, "vesselnum");
+                string vesselNum = PadNumber(vesselNumRaw, 4);
                 string terminalRaw = GetString(record, "terminal");
                 string portNumRaw = PadNumber(GetString(record, "portnum"), 3);
                 string principalNum = PadNumber(GetString(record, "billto"), 4);
                 string crNum = GetString(record, "crnum");
+                string custNo = GetString(record, "custno");
 
                 if (!maps.Customer.TryGetValue(custNo, out int customerId) && !maps.CustomerLegacyMap.TryGetValue(GetString(record, "custno"), out customerId))
                 {
                     _importErrors.Add($"Billing {billingNumber}: Customer {custNo} not found. Skipping."); continue;
                 }
 
-                if (!maps.Vessel.TryGetValue(vesselNum, out int vesselId) && !maps.VesselLegacyMap.TryGetValue(GetString(record, "vesselnum"), out vesselId))
+                // Vessel lookup: try Number then Legacy ID (with/without padding)
+                if (!maps.Vessel.TryGetValue(vesselNum, out int vesselId))
                 {
-                    _importErrors.Add($"Billing {billingNumber}: Vessel {vesselNum} not found. Skipping."); continue;
+                    if (!maps.VesselLegacyMap.TryGetValue(vesselNumRaw, out vesselId))
+                    {
+                        string unpadded = vesselNumRaw.TrimStart('0');
+                        if (string.IsNullOrEmpty(unpadded)) unpadded = "0";
+                        if (!maps.VesselLegacyMap.TryGetValue(unpadded, out vesselId))
+                        {
+                            _importErrors.Add($"Billing {billingNumber}: Vessel {vesselNumRaw} not found. Skipping.");
+                            continue;
+                        }
+                    }
                 }
 
                 var (pId, tId) = ResolvePortTerminal(terminalRaw, portNumRaw, maps, useFallback: true);
@@ -1246,43 +1257,52 @@ namespace IBSWeb.Areas.User.Controllers
                 string custNoRaw = GetString(record, "custno");
                 string custNo = (custNoRaw == "-" || string.IsNullOrWhiteSpace(custNoRaw)) ? "0000" : PadNumber(custNoRaw, 4);
                 string tugboatNum = PadNumber(GetString(record, "tugnum"), 3);
-                string vesselNum = PadNumber(GetString(record, "vesselnum"), 4);
+                string vesselNumRaw = GetString(record, "vesselnum");
+                string vesselNum = PadNumber(vesselNumRaw, 4);
                 string serviceNum = PadNumber(GetString(record, "srvctype"), 3);
                 string portNumRaw = PadNumber(GetString(record, "portnum"), 3);
                 string terminalRaw = GetString(record, "terminal");
                 string billNumStr = GetString(record, "billnum");
 
-                if (!maps.Customer.TryGetValue(custNo, out int customerId) && !maps.CustomerLegacyMap.TryGetValue(GetString(record, "custno"), out customerId))
+                if (!maps.Customer.TryGetValue(custNo, out int customerId))
                 {
-                    if (custNo == "0000")
+                    if (!maps.CustomerLegacyMap.TryGetValue(custNoRaw, out customerId))
                     {
-                        var unknown = await dbContext.Customers.FirstOrDefaultAsync(c => c.CustomerCode == "0000" && c.Company == "MMSI");
-                        if (unknown == null)
+                        string unpadded = custNoRaw.TrimStart('0');
+                        if (string.IsNullOrEmpty(unpadded)) unpadded = "0";
+                        if (!maps.CustomerLegacyMap.TryGetValue(unpadded, out customerId))
                         {
-                            unknown = new Customer
+                            if (custNo == "0000")
                             {
-                                CustomerCode = "0000",
-                                CustomerName = "-",
-                                CustomerAddress = "-",
-                                CustomerTin = "000-000-000-00000",
-                                CustomerTerms = "COD",
-                                CustomerType = "Industrial",
-                                VatType = "Vatable",
-                                ZipCode = "0000",
-                                Company = "MMSI",
-                                CreatedBy = "System Import Fallback",
-                                CreatedDate = DateTimeHelper.GetCurrentPhilippineTime()
-                            };
-                            dbContext.Customers.Add(unknown);
-                            await dbContext.SaveChangesAsync();
+                                var unknown = await dbContext.Customers.FirstOrDefaultAsync(c => c.CustomerCode == "0000" && c.Company == "MMSI");
+                                if (unknown == null)
+                                {
+                                    unknown = new Customer
+                                    {
+                                        CustomerCode = "0000",
+                                        CustomerName = "-",
+                                        CustomerAddress = "-",
+                                        CustomerTin = "000-000-000-00000",
+                                        CustomerTerms = "COD",
+                                        CustomerType = "Industrial",
+                                        VatType = "Vatable",
+                                        ZipCode = "0000",
+                                        Company = "MMSI",
+                                        CreatedBy = "System Import Fallback",
+                                        CreatedDate = DateTimeHelper.GetCurrentPhilippineTime()
+                                    };
+                                    dbContext.Customers.Add(unknown);
+                                    await dbContext.SaveChangesAsync();
+                                }
+                                maps.Customer["0000"] = unknown.CustomerId;
+                                customerId = unknown.CustomerId;
+                            }
+                            else
+                            {
+                                _importErrors.Add($"Dispatch {dispatchNo}: Customer {custNoRaw} not found. Skipping.");
+                                continue;
+                            }
                         }
-                        maps.Customer["0000"] = unknown.CustomerId;
-                        customerId = unknown.CustomerId;
-                    }
-                    else
-                    {
-                        _importErrors.Add($"Dispatch {dispatchNo}: Customer {custNo} not found. Skipping.");
-                        continue;
                     }
                 }
 
@@ -1291,9 +1311,19 @@ namespace IBSWeb.Areas.User.Controllers
                     _importErrors.Add($"Dispatch {dispatchNo}: Tugboat {tugboatNum} not found. Skipping."); continue;
                 }
 
-                if (!maps.Vessel.TryGetValue(vesselNum, out int vesselId) && !maps.VesselLegacyMap.TryGetValue(GetString(record, "vesselnum"), out vesselId))
+                // Vessel lookup: try Number then Legacy ID (with/without padding)
+                if (!maps.Vessel.TryGetValue(vesselNum, out int vesselId))
                 {
-                    _importErrors.Add($"Dispatch {dispatchNo}: Vessel {vesselNum} not found. Skipping."); continue;
+                    if (!maps.VesselLegacyMap.TryGetValue(vesselNumRaw, out vesselId))
+                    {
+                        string unpadded = vesselNumRaw.TrimStart('0');
+                        if (string.IsNullOrEmpty(unpadded)) unpadded = "0";
+                        if (!maps.VesselLegacyMap.TryGetValue(unpadded, out vesselId))
+                        {
+                            _importErrors.Add($"Dispatch {dispatchNo}: Vessel {vesselNumRaw} not found. Skipping.");
+                            continue;
+                        }
+                    }
                 }
 
                 if (!maps.Service.TryGetValue(serviceNum, out int serviceId) && !maps.ServiceLegacyMap.TryGetValue(GetString(record, "srvctype"), out serviceId))
