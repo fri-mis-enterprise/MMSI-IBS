@@ -1,7 +1,8 @@
 :root {
     --header-width: 180px;
     --hour-width: 40px;
-    --row-height: 40px;
+    --row-height: 48px;
+    --day-header-height: 60px;
 }
 
 .timeline-container {
@@ -9,10 +10,20 @@
     grid-template-columns: var(--header-width) 1fr;
     overflow: auto;
     position: relative;
-    height: calc(100vh - 45px);
+    height: calc(100vh - 160px); /* Adjust to fit between navbar and footer */
     cursor: grab;
     user-select: none;
-    background-color: white;
+    background-color: #fcfcfc;
+    
+    /* Persistent grid lines */
+    background-image: 
+        linear-gradient(to right, #dee2e6 1px, transparent 1px),
+        linear-gradient(to right, rgba(0,0,0,0.03) 1px, transparent 1px);
+    background-size: 
+        calc(var(--hour-width) * 24) 100%, 
+        var(--hour-width) 100%;
+    background-position: var(--header-width) 0;
+    background-attachment: local;
 }
 
 .timeline-header-row, #tugboat-rows-container {
@@ -26,8 +37,8 @@
 /* Header corner */
 .tugboat-header-col {
     width: var(--header-width);
-    height: 60px;
-    line-height: 60px;
+    height: var(--day-header-height);
+    line-height: var(--day-header-height);
     padding-left: 15px;
     font-weight: bold;
     border-right: 1px solid #dee2e6;
@@ -47,7 +58,8 @@
     position: sticky;
     top: 0;
     z-index: 80;
-    height: 60px;
+    height: var(--day-header-height);
+    width: fit-content;
 }
 
 .day-slot {
@@ -60,7 +72,7 @@
 
 .day-label {
     text-align: center;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     padding: 2px 0;
     background-color: #e9ecef;
     height: 30px;
@@ -71,17 +83,17 @@
 .hours-sub-header {
     height: 30px;
     display: flex;
-    flex-wrap: nowrap; /* Prevent wrapping */
+    flex-wrap: nowrap;
 }
 
 .hour-tick {
     width: var(--hour-width);
     text-align: center;
-    font-size: 0.6rem;
+    font-size: 0.7rem;
     line-height: 30px;
     border-right: 1px solid rgba(0,0,0,0.05);
     color: #6c757d;
-    flex-shrink: 0; /* Important: never shrink/wrap */
+    flex-shrink: 0;
     overflow: hidden;
 }
 
@@ -93,61 +105,105 @@
 .tugboat-name {
     width: var(--header-width);
     height: var(--row-height);
-    line-height: var(--row-height);
-    padding-left: 15px;
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
     border-bottom: 1px solid #dee2e6;
     border-right: 1px solid #dee2e6;
     position: sticky;
     left: 0;
     background: white;
     z-index: 90;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    font-weight: 500;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.tugboat-name:hover {
+    background-color: #f0f7ff;
+    z-index: 95;
 }
 
 .blocks-container {
     height: var(--row-height);
     border-bottom: 1px solid #dee2e6;
     position: relative;
-    background-image: linear-gradient(to right, #f1f3f5 1px, transparent 1px);
-    background-size: var(--hour-width) 100%;
     width: calc(var(--days-in-month) * 24 * var(--hour-width));
 }
 
 .timeline-block {
     position: absolute;
-    height: 28px;
+    height: calc(var(--row-height) - 12px);
     top: 6px;
     border-radius: 4px;
-    padding: 2px 8px;
-    font-size: 0.7rem;
+    padding: 0 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 600;
     color: white;
     cursor: pointer;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    transition: transform 0.1s, box-shadow 0.1s;
+    transition: transform 0.1s, box-shadow 0.1s, height 0.1s;
     z-index: 10;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.25);
     
     left: calc(var(--block-start) * var(--hour-width));
     width: calc(var(--block-duration) * var(--hour-width));
-    min-width: 15px;
+    min-width: 24px;
+}
+
+.block-main-content {
+    width: 100%;
+    overflow: hidden;
+}
+
+.block-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.block-details {
+    display: none;
+    font-size: 0.7rem;
+    margin-top: 4px;
+    border-top: 1px solid rgba(255,255,255,0.3);
+    padding-top: 4px;
+    font-weight: 400;
+}
+
+.detail-item {
+    margin-bottom: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .timeline-block:hover {
-    transform: translateY(-1px) scale(1.02);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-    z-index: 150;
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+    z-index: 200;
+    white-space: normal;
+    height: auto !important;
+    min-width: 300px !important; /* Increased for extreme zoom-out */
+    min-height: calc(var(--row-height) - 12px);
+    padding: 8px 10px;
+    justify-content: flex-start;
 }
 
-.timeline-block:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    z-index: 100;
+.timeline-block:hover .block-details {
+    display: block;
+}
+
+.timeline-block:hover .block-title {
+    white-space: normal;
+    margin-bottom: 4px;
 }
 
 .block-planned {

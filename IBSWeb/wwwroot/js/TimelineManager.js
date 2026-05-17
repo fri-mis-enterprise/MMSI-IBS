@@ -8,12 +8,18 @@ class TimelineManager {
         this.scheduleToggleEl = document.getElementById(config.scheduleToggleId);
         this.checklistEl = document.getElementById(config.checklistId);
         
+        this.STORAGE_KEY = 'tugboat_monitoring_selection';
+        this.TOGGLE_STORAGE_KEY = 'tugboat_monitoring_show_only_scheduled';
+        
         this.hourWidth = 40; 
         this.headerWidth = 180;
         this.nowLine = document.getElementById('now-line');
         this.currentDate = new Date();
         this.fullData = [];
         this.selectedTugboatIds = new Set();
+        this.hasLoadedPersistentSelection = false;
+
+        this.loadSettings();
         
         // Drag state
         this.isDragging = false;
@@ -27,11 +33,37 @@ class TimelineManager {
         this.updateCSSVariables();
     }
 
+    loadSettings() {
+        const savedIds = localStorage.getItem(this.STORAGE_KEY);
+        if (savedIds) {
+            try {
+                const ids = JSON.parse(savedIds);
+                this.selectedTugboatIds = new Set(ids);
+                this.hasLoadedPersistentSelection = true;
+            } catch (e) {
+                console.error("Failed to parse saved selection", e);
+            }
+        }
+
+        const savedToggle = localStorage.getItem(this.TOGGLE_STORAGE_KEY);
+        if (savedToggle !== null && this.scheduleToggleEl) {
+            this.scheduleToggleEl.checked = savedToggle === 'true';
+        }
+    }
+
+    saveSettings() {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(Array.from(this.selectedTugboatIds)));
+        if (this.scheduleToggleEl) {
+            localStorage.setItem(this.TOGGLE_STORAGE_KEY, this.scheduleToggleEl.checked);
+        }
+    }
+
     setupListeners() {
         this.searchEl.addEventListener('input', () => this.applyFilters());
         this.sidebarSearchEl.addEventListener('input', () => this.renderChecklist());
         this.scheduleToggleEl.addEventListener('change', () => {
             this.syncSelectionToScheduleToggle();
+            this.saveSettings();
             this.renderChecklist();
             this.applyFilters();
         });
@@ -41,6 +73,7 @@ class TimelineManager {
                 const id = parseInt(e.target.value);
                 if (e.target.checked) this.selectedTugboatIds.add(id);
                 else this.selectedTugboatIds.delete(id);
+                this.saveSettings();
                 this.applyFilters();
             }
         });
@@ -84,7 +117,7 @@ class TimelineManager {
 
     zoom(delta, mouseX) {
         const oldHourWidth = this.hourWidth;
-        this.hourWidth = Math.min(Math.max(this.hourWidth + delta, 10), 200);
+        this.hourWidth = Math.min(Math.max(this.hourWidth + delta, 5), 300);
         
         if (oldHourWidth !== this.hourWidth) {
             const timelineX = mouseX - this.container.offsetLeft + this.container.scrollLeft - this.headerWidth;
@@ -94,14 +127,19 @@ class TimelineManager {
             this.updateCSSVariables();
             this.container.scrollLeft = newScrollLeft;
             this.updateNowLine();
+            // Re-render timeline to adjust block sizes and potential expansion
+            this.applyFilters();
         }
     }
 
     updateCSSVariables() {
         this.container.style.setProperty('--hour-width', `${this.hourWidth}px`);
+        this.container.style.setProperty('--row-height', `${this.rowHeight || 48}px`);
         if (this.daysInMonth) {
             this.container.style.setProperty('--days-in-month', this.daysInMonth);
         }
+        // Update background grid position to match header
+        this.container.style.setProperty('background-position', `${this.headerWidth}px 0`);
     }
 
     setupSignalR() {
@@ -134,8 +172,10 @@ class TimelineManager {
         this.fullData = data;
         this.updateCSSVariables();
         
-        // Reset selection on new data load if needed
-        this.syncSelectionToScheduleToggle();
+        // Only sync selection if we don't have a persistent one
+        if (!this.hasLoadedPersistentSelection) {
+            this.syncSelectionToScheduleToggle();
+        }
         
         this.renderChecklist();
         this.applyFilters();
@@ -196,13 +236,30 @@ class TimelineManager {
             if (checked) this.selectedTugboatIds.add(id);
             else this.selectedTugboatIds.delete(id);
         });
+        this.saveSettings();
         this.applyFilters();
     }
 
     renderTimeline(data) {
+        this.calculateDynamicRowHeight(data.length);
         this.renderHeader();
         this.renderRows(data);
         this.updateNowLine();
+    }
+
+    calculateDynamicRowHeight(rowCount) {
+        const containerHeight = this.container.clientHeight - 60; // Subtract header height
+        const minHeight = 48;
+        const maxHeight = 120;
+        
+        if (rowCount > 0) {
+            let optimalHeight = Math.floor(containerHeight / rowCount);
+            this.rowHeight = Math.min(Math.max(optimalHeight, minHeight), rowCount < 5 ? maxHeight : 80);
+        } else {
+            this.rowHeight = minHeight;
+        }
+        
+        this.updateCSSVariables();
     }
 
     renderHeader() {
@@ -270,7 +327,19 @@ class TimelineManager {
         div.style.setProperty('--block-start', (startOffset / 60).toFixed(4));
         div.style.setProperty('--block-duration', (durationMinutes / 60).toFixed(4));
         
-        div.textContent = block.title;
+        const timeStr = `${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - ${end.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+        
+        div.innerHTML = `
+            <div class="block-main-content">
+                <div class="block-title">${block.title}</div>
+                <div class="block-details">
+                    <div class="detail-item"><strong>Client:</strong> ${block.customerName || '-'}</div>
+                    <div class="detail-item"><strong>Port:</strong> ${block.portTerminal || '-'}</div>
+                    <div class="detail-item"><strong>Time:</strong> ${timeStr}</div>
+                </div>
+            </div>
+        `;
+        
         div.title = `${block.title} (${block.status})`;
         
         div.onclick = (e) => {

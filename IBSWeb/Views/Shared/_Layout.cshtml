@@ -584,7 +584,7 @@
             </div>
         </nav>
     </header>
-    <div class="container" style="padding-top:5rem">
+    <div class="@(ViewData["IsFullWidth"] is true ? "container-fluid px-4" : "container")" style="padding-top:5rem">
         <main role="main">
             <input type="hidden" id="hfUsername" value="@userName" />
             @RenderBody()
